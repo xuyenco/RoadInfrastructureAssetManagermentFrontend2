@@ -1,0 +1,287 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Assets.AssetCreateModel
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Tài Sản Mới</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .container-fluid {
+            height: 100%;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+            .sidebar h3 {
+                color: #343a40;
+                margin-bottom: 20px;
+            }
+
+            .sidebar .list-group-item {
+                cursor: pointer;
+                border-radius: 4px;
+                margin-bottom: 5px;
+            }
+
+                .sidebar .list-group-item:hover {
+                    background-color: #e9ecef;
+                }
+
+                .sidebar .list-group-item.active {
+                    background-color: #007bff;
+                    color: white;
+                }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .content-container {
+            width: 100%;
+            max-width: 800px; /* Giới hạn chiều rộng nội dung chính */
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        #map {
+            height: 400px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Sidebar bên trái -->
+        <div class="sidebar">
+            <h3>Danh mục tài sản</h3>
+            <div class="list-group">
+                @foreach (var category in Model.Categories)
+                {
+                    <div class="list-group-item" data-id="@category.cagetory_id" onclick="loadForm(@category.cagetory_id)">
+                        @category.cagetory_name
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Nội dung chính ở giữa -->
+        <div class="main-content">
+            <div class="content-container">
+                <h1>Tạo Tài Sản Mới</h1>
+                <form method="post" action="/Assets/AssetCreate">
+                    <input type="hidden" asp-for="NewAsset.cagetory_id" id="cagetoryId" />
+                    <div id="form-content">
+                        <p>Chọn một danh mục từ sidebar để tạo tài sản.</p>
+                    </div>
+                    <div id="map"></div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.condition">Tình trạng</label>
+                        <input asp-for="NewAsset.condition" class="form-control" required />
+                        <span asp-validation-for="NewAsset.condition" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.lifecycle_stage">Giai đoạn</label>
+                        <select asp-for="NewAsset.lifecycle_stage" class="form-control" required>
+                            <option value="">Chọn giai đoạn</option>
+                            <option value="planned">Planned</option>
+                            <option value="installed">Installed</option>
+                            <option value="maintained">Maintained</option>
+                            <option value="decommissioned">Decommissioned</option>
+                        </select>
+                        <span asp-validation-for="NewAsset.lifecycle_stage" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.installation_date">Ngày lắp đặt</label>
+                        <input asp-for="NewAsset.installation_date" type="date" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.expected_lifetime">Tuổi thọ dự kiến (năm)</label>
+                        <input asp-for="NewAsset.expected_lifetime" type="number" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.last_inspection_date">Ngày kiểm tra cuối</label>
+                        <input asp-for="NewAsset.last_inspection_date" type="date" class="form-control" />
+                    </div>
+                    <input type="hidden" asp-for="NewAsset.geometry.type" id="geometryType" />
+                    <input type="hidden" asp-for="NewAsset.geometry.coordinates" id="geometryCoordinates" />
+                    <input type="hidden" asp-for="NewAsset.attributes" id="attributes" />
+                    <button type="submit" class="btn btn-primary">Tạo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map, currentLayer, coordinates = [];
+
+        // Khởi tạo bản đồ khi trang load
+        document.addEventListener('DOMContentLoaded', function () {
+            map = L.map('map').setView([10.8231, 106.6297], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        });
+
+        function loadForm(id) {
+            $('.list-group-item').removeClass('active');
+            $(`.list-group-item[data-id="${id}"]`).addClass('active');
+            $('#cagetoryId').val(id);
+
+            $.ajax({
+                url: '/Assets/AssetCreate?handler=GetCategorySchema&id=' + id,
+                method: 'GET',
+                success: function (data) {
+                    $('#form-content').html(data);
+                    bindFormEvents();
+                },
+                error: function () {
+                    $('#form-content').html('<p>Đã xảy ra lỗi khi tải form.</p>');
+                }
+            });
+        }
+
+        function bindFormEvents() {
+            const attributeInputs = document.querySelectorAll('.attribute-input');
+            attributeInputs.forEach(input => input.addEventListener('change', updateAttributes));
+            updateForm();
+
+            const form = document.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    const formData = new FormData(form);
+                    console.log('Form submitting:', Object.fromEntries(formData));
+                });
+            }
+        }
+
+        function updateForm() {
+            let geoType = document.getElementById('geoType')?.value?.toLowerCase();
+            const coordinatesInput = document.getElementById('coordinatesInput');
+            if (!coordinatesInput || !geoType) {
+                console.error('Missing geoType or coordinatesInput');
+                return;
+            }
+
+            if (geoType === 'line') geoType = 'linestring';
+            console.log('Normalized geoType:', geoType);
+
+            coordinates = [];
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+                currentLayer = null;
+            }
+
+            map.off('click');
+            map.off('dblclick');
+
+            if (geoType === 'point') {
+                coordinatesInput.innerHTML = '<p>Click on the map to select a point.</p>';
+                map.on('click', onMapClickPoint);
+            } else if (geoType === 'linestring') {
+                coordinatesInput.innerHTML = '<p>Click on the map to add points to the line. Double-click to finish.</p>';
+                map.on('click', onMapClickLine);
+                map.on('dblclick', finishLineString);
+            } else if (geoType === 'polygon') {
+                coordinatesInput.innerHTML = '<p>Click on the map to add points to the polygon. Double-click to finish.</p>';
+                map.on('click', onMapClickPolygon);
+                map.on('dblclick', finishPolygon);
+            }
+        }
+
+        function onMapClickPoint(e) {
+            if (currentLayer) map.removeLayer(currentLayer);
+            coordinates = [e.latlng.lng, e.latlng.lat];
+            currentLayer = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+            updateGeometryField('Point', coordinates);
+            map.off('click');
+        }
+
+        function onMapClickLine(e) {
+            coordinates.push([e.latlng.lng, e.latlng.lat]);
+            if (currentLayer) map.removeLayer(currentLayer);
+            currentLayer = L.polyline(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
+            updateGeometryField('LineString', coordinates);
+        }
+
+        function finishLineString() {
+            if (coordinates.length < 2) {
+                alert('A LineString requires at least 2 points.');
+                return;
+            }
+            if (currentLayer) map.removeLayer(currentLayer);
+            currentLayer = L.polyline(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
+            updateGeometryField('LineString', coordinates);
+            map.off('click');
+            map.off('dblclick');
+        }
+
+        function onMapClickPolygon(e) {
+            coordinates.push([e.latlng.lng, e.latlng.lat]);
+            if (currentLayer) map.removeLayer(currentLayer);
+            currentLayer = L.polygon(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
+            updateGeometryField('Polygon', [coordinates]);
+        }
+
+        function finishPolygon() {
+            if (coordinates.length < 3) {
+                alert('A Polygon requires at least 3 points.');
+                return;
+            }
+            coordinates.push(coordinates[0]);
+            if (currentLayer) map.removeLayer(currentLayer);
+            currentLayer = L.polygon(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
+            updateGeometryField('Polygon', [coordinates]);
+            map.off('click');
+            map.off('dblclick');
+        }
+
+        function updateGeometryField(type, coords) {
+            const geometryTypeField = document.getElementById('geometryType');
+            const geometryCoordinatesField = document.getElementById('geometryCoordinates');
+            if (geometryTypeField && geometryCoordinatesField) {
+                geometryTypeField.value = type;
+                geometryCoordinatesField.value = JSON.stringify(coords);
+                console.log('Geometry updated:', { type, coordinates: coords });
+            } else {
+                console.error('Geometry fields not found');
+            }
+        }
+
+        function updateAttributes() {
+            const attributes = {};
+            document.querySelectorAll('.attribute-input').forEach(input => {
+                attributes[input.id] = input.value || '';
+            });
+            const attributesField = document.getElementById('attributes');
+            if (attributesField) {
+                attributesField.value = JSON.stringify(attributes);
+                console.log('Attributes updated:', attributes);
+            }
+        }
+    </script>
+</body>
+</html>

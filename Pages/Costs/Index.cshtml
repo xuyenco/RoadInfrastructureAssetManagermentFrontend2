@@ -1,0 +1,121 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Costs.IndexModel
+@{
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { margin-top: 20px; }
+        .h1, .h3 { color: #343a40; font-weight: bold; }
+        .table-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); padding: 20px; }
+        .btn-primary { transition: background-color 0.3s; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .thead-light th { background-color: #e9ecef; color: #495057; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Danh sách chi phí</h1>
+    </div>
+
+    <div class="text-center table-container">
+        <p class="h3 p-3">Danh sách chi phí</p>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Tìm kiếm theo năm..." id="searchInput">
+            </div>
+        </div>
+        <div>
+            <a class="btn btn-primary btn-sm mb-3" href="/Costs/CostCreate">
+                <i class="fas fa-plus"></i> Tạo Cost mới
+            </a>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm table-striped">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Mã chi phí</th>
+                            <th>Mã nhiệm vụ</th>
+                            <th>Loại chi phí</th>
+                            <th>Tổng số tiền</th>
+                            <th>Mô tả chi tiết</th>
+                            <th>Ngày giải ngân</th>
+                            <th>Ngày tạo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cost in Model.Costs)
+                        {
+                            <tr>
+                                <td>@cost.cost_id</td>
+                                <td>@cost.task_id</td>
+                                <td>@cost.cost_type</td>
+                                <td>@cost.amount.ToString("N0") VNĐ</td>
+                                <td>@cost.description</td>
+                                <td>@cost.date_incurred</td>
+                                <td>@cost.created_at</td>
+                                <td>
+                                    <a class="btn btn-info btn-sm" href="/Costs/CostDetail?id=@cost.cost_id" data-toggle="tooltip" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i> Chi tiết
+                                    </a>
+                                    <button class="btn btn-danger btn-sm delete-btn" data-id="@cost.cost_id" data-toggle="tooltip" title="Xóa chi phí">
+                                        <i class="fas fa-trash-alt"></i> Xóa
+                                    </button>
+                                    <a class="btn btn-secondary btn-sm" href="/Costs/CostUpdate?id=@cost.cost_id" data-toggle="tooltip" title="Cập nhật Cost">
+                                        <i class="fas fa-edit"></i> Cập nhật
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+
+        $('.delete-btn').on('click', function () {
+            const costId = $(this).data('id');
+            if (confirm('Bạn có chắc chắn muốn xóa lịch sử này?')) {
+                $.ajax({
+                    url: '/Costs/Index?handler=Delete', // Gọi handler Delete trong PageModel
+                    type: 'POST',
+                    data: { id: costId },
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() // CSRF token
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                           $(`tr[data-task-id="${costId}"]`).remove(); // Xóa hàng khỏi bảng
+                            alert('Xóa chi phí thành công!');
+                        } else {
+                            alert('Xóa chi phí thất bại: ' + response.message);
+                        }
+                    },
+                    error: function () {
+                        alert('Đã xảy ra lỗi khi xóa chi phí.');
+                    }
+                });
+            }
+        });
+
+        document.getElementById("searchInput").addEventListener("keyup", function() {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll("tbody tr");
+
+            rows.forEach(row => {
+                let year = row.cells[2].textContent.toLowerCase();
+                row.style.display = year.includes(filter) ? "" : "none";
+            });
+        });
+    </script>
+</body>
+</html>

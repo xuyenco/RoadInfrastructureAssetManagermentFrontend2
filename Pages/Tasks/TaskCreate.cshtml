@@ -1,0 +1,95 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Tasks.TaskCreateModel
+@{
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { margin-top: 20px; }
+        .form-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); padding: 20px; }
+        .btn-primary { transition: background-color 0.3s; }
+        .btn-primary:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tạo Task Mới</h1>
+    </div>
+
+    <div class="form-container">
+        <h3 class="mb-3">Thông tin Task</h3>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger" role="alert">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            </div>
+        }
+
+        <form method="post">
+            <div class="form-group mb-3">
+                <label asp-for="Task.asset_id" class="form-label">Mã Tài sản</label>
+                <input asp-for="Task.asset_id" class="form-control" type="number" required />
+                <span asp-validation-for="Task.asset_id" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Task.assigned_to" class="form-label">Người được giao</label>
+                <input asp-for="Task.assigned_to" class="form-control" type="number" required />
+                <span asp-validation-for="Task.assigned_to" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Task.task_type" class="form-label">Loại Nhiệm vụ</label>
+                <input asp-for="Task.task_type" class="form-control" required />
+                <span asp-validation-for="Task.task_type" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Task.description" class="form-label">Mô tả</label>
+                <input asp-for="Task.description" class="form-control" required />
+                <span asp-validation-for="Task.description" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Task.priority" class="form-label">Ưu tiên</label>
+                <input asp-for="Task.priority" class="form-control" required />
+                <span asp-validation-for="Task.priority" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Task.status" class="form-label">Trạng thái</label>
+                <input asp-for="Task.status" class="form-control" required />
+                <span asp-validation-for="Task.status" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Task.due_date" class="form-label">Ngày đến hạn</label>
+                <input asp-for="Task.due_date" class="form-control" type="date" required />
+                <span asp-validation-for="Task.due_date" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Tạo Task
+                </button>
+                <a href="/Tasks/Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Script cho validation -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Assets.IndexModel
+@{
+    ViewData["Title"] = "Assets";
+}
+
+<!-- Đặt Leaflet CSS và JS trong head -->
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<h1>Assets</h1>
+<div id="map" style="height: 600px;"></div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Kiểm tra xem L đã được định nghĩa chưa
+            if (typeof L === 'undefined') {
+                console.error('Leaflet library failed to load');
+                return;
+            }
+
+            const map = L.map('map').setView([10.8231, 106.6297], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Dữ liệu từ Razor
+            const assets = @Html.Raw(Json.Serialize(Model.Assets));
+            console.log('Assets:', assets);
+
+            if (assets.length === 0) {
+                console.log('No assets found, adding test marker');
+                L.marker([10.8231, 106.6297]).addTo(map).bindPopup('Test Marker');
+            } else {
+                assets.forEach(asset => {
+                    console.log('Asset geometry:', asset.geometry);
+                    try {
+                        L.geoJSON(asset.geometry, {
+                            pointToLayer: (feature, latlng) => {
+                                return L.marker(latlng, {
+                                    icon: L.icon({
+                                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                                        iconSize: [25, 41],
+                                        iconAnchor: [12, 41]
+                                    })
+                                });
+                            },
+                            style: (feature) => {
+                                return {
+                                    color: asset.condition === 'Good' ? 'green' : 'red',
+                                    weight: 2,
+                                    fillOpacity: 0.5
+                                };
+                            },
+                            onEachFeature: (feature, layer) => {
+                                layer.bindPopup(`ID: ${asset.asset_id}<br>Condition: ${asset.condition}`);
+                            }
+                        }).addTo(map);
+                    } catch (error) {
+                        console.error('Error rendering asset:', asset, error);
+                    }
+                });
+
+                try {
+                    const group = L.featureGroup(assets.map(asset => L.geoJSON(asset.geometry)));
+                    if (group.getBounds().isValid()) {
+                        map.fitBounds(group.getBounds());
+                    } else {
+                        console.log('Invalid bounds, keeping default view');
+                    }
+                } catch (error) {
+                    console.error('Error adjusting map bounds:', error);
+                }
+            }
+        });
+    </script>
+}

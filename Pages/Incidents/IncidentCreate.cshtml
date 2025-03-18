@@ -1,0 +1,136 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Incidents.IncidentCreateModel
+@{
+}
+
+<h2>Tạo Incident Mới</h2>
+
+<form method="post">
+    <div class="form-group">
+        <label for="geometryType">Loại hình học</label>
+        <select class="form-control" id="geometryType" asp-for="Incident.location.type" required>
+            <option value="">Chọn loại</option>
+            <option value="Point">Điểm</option>
+            <option value="LineString">Đường</option>
+        </select>
+    </div>
+
+    <div id="map" style="height: 400px; width: 100%;"></div>
+    <p id="mapInstruction">Chọn loại hình học để bắt đầu.</p>
+
+    <input type="hidden" id="coordinatesJson" name="Incident.location.coordinates" />
+
+    <div class="form-group">
+        <label asp-for="Incident.asset_id">Asset ID</label>
+        <input asp-for="Incident.asset_id" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label for="reported_by">Reported By</label>
+        <input type="number" class="form-control" id="reported_by" asp-for="Incident.reported_by" required />
+    </div>
+    <div class="form-group">
+        <label for="incident_type">Incident Type</label>
+        <input type="text" class="form-control" id="incident_type" asp-for="Incident.incident_type" required />
+    </div>
+    <div class="form-group">
+        <label for="description">Description</label>
+        <textarea class="form-control" id="description" asp-for="Incident.description" rows="3" required></textarea>
+    </div>
+    <div class="form-group">
+        <label for="priority">Priority</label>
+        <select class="form-control" id="priority" asp-for="Incident.priority" required>
+            <option value="">Chọn mức độ ưu tiên</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="status">Status</label>
+        <select class="form-control" id="status" asp-for="Incident.status" required>
+            <option value="">Chọn trạng thái</option>
+            <option value="reported">Reported</option>
+            <option value="under review">Under review</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closeds</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="resolved_at">Resolved At</label>
+        <input type="datetime-local" class="form-control" id="resolved_at" asp-for="Incident.resolved_at" />
+    </div>
+    <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea class="form-control" id="notes" asp-for="Incident.notes" rows="3" required></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([21.0285, 105.8542], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        var geometryType = document.getElementById('geometryType');
+        var coordinatesJsonInput = document.getElementById('coordinatesJson');
+        var mapInstruction = document.getElementById('mapInstruction');
+        var marker;
+        var polyline;
+        var points = [];
+
+        geometryType.addEventListener('change', function() {
+            var type = this.value;
+            if (type === 'Point') {
+                mapInstruction.textContent = 'Nhấp vào bản đồ để chọn điểm.';
+                if (polyline) map.removeLayer(polyline);
+                points = [];
+            } else if (type === 'LineString') {
+                mapInstruction.textContent = 'Nhấp để thêm điểm cho đường, nhấp đúp để hoàn thành.';
+                if (marker) map.removeLayer(marker);
+                points = [];
+            }
+        });
+
+        map.on('click', function (e) {
+            var type = geometryType.value;
+            if (type === 'Point') {
+                var lat = e.latlng.lat;
+                var lng = e.latlng.lng;
+                if (marker) {
+                    marker.setLatLng(e.latlng);
+                } else {
+                    marker = L.marker(e.latlng).addTo(map);
+                }
+                var coordinates = [lng, lat];
+                coordinatesJsonInput.value = JSON.stringify(coordinates);
+                console.log("Point coordinates:", coordinatesJsonInput.value); // Log để kiểm tra
+            } else if (type === 'LineString') {
+                points.push([e.latlng.lat, e.latlng.lng]);
+                if (polyline) {
+                    polyline.setLatLngs(points);
+                } else {
+                    polyline = L.polyline(points, { color: 'blue' }).addTo(map);
+                }
+                var coordinates = points.map(p => [p[1], p[0]]);
+                coordinatesJsonInput.value = JSON.stringify(coordinates);
+                console.log("LineString coordinates:", coordinatesJsonInput.value); // Log để kiểm tra
+            } else {
+                console.log("Vui lòng chọn loại hình học trước khi nhấp!");
+            }
+        });
+
+        // Kiểm tra trước khi submit
+        document.querySelector('form').addEventListener('submit', function (e) {
+            if (!coordinatesJsonInput.value) {
+                alert('Vui lòng chọn tọa độ trên bản đồ!');
+                e.preventDefault();
+            }
+        });
+    </script>
+}

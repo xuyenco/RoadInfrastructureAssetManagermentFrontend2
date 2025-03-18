@@ -1,0 +1,124 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Tasks.IndexModel
+@{
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { margin-top: 20px; }
+        .h1, .h3 { color: #343a40; font-weight: bold; }
+        .table-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); padding: 20px; }
+        .btn-primary { transition: background-color 0.3s; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .thead-light th { background-color: #e9ecef; color: #495057; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Danh sách Nhiệm vụ</h1>
+    </div>
+
+    <div class="text-center table-container">
+        <p class="h3 p-3">Danh sách Nhiệm vụ</p>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Tìm kiếm theo trạng thái..." id="searchInput">
+            </div>
+        </div>
+        <div>
+            <a class="btn btn-primary btn-sm mb-3" href="/Tasks/TaskCreate">
+                <i class="fas fa-plus"></i> Tạo Nhiệm vụ mới
+            </a>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm table-striped">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Mã Tài sản</th>
+                            <th>Người được giao</th>
+                            <th>Loại Nhiệm vụ</th>
+                            <th>Mô tả</th>
+                            <th>Ưu tiên</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày đến hạn</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taskTableBody">
+                        @foreach (var task in Model.Tasks)
+                        {
+                            <tr data-task-id="@task.asset_id">
+                                <td>@task.asset_id</td>
+                                <td>@task.assigned_to</td>
+                                <td>@task.task_type</td>
+                                <td>@task.description</td>
+                                <td>@task.priority</td>
+                                <td>@task.status</td>
+                                <td>@task.due_date.ToString()</td>
+                                <td>
+                                    <a class="btn btn-info btn-sm" href="/Tasks/Detail?id=@task.asset_id" data-toggle="tooltip" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i> Chi tiết
+                                    </a>
+                                    <button class="btn btn-danger btn-sm delete-btn" data-id="@task.asset_id" data-toggle="tooltip" title="Xóa nhiệm vụ">
+                                        <i class="fas fa-trash-alt"></i> Xóa
+                                    </button>
+                                    <a class="btn btn-secondary btn-sm" href="/Tasks/Update?id=@task.asset_id" data-toggle="tooltip" title="Cập nhật nhiệm vụ">
+                                        <i class="fas fa-edit"></i> Cập nhật
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script cho tìm kiếm, tooltip và xử lý xóa -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $('[data-toggle="tooltip"]').tooltip();
+
+            // Xử lý sự kiện xóa
+            $('.delete-btn').on('click', function() {
+                const taskId = $(this).data('id');
+                if (confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) {
+                    $.ajax({
+                        url: '/Tasks/Index?handler=Delete', // Gọi handler Delete trong PageModel
+                        type: 'POST',
+                        data: { id: taskId },
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() // CSRF token
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                $(`tr[data-task-id="${taskId}"]`).remove(); // Xóa hàng khỏi bảng
+                                alert('Xóa nhiệm vụ thành công!');
+                            } else {
+                                alert('Xóa nhiệm vụ thất bại: ' + response.message);
+                            }
+                        },
+                        error: function() {
+                            alert('Đã xảy ra lỗi khi xóa nhiệm vụ.');
+                        }
+                    });
+                }
+            });
+
+            // Xử lý tìm kiếm
+            $('#searchInput').on('keyup', function() {
+                let filter = this.value.toLowerCase();
+                let rows = $('#taskTableBody tr');
+
+                rows.each(function() {
+                    let status = $(this).find('td:eq(5)').text().toLowerCase(); // Lọc theo cột status
+                    $(this).toggle(status.includes(filter));
+                });
+            });
+        });
+    </script>
+</body>
+</html>

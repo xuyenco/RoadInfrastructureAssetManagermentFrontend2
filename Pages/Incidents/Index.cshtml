@@ -1,0 +1,85 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Incidents.IndexModel
+@{
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Incidents Map</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+
+        .incident-count {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Road Incidents Map</h2>
+
+        <div class="incident-count">
+            Total Incidents: @Model.IncidentCount
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script type="text/javascript">
+        // Khởi tạo bản đồ
+        var map = L.map('map').setView([21.0285, 105.8542], 13); // Default là Hà Nội
+
+        // Thêm tile layer từ OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Dữ liệu incidents từ server
+        var incidentsData = @Html.Raw(Json.Serialize(Model.Incidents));
+
+        // Thêm markers cho từng incident
+        if (incidentsData && incidentsData.length > 0) {
+            incidentsData.forEach(function(incident) {
+                if (incident.location &&
+                    incident.location.coordinates &&
+                    incident.location.type === "Point") {
+
+                    var coords = incident.location.coordinates;
+                    var marker = L.marker([coords[1], coords[0]]).addTo(map);
+
+                    // Popup với thông tin incident
+                    marker.bindPopup(
+                        "<b>" + incident.incident_type + "</b><br>" +
+                        "Description: " + incident.description + "<br>" +
+                        "Priority: " + incident.priority + "<br>" +
+                        "Status: " + incident.status
+                    );
+                }
+            });
+
+            // Tự động điều chỉnh view để hiển thị tất cả markers
+            var group = new L.featureGroup(
+                incidentsData
+                    .filter(i => i.location && i.location.coordinates)
+                    .map(i => L.marker([i.location.coordinates[1], i.location.coordinates[0]]))
+            );
+            map.fitBounds(group.getBounds());
+        }
+    </script>
+</body>
+</html>

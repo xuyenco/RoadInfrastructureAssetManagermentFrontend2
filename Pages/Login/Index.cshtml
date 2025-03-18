@@ -1,0 +1,30 @@
+﻿@page
+@model Road_Infrastructure_Asset_Management_Frontend.Pages.Login.IndexModel
+@{
+}
+
+
+<div class="login-container">
+    <h2>Login</h2>
+    <form method="post" id="loginForm">
+        <!-- Username Input -->
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="Username" class="form-control" required />
+            <span id="usernameError" class="text-danger"></span>
+        </div>
+
+        <!-- Password Input -->
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="Password" class="form-control" required />
+            <span id="passwordError" class="text-danger"></span>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn-login">Login</button>
+    </form>
+</div>
+
+<link rel="stylesheet" href="~/css/Login/login.css" />
+<script src="~/js/Login/login.js"></script>

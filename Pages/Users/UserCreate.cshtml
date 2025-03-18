@@ -1,0 +1,83 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Users.UserCreateModel
+@{
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { margin-top: 20px; }
+        .form-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); padding: 20px; }
+        .btn-primary { transition: background-color 0.3s; }
+        .btn-primary:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tạo User Mới</h1>
+    </div>
+
+    <div class="form-container">
+        <h3 class="mb-3">Thông tin User</h3>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger" role="alert">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            </div>
+        }
+
+        <form method="post">
+            <div class="form-group mb-3">
+                <label asp-for="User.username" class="form-label">Tên đăng nhập</label>
+                <input asp-for="User.username" class="form-control" required />
+                <span asp-validation-for="User.username" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="User.password_hash" class="form-label">Mật khẩu</label>
+                <input asp-for="User.password_hash" class="form-control" type="password" required />
+                <span asp-validation-for="User.password_hash" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="User.full_name" class="form-label">Họ và Tên</label>
+                <input asp-for="User.full_name" class="form-control" required />
+                <span asp-validation-for="User.full_name" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="User.email" class="form-label">Email</label>
+                <input asp-for="User.email" class="form-control" type="email" required />
+                <span asp-validation-for="User.email" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="User.role" class="form-label">Vai trò</label>
+                <input asp-for="User.role" class="form-control" required />
+                <span asp-validation-for="User.role" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Tạo User
+                </button>
+                <a href="/Users/Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Script cho validation -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>
