@@ -9,6 +9,5 @@ namespace Road_Infrastructure_Asset_Management.Model.Response
         public double total_amount { get; set; }
         public double allocated_amount { get; set; }
         public double remaining_amount { get; set; }
-        public DateTime created_at { get; set; }
     }
 }

@@ -4,77 +4,315 @@
     ViewData["Title"] = "Assets";
 }
 
-<!-- Đặt Leaflet CSS và JS trong head -->
 <head>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        .container-fluid {
+            display: flex;
+        }
+
+        .sidebar {
+            width: 250px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            height: 600px;
+            overflow-y: auto;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 15px;
+        }
+
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+            .filter-group label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: bold;
+            }
+    </style>
 </head>
 
-<h1>Assets</h1>
-<div id="map" style="height: 600px;"></div>
+<body>
+    <div class="container-fluid">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h4>Filters</h4>
+            <div class="filter-group">
+                <label>Asset Category</label>
+                <select id="categoryFilter" class="form-control">
+                    <option value="">All Categories</option>
+                    @foreach (var category in Model.AssetCategories)
+                    {
+                        <option value="@category.cagetory_id">@category.cagetory_name</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="main-content">
+            <h1>Assets</h1>
+            <div id="asset-create">
+                <a class="btn btn-primary btn-sm mb-3" asp-page="/Assets/AssetCreate2">
+                    <i class="fas fa-plus"></i> Tạo Asset mới
+                </a>
+            </div>
+            <div id="map"></div>
+        </div>
+    </div>
+</body>
 
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Kiểm tra xem L đã được định nghĩa chưa
             if (typeof L === 'undefined') {
                 console.error('Leaflet library failed to load');
                 return;
             }
 
-            const map = L.map('map').setView([10.8231, 106.6297], 13);
+            const map = L.map('map');
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // Dữ liệu từ Razor
-            const assets = @Html.Raw(Json.Serialize(Model.Assets));
-            console.log('Assets:', assets);
+            // Truyền dữ liệu AssetCategories từ backend sang JavaScript
+            const assetCategories = @Html.Raw(Json.Serialize(Model.AssetCategories));
+            const defaultIconUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
 
-            if (assets.length === 0) {
-                console.log('No assets found, adding test marker');
-                L.marker([10.8231, 106.6297]).addTo(map).bindPopup('Test Marker');
-            } else {
-                assets.forEach(asset => {
-                    console.log('Asset geometry:', asset.geometry);
-                    try {
-                        L.geoJSON(asset.geometry, {
-                            pointToLayer: (feature, latlng) => {
-                                return L.marker(latlng, {
-                                    icon: L.icon({
-                                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                                        iconSize: [25, 41],
-                                        iconAnchor: [12, 41]
-                                    })
-                                });
-                            },
-                            style: (feature) => {
-                                return {
-                                    color: asset.condition === 'Good' ? 'green' : 'red',
-                                    weight: 2,
-                                    fillOpacity: 0.5
-                                };
-                            },
-                            onEachFeature: (feature, layer) => {
-                                layer.bindPopup(`ID: ${asset.asset_id}<br>Condition: ${asset.condition}`);
-                            }
-                        }).addTo(map);
-                    } catch (error) {
-                        console.error('Error rendering asset:', asset, error);
+            // Tạo layerConfig từ assetCategories
+            const layerConfig = {};
+            assetCategories.forEach(category => {
+                layerConfig[category.cagetory_id] = {
+                    name: category.cagetory_name.toLowerCase().replace(/\s+/g, '_') + '_layer', // Tạo tên layer từ cagetory_name
+                    iconUrl: category.marker_url || defaultIconUrl
+                };
+            });
+
+            const layers = {};
+            const markersLayer = L.layerGroup().addTo(map);
+
+            function getCachedData(key, maxAgeInSec = 600) {
+                const cached = localStorage.getItem(key);
+                if (cached) {
+                    const { data, timestamp } = JSON.parse(cached);
+                    const age = (Date.now - timestamp) / 1000; 
+                    if (age < maxAgeInSec) {
+                        return data;
+                    } else {
+                        localStorage.removeItem(key);
                     }
-                });
+                }
+                return null;
+            }
 
-                try {
-                    const group = L.featureGroup(assets.map(asset => L.geoJSON(asset.geometry)));
+            function setCachedData(key, data) {
+                const cacheEntry = {
+                    data,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(key, JSON.stringify(cacheEntry));
+            }
+
+            function createPopupContent(feature, attributes) {
+                // Xử lý các thuộc tính cố định từ feature.properties
+                const fixedProperties = {
+                    'ID': feature.properties.asset_id,
+                    'Loại tài sản': feature.properties.category_id,
+                    'Tình trạng': feature.properties.condition || 'N/A',
+                    'Giai đoạn vòng đời': feature.properties.lifecycle_stage || 'N/A',
+                    'Ngày lắp đặt': feature.properties.installation_date || 'N/A',
+                    'Tuổi thọ dự kiến': feature.properties.expected_lifetime ?
+                        `${feature.properties.expected_lifetime} năm` : 'N/A'
+                };
+
+                // Tạo HTML cho các thuộc tính cố định
+                let fixedPropertiesContent = '';
+                for (const [key, value] of Object.entries(fixedProperties)) {
+                    fixedPropertiesContent += `
+                    <tr>
+                        <td style="padding: 5px; font-weight: bold; border-bottom: 1px solid #eee;">${key}:</td>
+                        <td style="padding: 5px; border-bottom: 1px solid #eee;">${value}</td>
+                    </tr>
+                `;
+                }
+
+                // Tạo HTML cho các thuộc tính động từ attributes
+                let dynamicAttributesContent = '';
+                for (const [key, value] of Object.entries(attributes)) {
+                    const formattedKey = key
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, c => c.toUpperCase());
+
+                    dynamicAttributesContent += `
+                    <tr>
+                        <td style="padding: 5px; font-weight: bold; border-bottom: 1px solid #eee;">${formattedKey}:</td>
+                        <td style="padding: 5px; border-bottom: 1px solid #eee;">${value || 'N/A'}</td>
+                    </tr>
+                `;
+                }
+
+                // Kết hợp tất cả thành popup hoàn chỉnh
+                return `
+                <div style="font-family: Arial, sans-serif; max-width: 300px;">
+                    <h3 style="margin: 0 0 10px; font-size: 16px; color: #2c3e50;">Thông tin tài sản</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        ${fixedPropertiesContent}
+                        ${dynamicAttributesContent}
+                    </table>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <a id="update-btn-${feature.properties.asset_id}"
+                           class="btn btn-sm btn-primary"
+                           style="text-decoration: none; padding: 5px 10px;">
+                            Cập nhật
+                        </a>
+                    </div>
+                </div>
+            `;
+            }
+
+            // Hàm tải dữ liệu từ GeoServer cho từng category
+            function loadLayer(categoryId) {
+                const config = layerConfig[categoryId];
+                if (!config) return Promise.resolve();
+
+                const cacheKey = `geoserver_layer_${categoryId}`;
+                const cachedData = getCachedData(cacheKey);
+
+                if (cachedData) {
+                    console.log("Get data from caching for category:", categoryId);
+                    layers[categoryId] = L.geoJSON(cachedData, {
+                        pointToLayer: (feature, latlng) => {
+                            const iconUrl = config.iconUrl;
+                            return L.marker(latlng, {
+                                icon: L.icon({
+                                    iconUrl: iconUrl,
+                                    iconSize: [25, 41],
+                                    iconAnchor: [12, 41]
+                                })
+                            });
+                        },
+                        style: (feature) => {
+                            // Style cho LineString
+                            return {
+                                color: '#ff7800', // Màu đường (có thể thay đổi)
+                                weight: 5,        // Độ dày đường
+                                opacity: 0.65     // Độ trong suốt
+                            };
+                        },
+                        onEachFeature: (feature, layer) => {
+                            let attributes = JSON.parse(feature.properties.attributes || '{}');
+                            const popupContent = createPopupContent(feature, attributes);
+                            layer.bindPopup(popupContent);
+                            layer.on('popupopen', () => {
+                                document.getElementById(`update-btn-${feature.properties.asset_id}`).addEventListener('click', (e) => {
+                                    e.preventDefault();
+                                    if (confirm('Bạn có muốn cập nhật asset này không?')) {
+                                        window.location.href = `/Assets/AssetUpdate?id=${feature.properties.asset_id}`;
+                                    }
+                                });
+                            });
+                        }
+                    });
+                    return Promise.resolve();
+                }
+
+                return fetch(`http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:valid_road_assets_layer&outputFormat=application/json&cql_filter=category_id=${categoryId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(`GeoServer response for category ${categoryId}:`, data);
+                        if (data.features && data.features.length > 0) {
+                            setCachedData(cacheKey, data);
+                            layers[categoryId] = L.geoJSON(data, {
+                                pointToLayer: (feature, latlng) => {
+                                    const iconUrl = config.iconUrl;
+                                    return L.marker(latlng, {
+                                        icon: L.icon({
+                                            iconUrl: iconUrl,
+                                            iconSize: [25, 41],
+                                            iconAnchor: [12, 41]
+                                        })
+                                    });
+                                },
+                                style: (feature) => {
+                                    return {
+                                        color: '#ff7800',
+                                        weight: 5,
+                                        opacity: 0.65
+                                    };
+                                },
+                                onEachFeature: (feature, layer) => {
+                                    let attributes = JSON.parse(feature.properties.attributes || '{}');
+                                    const popupContent = createPopupContent(feature, attributes);
+                                    layer.bindPopup(popupContent);
+                                    layer.on('popupopen', () => {
+                                        document.getElementById(`update-btn-${feature.properties.asset_id}`).addEventListener('click', (e) => {
+                                            e.preventDefault();
+                                            if (confirm('Bạn có muốn cập nhật asset này không?')) {
+                                                window.location.href = `/Assets/AssetUpdate?id=${feature.properties.asset_id}`;
+                                            }
+                                        });
+                                    });
+                                }
+                            });
+                        }
+                    })
+                    .catch(error => console.error(`Error fetching layer for category ${categoryId}:`, error));
+            }
+
+            // Tải tất cả layer khi trang khởi tạo
+            function loadAllLayers() {
+                const loadPromises = Object.keys(layerConfig).map(categoryId => loadLayer(categoryId));
+                Promise.all(loadPromises).then(() => {
+                    updateMarkers();
+                });
+            }
+
+            // Hàm cập nhật bản đồ dựa trên filter
+            function updateMarkers() {
+                markersLayer.clearLayers();
+                const category = document.getElementById('categoryFilter').value;
+
+                if (!category) {
+                    Object.keys(layers).forEach(categoryId => {
+                        if (layers[categoryId]) {
+                            layers[categoryId].addTo(markersLayer);
+                        }
+                    });
+                } else {
+                    if (layers[category]) {
+                        layers[category].addTo(markersLayer);
+                    }
+                }
+
+                if (markersLayer.getLayers().length > 0) {
+                    const group = L.featureGroup(markersLayer.getLayers());
                     if (group.getBounds().isValid()) {
                         map.fitBounds(group.getBounds());
-                    } else {
-                        console.log('Invalid bounds, keeping default view');
                     }
-                } catch (error) {
-                    console.error('Error adjusting map bounds:', error);
+                } else {
+                    map.setView([10.8231, 106.6297], 13);
                 }
             }
+
+            // Thêm sự kiện filter và tải dữ liệu ban đầu
+            document.getElementById('categoryFilter').addEventListener('change', updateMarkers);
+            loadAllLayers();
         });
     </script>
 }

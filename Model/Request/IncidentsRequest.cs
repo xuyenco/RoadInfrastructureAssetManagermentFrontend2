@@ -13,6 +13,5 @@ namespace Road_Infrastructure_Asset_Management.Model.Response
         public string status { get; set; } = string.Empty;
         public DateTime? resolved_at { get; set; }
         public string notes { get; set; } = string.Empty;
-
     }
 }

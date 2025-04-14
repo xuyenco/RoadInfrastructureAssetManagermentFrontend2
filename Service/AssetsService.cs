@@ -1,90 +1,107 @@
 ﻿using Road_Infrastructure_Asset_Management.Model.Request;
 using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
+using System.Net;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend.Service
 {
-    public class AssetsService : IAssetsService
+    public class AssetsService : BaseService,IAssetsService
     {
-        private readonly HttpClient _httpClient;
-
-        public AssetsService(IHttpClientFactory httpClientFactory)
+        public AssetsService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+            : base(httpClientFactory, httpContextAccessor)
         {
-            _httpClient = httpClientFactory.CreateClient("ApiClient"); 
         }
 
-        // Get all assets
         public async Task<List<AssetsResponse>> GetAllAssetsAsync()
         {
-            var response = await _httpClient.GetAsync("api/assets");
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync("api/assets"));
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve assets: {response.StatusCode} - {errorContent}");
+            }
+
             var content = await response.Content.ReadAsStringAsync();
-            var assets = JsonSerializer.Deserialize<List<AssetsResponse>>(content);
-            return assets;
+            return JsonSerializer.Deserialize<List<AssetsResponse>>(content);
         }
 
-        // Get asset by ID
         public async Task<AssetsResponse?> GetAssetByIdAsync(int id)
         {
-            var response = await _httpClient.GetAsync($"api/assets/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync($"api/assets/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Asset not found
+                return null;
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve asset with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<AssetsResponse>(content);
         }
 
-        // Create a new asset
         public async Task<AssetsResponse?> CreateAssetAsync(AssetsRequest request)
         {
-            //Console.WriteLine($"Request data: {JsonSerializer.Serialize(request)}");
-            var response = await _httpClient.PostAsJsonAsync("api/assets", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.PostAsJsonAsync("api/assets", request));
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to create asset: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<AssetsResponse>(content);
         }
 
-        // Update an existing asset
-        public async Task<AssetsResponse?> UpdateAssetAsync(int id,AssetsRequest request)
+        public async Task<AssetsResponse?> UpdateAssetAsync(int id, AssetsRequest request)
         {
-            var response = await _httpClient.PatchAsJsonAsync($"api/assets/{id}", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.PatchAsJsonAsync($"api/assets/{id}", request));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Asset not found
+                return null;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to update asset with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<AssetsResponse>(content);
         }
 
-        // Delete an asset
         public async Task<bool> DeleteAssetAsync(int id)
         {
-            var response = await _httpClient.DeleteAsync($"api/assets/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.DeleteAsync($"api/assets/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return false; // Asset not found
+                return false;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict)
             {
-                return false; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Failed to delete asset with ID {id}: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
-
-            return true; // Successfully deleted
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to delete asset with ID {id}: {response.StatusCode} - {errorContent}");
+            }
+            return true;
         }
     }
 }

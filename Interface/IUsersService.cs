@@ -1,5 +1,5 @@
-﻿using Road_Infrastructure_Asset_Management.Model.Request;
-using Road_Infrastructure_Asset_Management.Model.Response;
+﻿using RoadInfrastructureAssetManagementFrontend.Model.Request;
+using RoadInfrastructureAssetManagementFrontend.Model.Response;
 
 namespace RoadInfrastructureAssetManagementFrontend.Interface
 {
@@ -10,5 +10,7 @@ namespace RoadInfrastructureAssetManagementFrontend.Interface
         Task<UsersResponse?> CreateUserAsync(UsersRequest request);
         Task<UsersResponse?> UpdateUserAsync(int id, UsersRequest request);
         Task<bool> DeleteUserAsync(int id);
+        Task<LoginResponse?> LoginAsync(LoginRequest request);
+        Task<LoginResponse?> RefreshTokenAsync(RefreshTokenRequest refreshTokenRequest);
     }
 }

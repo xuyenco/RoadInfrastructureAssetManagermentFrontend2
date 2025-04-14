@@ -9,5 +9,6 @@ namespace Road_Infrastructure_Asset_Management.Model.Request
         public Dictionary<string, object> attributes_schema { get; set; } // JSON object
         public List<string> lifecycle_stages { get; set; }   // JSON array
         public DateTime? created_at { get; set; }
+        public string marker_url { get; set; }
     }
 }

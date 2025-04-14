@@ -1,0 +1,56 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Assets.AssetImportModel
+@{
+}
+
+<div class="container">
+    <h1>Nhập tài sản từ Excel</h1>
+
+    <!-- Thông báo kết quả -->
+    @if (TempData["SuccessCount"] != null)
+    {
+        <div class="alert alert-success">
+            Đã nhập thành công @TempData["SuccessCount"] tài sản.
+            @if (TempData["ErrorFile"] != null)
+            {
+                <br />
+                <a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,@TempData["ErrorFile"]"
+                   download="Error_Rows.xlsx" class="btn btn-danger btn-sm">Tải file lỗi</a>
+            }
+        </div>
+    }
+
+    <!-- Tải file mẫu -->
+    <div class="mb-3">
+        <label for="categorySelect">Chọn danh mục để tải file mẫu:</label>
+        <select id="categorySelect" name="categoryId" class="form-control">
+            <option value="">Chọn danh mục</option>
+            @foreach (var cagetory in Model.Categories)
+            {
+                <option value="@cagetory.cagetory_id">@cagetory.cagetory_name</option>
+            }
+        </select>
+    </div>
+    <button type="button" class="btn btn-secondary" onclick="downloadExcelTemplate()">Tải file mẫu</button>
+
+    <!-- Upload file -->
+    <form method="post" enctype="multipart/form-data" asp-page-handler="ImportExcel">
+        <div class="mb-3">
+            <label for="excelFile">Chọn file Excel để nhập:</label>
+            <input type="file" id="excelFile" name="excelFile" class="form-control" accept=".xlsx, .xls" />
+        </div>
+        <button type="submit" class="btn btn-primary">Upload</button>
+    </form>
+</div>
+
+<script>
+    function downloadExcelTemplate() {
+        var categoryId = document.getElementById("categorySelect").value;
+        if (!categoryId) {
+            alert("Vui lòng chọn danh mục trước khi tải file mẫu.");
+            return;
+        }
+        var url = "/Assets/AssetImport?handler=DownloadExcelTemplate&categoryId=" + categoryId;
+        window.location.href = url;
+    }
+</script>

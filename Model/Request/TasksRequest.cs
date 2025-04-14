@@ -8,6 +8,6 @@
         public string description { get; set; } = string.Empty;
         public string priority { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
-        public DateTime due_date { get; set; }
+        public DateTime? due_date { get; set; }
     }
 }

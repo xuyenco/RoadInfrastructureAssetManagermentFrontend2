@@ -7,7 +7,6 @@
 <html>
 <head>
     <title>Incidents Map</title>
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         #map {
@@ -15,70 +14,184 @@
             width: 100%;
         }
 
+        .container-fluid {
+            display: flex;
+        }
+
+        .sidebar {
+            width: 250px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            height: 600px;
+            overflow-y: auto;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 15px;
+            position: relative;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+            .filter-group label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: bold;
+            }
+
         .incident-count {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: white;
+            margin-top: 20px;
             padding: 5px 10px;
+            background: white;
             border-radius: 3px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.65);
-            z-index: 1000;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Road Incidents Map</h2>
+    <div class="container-fluid">
+        <div class="sidebar">
+            <h4>Filters</h4>
+            <div class="filter-group">
+                <label>Priority</label>
+                <select id="priorityFilter" class="form-control">
+                    <option value="">All Priorities</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                </select>
+            </div>
 
-        <div class="incident-count">
-            Total Incidents: @Model.IncidentCount
+            <div class="filter-group">
+                <label>Status</label>
+                <select id="statusFilter" class="form-control">
+                    <option value="">All Statuses</option>
+                    <option value="reported">Reported</option>
+                    <option value="under review">Under Review</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                </select>
+            </div>
+
+            <div class="incident-count">
+                Total Incidents: <span id="incidentCount">0</span>
+            </div>
         </div>
 
-        <div id="map"></div>
+        <div class="main-content">
+            <h2>Road Incidents Map</h2>
+            <button class="btn btn-success btn-sm mb-3" onclick="exportIncidentsReport()">
+                <i class="fas fa-file-export"></i> Xuất báo cáo
+            </button>
+            <div id="map"></div>
+        </div>
     </div>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="text/javascript">
-        // Khởi tạo bản đồ
-        var map = L.map('map').setView([21.0285, 105.8542], 13); // Default là Hà Nội
-
-        // Thêm tile layer từ OpenStreetMap
+        var map = L.map('map').setView([21.0285, 105.8542], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Dữ liệu incidents từ server
-        var incidentsData = @Html.Raw(Json.Serialize(Model.Incidents));
+        var allIncidents = []; // Lưu trữ tất cả incident từ GeoServer
+        var markersLayer = L.layerGroup().addTo(map);
 
-        // Thêm markers cho từng incident
-        if (incidentsData && incidentsData.length > 0) {
-            incidentsData.forEach(function(incident) {
-                if (incident.location &&
-                    incident.location.coordinates &&
-                    incident.location.type === "Point") {
+        // Tải dữ liệu từ GeoServer layer cite:incidents_layer
+        function loadIncidentsFromGeoServer() {
+            const url = 'http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:incidents_layer&outputFormat=application/json';
+            return fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to fetch incidents from GeoServer');
+                    return response.json();
+                })
+                .then(data => {
+                    allIncidents = data.features.map(feature => ({
+                        incident_id: feature.properties.incident_id,
+                        incident_type: feature.properties.incident_type,
+                        description: feature.properties.description,
+                        priority: feature.properties.priority,
+                        status: feature.properties.status,
+                        location: {
+                            type: feature.geometry.type,
+                            coordinates: feature.geometry.coordinates
+                        }
+                    }));
+                    console.log("Incidents loaded from GeoServer:", allIncidents);
+                    updateMarkers(allIncidents);
+                })
+                .catch(error => console.error("Error loading incidents:", error));
+        }
 
+        function updateMarkers(incidents) {
+            markersLayer.clearLayers();
+            var markers = [];
+
+            incidents.forEach(function (incident) {
+                if (incident.location && incident.location.coordinates && incident.location.type === "Point") {
                     var coords = incident.location.coordinates;
-                    var marker = L.marker([coords[1], coords[0]]).addTo(map);
+                    var marker = L.marker([coords[1], coords[0]]); // Giả sử tọa độ là [lng, lat]
 
-                    // Popup với thông tin incident
                     marker.bindPopup(
                         "<b>" + incident.incident_type + "</b><br>" +
                         "Description: " + incident.description + "<br>" +
                         "Priority: " + incident.priority + "<br>" +
-                        "Status: " + incident.status
-                    );
+                        "Status: " + incident.status + "<br>" +
+                        "<button id='update-btn-" + incident.incident_id + "' class='btn btn-primary btn-sm mt-2'>Cập nhật</button>" +
+                        "<button id='history-btn-" + incident.incident_id + "' class='btn btn-primary btn-sm mt-2'>Lịch sử</button>" +
+                        "<button id='detail-btn-" + incident.incident_id + "' class='btn btn-primary btn-sm mt-2'>Chi tiết</button>",
+                        { autoClose: false }
+                    ).on('popupopen', function () {
+                        document.getElementById('update-btn-' + incident.incident_id).addEventListener('click', function () {
+                            window.location.href = '/Incidents/IncidentUpdate?id=' + incident.incident_id;
+                        });
+                        document.getElementById('detail-btn-' + incident.incident_id).addEventListener('click', function () {
+                            window.location.href = '/Incidents/IncidentDetail/' + incident.incident_id;
+                        });
+                        document.getElementById('history-btn-' + incident.incident_id).addEventListener('click', function () {
+                            window.location.href = '/IncidentHistories/IncidentHistoryByIncidentId/' + incident.incident_id;
+                        });
+                    });
+
+                    markersLayer.addLayer(marker);
+                    markers.push(marker);
                 }
             });
 
-            // Tự động điều chỉnh view để hiển thị tất cả markers
-            var group = new L.featureGroup(
-                incidentsData
-                    .filter(i => i.location && i.location.coordinates)
-                    .map(i => L.marker([i.location.coordinates[1], i.location.coordinates[0]]))
-            );
-            map.fitBounds(group.getBounds());
+            if (markers.length > 0) {
+                var group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds());
+            }
+            document.getElementById('incidentCount').textContent = incidents.length;
+        }
+
+        function filterIncidents() {
+            var priority = document.getElementById('priorityFilter').value;
+            var status = document.getElementById('statusFilter').value;
+
+            var filteredIncidents = allIncidents.filter(function (incident) {
+                return (!priority || incident.priority === priority) &&
+                    (!status || incident.status === status);
+            });
+
+            updateMarkers(filteredIncidents);
+        }
+
+        document.getElementById('priorityFilter').addEventListener('change', filterIncidents);
+        document.getElementById('statusFilter').addEventListener('change', filterIncidents);
+
+        // Tải dữ liệu khi trang khởi tạo
+        document.addEventListener('DOMContentLoaded', function () {
+            loadIncidentsFromGeoServer();
+        });
+
+        function exportIncidentsReport() {
+            window.location.href = "/Incidents/Index?handler=ExportExcel";
         }
     </script>
 </body>

@@ -1,39 +1,81 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend.Pages.Users.IndexModel
 @{
+    Layout = "_Layout";
 }
 
 <!DOCTYPE html>
 <html>
 <head>
-    <!-- Thêm Font Awesome để sử dụng biểu tượng -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        body { background-color: #f8f9fa; }
-        .container { margin-top: 20px; }
-        .h1, .h3 { color: #343a40; font-weight: bold; }
-        .table-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); padding: 20px; }
-        .btn-primary { transition: background-color 0.3s; }
-        .btn-primary:hover { background-color: #0056b3; }
-        .thead-light th { background-color: #e9ecef; color: #495057; }
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .h1, .h3 {
+            color: #343a40;
+            font-weight: bold;
+        }
+
+        .table-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .btn-primary {
+            transition: background-color 0.3s;
+        }
+
+            .btn-primary:hover {
+                background-color: #0056b3;
+            }
+
+        .thead-light th {
+            background-color: #e9ecef;
+            color: #495057;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Danh sách Người dùng</h1>
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @TempData["Error"]
+            </div>
+        }
     </div>
 
     <div class="text-center table-container">
         <p class="h3 p-3">Danh sách Người dùng</p>
         <div class="row mb-3">
-            <div class="col-md-4">
-                <input type="text" class="form-control" placeholder="Tìm kiếm theo vai trò..." id="searchInput">
+            <div class="col-md-4 d-flex">
+                <input type="text" class="form-control" placeholder="Tìm kiếm..." id="searchInput">
+                <select class="form-select ms-2" id="searchField" style="width: 150px;">
+                    <option value="4">Vai trò</option>
+                    <option value="0">Mã Người dùng</option>
+                    <option value="1">Tên đăng nhập</option>
+                    <option value="2">Họ và Tên</option>
+                    <option value="3">Email</option>
+                    <option value="5">Ngày tạo</option>
+                </select>
             </div>
         </div>
         <div>
-            <a class="btn btn-primary btn-sm mb-3" href="/Users/Create">
+            <a class="btn btn-primary btn-sm mb-3" asp-page="/Users/UserCreate">
                 <i class="fas fa-plus"></i> Tạo Người dùng mới
             </a>
+            <button class="btn btn-success btn-sm mb-3" onclick="exportUsersReport()">
+                <i class="fas fa-file-export"></i> Xuất báo cáo
+            </button>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm table-striped">
                     <thead class="thead-light">
@@ -44,30 +86,36 @@
                             <th>Email</th>
                             <th>Vai trò</th>
                             <th>Ngày tạo</th>
-                            <th>Thao tác</th>
+                            @if(HttpContext.Session.GetString("Role") == "admin")
+                            {
+                                <th>Thao tác</th>
+                            }
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="userTableBody">
                         @foreach (var user in Model.Users)
                         {
-                            <tr>
+                            <tr data-user-id="@user.user_id">
                                 <td>@user.user_id</td>
                                 <td>@user.username</td>
                                 <td>@user.full_name</td>
                                 <td>@user.email</td>
                                 <td>@user.role</td>
                                 <td>@(user.created_at.HasValue ? user.created_at.Value.ToString("dd/MM/yyyy HH:mm") : "Chưa có dữ liệu")</td>
-                                <td>
-                                    <a class="btn btn-info btn-sm" href="/Users/Detail?id=@user.user_id" data-toggle="tooltip" title="Xem chi tiết">
-                                        <i class="fas fa-eye"></i> Chi tiết
-                                    </a>
-                                    <button class="btn btn-danger btn-sm delete-btn" data-id="@user.user_id" data-toggle="tooltip" title="Xóa người dùng">
-                                        <i class="fas fa-trash-alt"></i> Xóa
-                                    </button>
-                                    <a class="btn btn-secondary btn-sm" href="/Users/Update?id=@user.user_id" data-toggle="tooltip" title="Cập nhật người dùng">
-                                        <i class="fas fa-edit"></i> Cập nhật
-                                    </a>
-                                </td>
+                                @if (HttpContext.Session.GetString("Role") == "admin")
+                                {
+                                    <td>
+                                        <a class="btn btn-info btn-sm" href="/Users/Detail?id=@user.user_id" data-toggle="tooltip" title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i> Chi tiết
+                                        </a>
+                                        <button class="btn btn-danger btn-sm delete-btn" data-id="@user.user_id" data-toggle="tooltip" title="Xóa người dùng">
+                                            <i class="fas fa-trash-alt"></i> Xóa
+                                        </button>
+                                        <a class="btn btn-secondary btn-sm" asp-page="/Users/UserUpdate" asp-route-id="@user.user_id" data-toggle="tooltip" title="Cập nhật người dùng">
+                                            <i class="fas fa-edit"></i> Cập nhật
+                                        </a>
+                                    </td>
+                                }
                             </tr>
                         }
                     </tbody>
@@ -76,46 +124,61 @@
         </div>
     </div>
 
-    <!-- Script cho tìm kiếm và tooltip -->
+    @Html.AntiForgeryToken()
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://unpkg.com/proj4@2.9.0/dist/proj4.js"></script>
     <script>
-        $(document).ready(function(){
+        // Xử lý xuất báo cáo
+        function exportUsersReport() {
+            window.location.href = "/Users/Index?handler=ExportExcel";
+        }
+        $(document).ready(function () {
             $('[data-toggle="tooltip"]').tooltip();
-        });
 
-        $('.delete-btn').on('click', function () {
-            const userId = $(this).data('id');
-            if (confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
-                $.ajax({
-                    url: '/Users/Index?handler=Delete', // Gọi handler Delete trong PageModel
-                    type: 'POST',
-                    data: { id: userId },
-                    headers: {
-                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() // CSRF token
-                    },
-                    success: function (response) {
-                        if (response.success) {
-                            $(`tr[data-task-id="${userId}"]`).remove(); // Xóa hàng khỏi bảng
-                            alert('Xóa người dùng thành công!');
-                        } else {
-                            alert('Xóa người dùng thất bại: ' + response.message);
+            // Xử lý sự kiện xóa
+            $('.delete-btn').on('click', function () {
+                const userId = $(this).data('id');
+                if (confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
+                    $.ajax({
+                        url: '/Users/Index?handler=Delete',
+                        type: 'POST',
+                        data: { id: userId },
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                $(`tr[data-user-id="${userId}"]`).remove();
+                                alert('Xóa người dùng thành công!');
+                            } else {
+                                alert('Xóa người dùng thất bại: ' + (response.message || 'Không rõ nguyên nhân'));
+                            }
+                        },
+                        error: function (xhr) {
+                            let errorMsg = xhr.responseJSON?.message || 'Đã xảy ra lỗi khi xóa người dùng.';
+                            alert(errorMsg);
                         }
-                    },
-                    error: function () {
-                        alert('Đã xảy ra lỗi khi xóa người dùng.');
-                    }
-                });
-            }
-        });
-
-        document.getElementById("searchInput").addEventListener("keyup", function() {
-            let filter = this.value.toLowerCase();
-            let rows = document.querySelectorAll("tbody tr");
-
-            rows.forEach(row => {
-                let role = row.cells[4].textContent.toLowerCase(); // Lọc theo cột role
-                row.style.display = role.includes(filter) ? "" : "none";
+                    });
+                }
             });
+
+            // Xử lý tìm kiếm
+            $('#searchInput').on('keyup', function () {
+                let filter = this.value.toLowerCase();
+                let searchFieldIndex = parseInt($('#searchField').val());
+                let rows = $('#userTableBody tr');
+
+                rows.each(function () {
+                    let cellValue = $(this).find(`td:eq(${searchFieldIndex})`).text().toLowerCase();
+                    $(this).toggle(cellValue.includes(filter));
+                });
+            });
+
+            $('#searchField').on('change', function () {
+                $('#searchInput').trigger('keyup');
+            });
+
+            
         });
     </script>
 </body>

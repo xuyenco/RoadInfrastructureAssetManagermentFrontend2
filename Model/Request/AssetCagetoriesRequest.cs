@@ -4,7 +4,8 @@
     {
         public string cagetory_name { get; set; }
         public string geometry_type { get; set; }
-        public Dictionary<string, object> attributes_schema { get; set; } = new(); // JSON object
-        public List<string> lifecycle_stages { get; set; } = new();   // JSON array
+        public string attributes_schema { get; set; } // Chuỗi JSON
+        public string lifecycle_stages { get; set; } // Chuỗi JSON
+        public IFormFile marker { get; set; }         // File ảnh
     }
 }

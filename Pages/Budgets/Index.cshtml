@@ -1,7 +1,7 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend.Pages.Budgets.IndexModel
 @{
-    Layout = "_Layout"; // Giả sử bạn có layout chung
+    Layout = "_Layout";
 }
 
 <!DOCTYPE html>
@@ -9,31 +9,74 @@
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        body { background-color: #f8f9fa; }
-        .container { margin-top: 20px; }
-        .h1, .h3 { color: #343a40; font-weight: bold; }
-        .table-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); padding: 20px; }
-        .btn-primary { transition: background-color 0.3s; }
-        .btn-primary:hover { background-color: #0056b3; }
-        .thead-light th { background-color: #e9ecef; color: #495057; }
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .h1, .h3 {
+            color: #343a40;
+            font-weight: bold;
+        }
+
+        .table-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .btn-primary {
+            transition: background-color 0.3s;
+        }
+
+            .btn-primary:hover {
+                background-color: #0056b3;
+            }
+
+        .thead-light th {
+            background-color: #e9ecef;
+            color: #495057;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Danh sách Budgets</h1>
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @TempData["Error"]
+            </div>
+        }
     </div>
 
     <div class="text-center table-container">
         <p class="h3 p-3">Danh sách Budgets</p>
         <div class="row mb-3">
-            <div class="col-md-4">
-                <input type="text" class="form-control" placeholder="Tìm kiếm theo năm..." id="searchInput">
+            <div class="col-md-4 d-flex">
+                <input type="text" class="form-control" placeholder="Tìm kiếm..." id="searchInput">
+                <select class="form-select ms-2" id="searchField" style="width: 150px;">
+                    <option value="0">Mã Budget</option>
+                    <option value="1">Mã Danh mục</option>
+                    <option value="2">Năm tài chính</option>
+                    <option value="3">Tổng số tiền</option>
+                    <option value="4">Số tiền đã cấp</option>
+                    <option value="5">Số tiền còn lại</option>
+                    <option value="6">Ngày tạo</option>
+                </select>
             </div>
         </div>
         <div>
-            <a class="btn btn-primary btn-sm mb-3" href="/Budgets/BudgetsCreate">
+            <a class="btn btn-primary btn-sm mb-3" asp-page="/Budgets/BudgetsCreate">
                 <i class="fas fa-plus"></i> Tạo Budget mới
             </a>
+            <button class="btn btn-success btn-sm mb-3" onclick="exportBudgetReport()">
+                <i class="fas fa-file-export"></i> Xuất báo cáo
+            </button>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm table-striped">
                     <thead class="thead-light">
@@ -48,10 +91,10 @@
                             <th>Thao tác</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="budgetTableBody">
                         @foreach (var budget in Model.Budgets)
                         {
-                            <tr>
+                            <tr data-budget-id="@budget.budget_id">
                                 <td>@budget.budget_id</td>
                                 <td>@budget.cagetory_id</td>
                                 <td>@budget.fiscal_year</td>
@@ -63,10 +106,10 @@
                                     <a class="btn btn-info btn-sm" href="/Budgets/BudgetDetail?id=@budget.budget_id" data-toggle="tooltip" title="Xem chi tiết">
                                         <i class="fas fa-eye"></i> Chi tiết
                                     </a>
-                                    <button class="btn btn-danger btn-sm delete-btn" data-id="@budget.budget_id" data-toggle="tooltip" title="Xóa chi phí">
+                                    <button class="btn btn-danger btn-sm delete-btn" data-id="@budget.budget_id" data-toggle="tooltip" title="Xóa budget">
                                         <i class="fas fa-trash-alt"></i> Xóa
                                     </button>
-                                    <a class="btn btn-secondary btn-sm" href="/Budgets/BudgetUpdate?id=@budget.budget_id" data-toggle="tooltip" title="Cập nhật Budget">
+                                    <a class="btn btn-secondary btn-sm" asp-page="/Budgets/BudgetUpdate" asp-route-id="@budget.budget_id" data-toggle="tooltip" title="Cập nhật Budget">
                                         <i class="fas fa-edit"></i> Cập nhật
                                     </a>
                                 </td>
@@ -78,46 +121,58 @@
         </div>
     </div>
 
+    @Html.AntiForgeryToken()
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script>
-        $(document).ready(function(){
+        $(document).ready(function () {
             $('[data-toggle="tooltip"]').tooltip();
-        });
 
-        $('.delete-btn').on('click', function () {
-            const budgetID = $(this).data('id');
-            if (confirm('Bạn có chắc chắn muốn xóa lịch sử này?')) {
-                $.ajax({
-                    url: '/Budgets/Index?handler=Delete', // Gọi handler Delete trong PageModel
-                    type: 'POST',
-                    data: { id: budgetID },
-                    headers: {
-                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() // CSRF token
-                    },
-                    success: function (response) {
-                        if (response.success) {
-                            $(`tr[data-task-id="${budgetID}"]`).remove(); // Xóa hàng khỏi bảng
-                            alert('Xóa budget thành công!');
-                        } else {
-                            alert('Xóa budget thất bại: ' + response.message);
+            // Xử lý sự kiện xóa
+            $('.delete-btn').on('click', function () {
+                const budgetId = $(this).data('id');
+                if (confirm('Bạn có chắc chắn muốn xóa budget này không?')) {
+                    $.ajax({
+                        url: '/Budgets/Index?handler=Delete',
+                        type: 'POST',
+                        data: { id: budgetId },
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                $(`tr[data-budget-id="${budgetId}"]`).remove();
+                                alert('Xóa budget thành công!');
+                            } else {
+                                alert('Xóa thất bại: ' + response.message);
+                            }
+                        },
+                        error: function (xhr) {
+                            alert('Đã xảy ra lỗi: ' + xhr.status + ' - ' + xhr.statusText);
                         }
-                    },
-                    error: function () {
-                        alert('Đã xảy ra lỗi khi xóa budgetí.');
-                    }
+                    });
+                }
+            });
+
+            // Xử lý tìm kiếm
+            $('#searchInput').on('keyup', function () {
+                let filter = this.value.toLowerCase();
+                let searchFieldIndex = parseInt($('#searchField').val());
+                let rows = $('#budgetTableBody tr');
+
+                rows.each(function () {
+                    let cellValue = $(this).find(`td:eq(${searchFieldIndex})`).text().toLowerCase();
+                    $(this).toggle(cellValue.includes(filter));
                 });
-            }
-        });
+            });
 
-        document.getElementById("searchInput").addEventListener("keyup", function() {
-            let filter = this.value.toLowerCase();
-            let rows = document.querySelectorAll("tbody tr");
-
-            rows.forEach(row => {
-                let year = row.cells[2].textContent.toLowerCase();
-                row.style.display = year.includes(filter) ? "" : "none";
+            $('#searchField').on('change', function () {
+                $('#searchInput').trigger('keyup');
             });
         });
+
+        function exportBudgetReport() {
+            window.location.href = "/Budgets/Index?handler=ExportExcel";
+        }
     </script>
 </body>
 </html>

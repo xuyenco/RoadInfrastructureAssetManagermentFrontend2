@@ -1,90 +1,107 @@
 ﻿using Road_Infrastructure_Asset_Management.Model.Request;
 using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
+using System.Net;
 using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend.Service
 {
-    public class IncidentsService :IIncidentsService
+    public class IncidentsService : BaseService,IIncidentsService
     {
-        private readonly HttpClient _httpClient;
-
-        public IncidentsService(IHttpClientFactory httpClientFactory)
+        public IncidentsService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+            : base(httpClientFactory, httpContextAccessor)
         {
-            _httpClient = httpClientFactory.CreateClient("ApiClient"); // Lấy HttpClient có BaseAddress đã cấu hình
         }
 
-        // Get all incidents
         public async Task<List<IncidentsResponse>> GetAllIncidentsAsync()
         {
-            var response = await _httpClient.GetAsync("api/incidents");
-            response.EnsureSuccessStatusCode(); // Throw if not successful
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync("api/incidents"));
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve incidents: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<List<IncidentsResponse>>(content);
         }
 
-        // Get asset by ID
         public async Task<IncidentsResponse?> GetIncidentByIdAsync(int id)
         {
-            var response = await _httpClient.GetAsync($"api/incidents/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync($"api/incidents/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Incident not found
+                return null;
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve incident with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<IncidentsResponse>(content);
         }
 
-        // Create a new asset
         public async Task<IncidentsResponse?> CreateIncidentAsync(IncidentsRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/incidents", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.PostAsJsonAsync("api/incidents", request));
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to create incident: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<IncidentsResponse>(content);
         }
 
-        // Update an existing asset
-        public async Task<IncidentsResponse?> UpdateIncidentAsync(int id,IncidentsRequest request)
+        public async Task<IncidentsResponse?> UpdateIncidentAsync(int id, IncidentsRequest request)
         {
-            var response = await _httpClient.PatchAsJsonAsync($"api/incidents/{id}", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync (() => _httpClient.PatchAsJsonAsync($"api/incidents/{id}", request));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Incident not found
+                return null;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to update incident with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<IncidentsResponse>(content);
         }
 
-        // Delete an asset
         public async Task<bool> DeleteIncidentAsync(int id)
         {
-            var response = await _httpClient.DeleteAsync($"api/incidents/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.DeleteAsync($"api/incidents/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return false; // Incident not found
+                return false;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict)
             {
-                return false; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Failed to delete incident with ID {id}: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to delete incident with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
-            return true; // Successfully deleted
+            return true;
         }
     }
 }

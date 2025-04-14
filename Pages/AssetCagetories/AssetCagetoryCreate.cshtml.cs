@@ -15,8 +15,7 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories
             _assetCagetoriesService = assetCagetoriesService;
         }
 
-        [BindProperty]
-        public AssetCagetoriesRequest AssetCategory { get; set; } = new AssetCagetoriesRequest();
+        public AssetCagetoriesRequest AssetCategory { get; set; } = new();
 
         public void OnGet()
         {
@@ -24,32 +23,35 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories
 
         public async Task<IActionResult> OnPostAsync()
         {
-            // Bind thủ công từ Request.Form cho attributes
+            // === PHẦN 1: Bind dữ liệu cơ bản ===
+            AssetCategory.cagetory_name = Request.Form["cagetory_name"];
+            AssetCategory.geometry_type = Request.Form["geometry_type"];
+            AssetCategory.marker = Request.Form.Files["marker"];
+
+            // === PHẦN 2: Xử lý Attributes Schema ===
             var attributeNames = Request.Form.Keys.Where(k => k.StartsWith("attributes["));
             var tempAttributes = new List<AttributeDefinition>();
-            if (attributeNames.Any())
+
+            foreach (var key in attributeNames)
             {
-                foreach (var key in attributeNames)
+                if (key.Contains(".Name"))
                 {
-                    if (key.Contains(".Name"))
+                    var index = key.Split('[')[1].Split(']')[0];
+                    var attr = new AttributeDefinition
                     {
-                        var index = key.Split('[')[1].Split(']')[0];
-                        var attr = new AttributeDefinition
-                        {
-                            Name = Request.Form[$"attributes[{index}].Name"],
-                            Type = Request.Form[$"attributes[{index}].Type"],
-                            Description = Request.Form[$"attributes[{index}].Description"],
-                            IsRequired = Request.Form[$"attributes[{index}].IsRequired"] == "on",
-                            EnumValuesStr = Request.Form[$"attributes[{index}].EnumValuesStr"]
-                        };
-                        tempAttributes.Add(attr);
-                    }
+                        Name = Request.Form[$"attributes[{index}].Name"],
+                        Type = Request.Form[$"attributes[{index}].Type"],
+                        Description = Request.Form[$"attributes[{index}].Description"],
+                        IsRequired = Request.Form[$"attributes[{index}].IsRequired"] == "on",
+                        EnumValuesStr = Request.Form[$"attributes[{index}].EnumValuesStr"]
+                    };
+                    tempAttributes.Add(attr);
                 }
             }
 
-            // Chuyển đổi attributes thành attributes_schema
             var requiredFields = new List<string>();
             var properties = new Dictionary<string, object>();
+
             foreach (var attr in tempAttributes)
             {
                 var prop = new Dictionary<string, object>
@@ -60,45 +62,62 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories
 
                 if (!string.IsNullOrEmpty(attr.EnumValuesStr))
                 {
-                    var enumValues = attr.EnumValuesStr.Split(',').Select(v => v.Trim()).ToList();
-                    prop["enum"] = enumValues;
+                    prop["enum"] = attr.EnumValuesStr.Split(',').Select(v => v.Trim()).ToList();
                 }
 
                 properties[attr.Name] = prop;
-                if (attr.IsRequired)
-                {
-                    requiredFields.Add(attr.Name);
-                }
+                if (attr.IsRequired) requiredFields.Add(attr.Name);
             }
 
-            AssetCategory.attributes_schema = new Dictionary<string, object>
+            AssetCategory.attributes_schema = JsonSerializer.Serialize(new
             {
-                ["required"] = requiredFields,
-                ["properties"] = properties
-            };
+                required = requiredFields,
+                properties = properties
+            });
 
-            // In dữ liệu để kiểm tra
-            var json = JsonSerializer.Serialize(AssetCategory, new JsonSerializerOptions { WriteIndented = true });
-            Console.WriteLine("Model trả ra là:\n" + json);
+            // === PHẦN 3: Xử lý Lifecycle Stages ===
+            var lifecycleStages = Request.Form["lifecycle_stages"]
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => (string)s)
+                .ToList();
 
-            if (!ModelState.IsValid)
+            if (lifecycleStages.Count == 0)
             {
+                ModelState.AddModelError("lifecycle_stages", "Ít nhất một giai đoạn lifecycle là bắt buộc.");
                 return Page();
             }
 
-            //var result = await _assetCagetoriesService.CreateAssetCagetoriesAsync(AssetCategory);
+            AssetCategory.lifecycle_stages = JsonSerializer.Serialize(lifecycleStages);
 
-            //if (result != null)
-            //{
-            //    return RedirectToPage("/AssetCagetories/Index");
-            //}
+            // === PHẦN 4: Kiểm tra ModelState ===
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+                Console.WriteLine($"Validation errors: {JsonSerializer.Serialize(errors)}");
+                return Page();
+            }
 
-            //ModelState.AddModelError("", "Không thể tạo danh mục. Vui lòng thử lại.");
-            //return Page();
-            return RedirectToPage("/AssetCagetories/Index");
+            // === PHẦN 5: Gửi request lên service ===
+            try
+            {
+                var result = await _assetCagetoriesService.CreateAssetCagetoriesAsync(AssetCategory);
+                if (result != null)
+                {
+                    return RedirectToPage("/AssetCagetories/Index");
+                }
+                ModelState.AddModelError("", "Không thể tạo danh mục. Vui lòng thử lại.");
+                return Page();
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Lỗi: {ex.Message}");
+                return Page();
+            }
         }
 
-        // Class tạm để bind attributes từ form
         private class AttributeDefinition
         {
             public string Name { get; set; }

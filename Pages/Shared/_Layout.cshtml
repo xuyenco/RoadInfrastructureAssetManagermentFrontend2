@@ -1,4 +1,7 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -44,6 +47,14 @@
                             <a class="nav-link text-dark" asp-area="" asp-page="/Users/index">Users</a>
                         </li>
                     </ul>
+                    <ul class="navbar-nav">
+                        @if (!string.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session.GetString("AccessToken")))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Users/Logout">Logout</a>
+                            </li>
+                        }
+                    </ul>
                 </div>
             </div>
         </nav>
@@ -56,7 +67,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2025 - RoadInfrastructureAssetManagementFrontend - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            © 2025 - RoadInfrastructureAssetManagementFrontend - <a asp-area="" asp-page="/Privacy">Privacy</a>
         </div>
     </footer>
 

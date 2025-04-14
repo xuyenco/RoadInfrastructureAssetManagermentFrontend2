@@ -1,90 +1,108 @@
 ﻿using Road_Infrastructure_Asset_Management.Model.Request;
 using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
+using System.Net;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend.Service
 {
-    public class CostsService : ICostsService
+    public class CostsService : BaseService,ICostsService
     {
-        private readonly HttpClient _httpClient;
-
-        public CostsService(IHttpClientFactory httpClientFactory)
+        public CostsService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+            : base(httpClientFactory, httpContextAccessor)
         {
-            _httpClient = httpClientFactory.CreateClient("ApiClient"); // Lấy HttpClient có BaseAddress đã cấu hình
         }
 
-        // Get all costs
         public async Task<List<CostsResponse>> GetAllCostsAsync()
         {
-            var response = await _httpClient.GetAsync("api/costs");
-            response.EnsureSuccessStatusCode(); // Throw if not successful
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync("api/costs"));
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve costs: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<List<CostsResponse>>(content);
         }
 
-        // Get asset by ID
         public async Task<CostsResponse?> GetCostByIdAsync(int id)
         {
-            var response = await _httpClient.GetAsync($"api/costs/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync($"api/costs/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Cost not found
+                return null;
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve cost with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<CostsResponse>(content);
         }
 
-        // Create a new asset
         public async Task<CostsResponse?> CreateCostAsync(CostsRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/costs", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.PostAsJsonAsync("api/costs", request));
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to create cost: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<CostsResponse>(content);
         }
 
-        // Update an existing asset
-        public async Task<CostsResponse?> UpdateCostAsync(int id,CostsRequest request)
+        public async Task<CostsResponse?> UpdateCostAsync(int id, CostsRequest request)
         {
-            var response = await _httpClient.PatchAsJsonAsync($"api/costs/{id}", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.PatchAsJsonAsync($"api/costs/{id}", request));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Cost not found
+                return null;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to update cost with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<CostsResponse>(content);
         }
 
-        // Delete an asset
         public async Task<bool> DeleteCostAsync(int id)
         {
-            var response = await _httpClient.DeleteAsync($"api/costs/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.DeleteAsync($"api/costs/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return false; // Cost not found
+                return false;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict)
             {
-                return false; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Failed to delete cost with ID {id}: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to delete cost with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
-            return true; // Successfully deleted
+            return true;
         }
     }
 }

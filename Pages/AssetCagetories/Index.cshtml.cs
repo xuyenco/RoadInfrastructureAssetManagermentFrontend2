@@ -106,7 +106,7 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories
             }
 
             html += "</ul>";
-
+html += "<a class=\"btn btn-secondary btn-sm\" href=\"/AssetCagetories/assetCagetoryUpdate/" + category.cagetory_id + "\" data-toggle=\"tooltip\" title=\"Cập nhật Cagetory\">\r\n<i class=\"fas fa-edit\"></i> Cập nhật Cagetory\r\n</a>";
             return Content(html, "text/html");
         }
     }

@@ -1,6 +1,7 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend.Pages.Users.UserCreateModel
 @{
+    Layout = "_Layout"; // Sử dụng layout chung
 }
 
 <!DOCTYPE html>
@@ -8,11 +9,29 @@
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        body { background-color: #f8f9fa; }
-        .container { margin-top: 20px; }
-        .form-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); padding: 20px; }
-        .btn-primary { transition: background-color 0.3s; }
-        .btn-primary:hover { background-color: #0056b3; }
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .form-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .btn-primary {
+            transition: background-color 0.3s;
+        }
+
+            .btn-primary:hover {
+                background-color: #0056b3;
+            }
     </style>
 </head>
 <body>
@@ -21,8 +40,20 @@
     </div>
 
     <div class="form-container">
-        <h3 class="mb-3">Thông tin User</h3>
+        <h3 class="mb-3">Nhập thủ công</h3>
 
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @TempData["Error"]
+            </div>
+        }
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success" role="alert">
+                @TempData["Success"]
+            </div>
+        }
         @if (!ViewData.ModelState.IsValid)
         {
             <div class="alert alert-danger" role="alert">
@@ -33,7 +64,7 @@
             </div>
         }
 
-        <form method="post">
+        <form method="post" enctype="multipart/form-data" class="form-section">
             <div class="form-group mb-3">
                 <label asp-for="User.username" class="form-label">Tên đăng nhập</label>
                 <input asp-for="User.username" class="form-control" required />
@@ -60,8 +91,19 @@
 
             <div class="form-group mb-3">
                 <label asp-for="User.role" class="form-label">Vai trò</label>
-                <input asp-for="User.role" class="form-control" required />
+                <select asp-for="User.role" class="form-control" required>
+                    <option value="">Chọn vai trò</option>
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="technician">Technician</option>
+                    <option value="inspector">Inspector</option>
+                </select>
                 <span asp-validation-for="User.role" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label for="image" class="form-label">Ảnh User:</label>
+                <input type="file" id="image" name="image" class="form-control" accept=".png,.jpg,.jpeg" required />
             </div>
 
             <div class="form-group">
@@ -71,11 +113,13 @@
                 <a href="/Users/Index" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Quay lại
                 </a>
+                <a href="/Users/UserImport" class="btn btn-info">
+                    <i class="fas fa-file-excel"></i> Nhập từ Excel
+                </a>
             </div>
         </form>
     </div>
 
-    <!-- Script cho validation -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
     <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>

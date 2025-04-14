@@ -1,0 +1,131 @@
+﻿@page "{id:int}"
+@model RoadInfrastructureAssetManagementFrontend.Pages.Tasks.TaskUpdateModel
+@{
+    Layout = "_Layout"; // Sử dụng layout chung
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .form-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .btn-primary {
+            transition: background-color 0.3s;
+        }
+
+            .btn-primary:hover {
+                background-color: #0056b3;
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cập nhật Task</h1>
+    </div>
+
+    <div class="form-container">
+        <h3 class="mb-3">Thông tin Task</h3>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @TempData["Error"]
+            </div>
+        }
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger" role="alert">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            </div>
+        }
+
+        <form method="post">
+            <div class="form-group mb-3">
+                <label asp-for="TaskRequest.asset_id" class="form-label">Mã Tài sản</label>
+                <input asp-for="TaskRequest.asset_id" class="form-control" type="number" min="1" required />
+                <span asp-validation-for="TaskRequest.asset_id" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="TaskRequest.assigned_to" class="form-label">Người được giao (ID Người dùng)</label>
+                <input asp-for="TaskRequest.assigned_to" class="form-control" type="number" min="1" required />
+                <span asp-validation-for="TaskRequest.assigned_to" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="TaskRequest.task_type" class="form-label">Loại Nhiệm vụ</label>
+                <input asp-for="TaskRequest.task_type" class="form-control" required />
+                <span asp-validation-for="TaskRequest.task_type" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="TaskRequest.description" class="form-label">Mô tả</label>
+                <textarea asp-for="TaskRequest.description" class="form-control" rows="3" required></textarea>
+                <span asp-validation-for="TaskRequest.description" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="TaskRequest.priority" class="form-label">Ưu tiên</label>
+                <select asp-for="TaskRequest.priority" class="form-control" required>
+                    <option value="">Chọn mức độ ưu tiên</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                </select>
+                <span asp-validation-for="TaskRequest.priority" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="TaskRequest.status" class="form-label">Trạng thái</label>
+                <select asp-for="TaskRequest.status" class="form-control" required>
+                    <option value="">Chọn trạng thái</option>
+                    <option value="pending">Pending</option>
+                    <option value="in progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+                <span asp-validation-for="TaskRequest.status" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="TaskRequest.due_date" class="form-label">Ngày đến hạn</label>
+                <input asp-for="TaskRequest.due_date" class="form-control" type="date" required />
+                <span asp-validation-for="TaskRequest.due_date" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Cập nhật Task
+                </button>
+                <a href="/Tasks/Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>

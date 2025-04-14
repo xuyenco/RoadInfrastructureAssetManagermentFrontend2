@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
+using RoadInfrastructureAssetManagementFrontend.Model.Request;
 
 namespace RoadInfrastructureAssetManagementFrontend.Pages.Users
 {
+    [AuthorizeRole("admin")]
     public class UserCreateModel : PageModel
     {
         private readonly IUsersService _usersService;
@@ -24,19 +25,31 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Users
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (!ModelState.IsValid)
+            Console.WriteLine("OnPostAsync for UserCreate started!");
+            User.image = Request.Form.Files["image"];
+            Console.WriteLine($"Bound Data: username={User.username}, password_hash={User.password_hash}, full_name={User.full_name}, email={User.email}, role={User.role}");
+            if (User.image != null)
             {
-                return Page(); // Trả về trang nếu dữ liệu không hợp lệ
+                Console.WriteLine($"Image: filename={User.image.FileName}, size={User.image.Length}");
             }
 
-            var createdUser = await _usersService.CreateUserAsync(User);
-            if (createdUser == null)
+            try
             {
-                ModelState.AddModelError("", "Không thể tạo User. Vui lòng kiểm tra lại dữ liệu.");
+                var createdUser = await _usersService.CreateUserAsync(User);
+                if (createdUser == null)
+                {
+                    TempData["Error"] = "Không thể tạo User. Dữ liệu trả về từ dịch vụ là null.";
+                    return Page();
+                }
+
+                TempData["Success"] = "User đã được tạo thành công!";
+                return RedirectToPage("/Users/Index");
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Đã xảy ra lỗi khi tạo User: {ex.Message}";
                 return Page();
             }
-
-            return RedirectToPage("/Users/Index"); // Chuyển hướng về trang Index sau khi tạo thành công
         }
     }
 }

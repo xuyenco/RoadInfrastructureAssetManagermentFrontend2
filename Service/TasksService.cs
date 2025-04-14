@@ -1,90 +1,108 @@
 ﻿using Road_Infrastructure_Asset_Management.Model.Request;
 using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
+using System.Net;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend.Service
 {
-    public class TasksService :ITasksService
+    public class TasksService : BaseService,ITasksService
     {
-        private readonly HttpClient _httpClient;
-
-        public TasksService(IHttpClientFactory httpClientFactory)
+        public TasksService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+            : base(httpClientFactory, httpContextAccessor)
         {
-            _httpClient = httpClientFactory.CreateClient("ApiClient"); // Lấy HttpClient có BaseAddress đã cấu hình
         }
 
-        // Get all tasks
         public async Task<List<TasksResponse>> GetAllTasksAsync()
         {
-            var response = await _httpClient.GetAsync("api/tasks");
-            response.EnsureSuccessStatusCode(); // Throw if not successful
+            var response = await ExecuteWithRefreshAsync(()=> _httpClient.GetAsync("api/tasks"));
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve tasks: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<List<TasksResponse>>(content);
         }
 
-        // Get asset by ID
         public async Task<TasksResponse?> GetTaskByIdAsync(int id)
         {
-            var response = await _httpClient.GetAsync($"api/tasks/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync($"api/tasks/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Task not found
+                return null;
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve task with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<TasksResponse>(content);
         }
 
-        // Create a new asset
         public async Task<TasksResponse?> CreateTaskAsync(TasksRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/tasks", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            var response = await ExecuteWithRefreshAsync(()=> _httpClient.PostAsJsonAsync("api/tasks", request));
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to create task: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<TasksResponse>(content);
         }
 
-        // Update an existing asset
         public async Task<TasksResponse?> UpdateTaskAsync(int id, TasksRequest request)
         {
-            var response = await _httpClient.PatchAsJsonAsync($"api/tasks/{id}", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(()=> _httpClient.PatchAsJsonAsync($"api/tasks/{id}", request));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Task not found
+                return null;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to update task with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<TasksResponse>(content);
         }
 
-        // Delete an asset
         public async Task<bool> DeleteTaskAsync(int id)
         {
-            var response = await _httpClient.DeleteAsync($"api/tasks/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(()=> _httpClient.DeleteAsync($"api/tasks/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return false; // Task not found
+                return false;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict)
             {
-                return false; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Failed to delete task with ID {id}: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to delete task with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
-            return true; // Successfully deleted
+            return true;
         }
     }
 }

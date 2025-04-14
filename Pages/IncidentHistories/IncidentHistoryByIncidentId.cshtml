@@ -1,0 +1,158 @@
+﻿@page "{id:int}"
+@model RoadInfrastructureAssetManagementFrontend.Pages.IncidentHistories.IncidentHistoryByIncidentIdModel
+@{
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .h1, .h3 {
+            color: #343a40;
+            font-weight: bold;
+        }
+
+        .table-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .btn-primary {
+            transition: background-color 0.3s;
+        }
+
+            .btn-primary:hover {
+                background-color: #0056b3;
+            }
+
+        .thead-light th {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Danh sách Lịch sử Sự cố</h1>
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @TempData["Error"]
+            </div>
+        }
+    </div>
+
+    <div class="text-center table-container">
+        <p class="h3 p-3">Danh sách Lịch sử Sự cố</p>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Tìm kiếm theo trạng thái..." id="searchInput">
+            </div>
+        </div>
+        <div>
+            <a class="btn btn-primary btn-sm mb-3" asp-page="/IncidentHistories/IncidentHistoryCreate">
+                <i class="fas fa-plus"></i> Tạo Lịch sử Sự cố mới
+            </a>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm table-striped">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Mã Lịch sử</th>
+                            <th>Mã Sự cố</th>
+                            <th>Mã Nhiệm vụ</th>
+                            <th>Người thay đổi</th>
+                            <th>Trạng thái cũ</th>
+                            <th>Trạng thái mới</th>
+                            <th>Mô tả thay đổi</th>
+                            <th>Ngày thay đổi</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        @foreach (var history in Model.IncidentHistorys)
+                        {
+                            <tr data-history-id="@history.history_id">
+                                <td>@history.history_id</td>
+                                <td>@history.incident_id</td>
+                                <td>@history.task_id</td>
+                                <td>@history.changed_by</td>
+                                <td>@history.old_status</td>
+                                <td>@history.new_status</td>
+                                <td>@history.change_description</td>
+                                <td>@(history.changed_at.HasValue ? history.changed_at.Value.ToString("dd/MM/yyyy HH:mm") : "Chưa có dữ liệu")</td>
+                                <td>
+                                    <a class="btn btn-info btn-sm" href="/IncidentHistories/Detail?id=@history.history_id" data-toggle="tooltip" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i> Chi tiết
+                                    </a>
+                                    <button class="btn btn-danger btn-sm delete-btn" data-id="@history.history_id" data-toggle="tooltip" title="Xóa lịch sử">
+                                        <i class="fas fa-trash-alt"></i> Xóa
+                                    </button>
+                                    <a class="btn btn-secondary btn-sm" asp-page="/IncidentHistories/IncidentHistoryUpdate" asp-route-id="@history.history_id" data-toggle="tooltip" title="Cập nhật lịch sử">
+                                        <i class="fas fa-edit"></i> Cập nhật
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @Html.AntiForgeryToken()
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('[data-toggle="tooltip"]').tooltip();
+
+            // Xử lý sự kiện xóa
+            $('.delete-btn').on('click', function () {
+                const historyId = $(this).data('id');
+                if (confirm('Bạn có chắc chắn muốn xóa lịch sử này?')) {
+                    $.ajax({
+                        url: '/IncidentHistories/Index?handler=Delete',
+                        type: 'POST',
+                        data: { id: historyId },
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                $(`tr[data-history-id="${historyId}"]`).remove(); // Xóa hàng đúng dựa trên data-history-id
+                                alert('Xóa lịch sử thành công!');
+                            } else {
+                                alert('Xóa lịch sử thất bại: ' + (response.message || 'Không rõ nguyên nhân'));
+                            }
+                        },
+                        error: function (xhr) {
+                            let errorMsg = xhr.responseJSON?.message || 'Đã xảy ra lỗi khi xóa lịch sử.';
+                            alert(errorMsg);
+                        }
+                    });
+                }
+            });
+
+            // Xử lý tìm kiếm
+            $('#searchInput').on('keyup', function () {
+                let filter = this.value.toLowerCase();
+                let rows = $('#historyTableBody tr');
+                rows.each(function () {
+                    let newStatus = $(this).find('td:eq(5)').text().toLowerCase(); // Lọc theo cột "Trạng thái mới"
+                    $(this).toggle(newStatus.includes(filter));
+                });
+            });
+        });
+    </script>
+</body>
+</html>

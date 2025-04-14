@@ -1,0 +1,207 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Report.IndexModel
+@{
+    ViewData["Title"] = "Reports Dashboard";
+}
+
+<h1>Reports Dashboard</h1>
+
+<!-- CSS để tạo lưới -->
+<style>
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 2 cột */
+        gap: 20px;
+        padding: 20px;
+    }
+    .chart-container {
+        width: 100%;
+        max-width: 500px;
+        margin: auto;
+    }
+</style>
+
+<div class="grid-container">
+    <!-- 1. Asset Distribution by Category -->
+    <div class="chart-container">
+        <h3>Asset Distribution by Category</h3>
+        <canvas id="assetDistributionChart"></canvas>
+    </div>
+
+    <!-- 2. Asset Distributed by Condition -->
+    <div class="chart-container">
+        <h3>Asset Distribution by Condition</h3>
+        <canvas id="assetConditionChart"></canvas>
+    </div>
+
+    <!-- 3. Task Status Distribution -->
+    <div class="chart-container">
+        <h3>Task Status Distribution</h3>
+        <canvas id="taskStatusChart"></canvas>
+    </div>
+
+    <!-- 4. Incident Type Distribution -->
+    <div class="chart-container">
+        <h3>Incident Type Distribution</h3>
+        <canvas id="incidentTypeChart"></canvas>
+    </div>
+
+    <!-- 5. Incidents Over Time -->
+    <div class="chart-container">
+        <h3>Incidents Over Time</h3>
+        <canvas id="incidentsOverTimeChart"></canvas>
+    </div>
+
+    <!-- 6. Budget and Costs -->
+    <div class="chart-container">
+        <h3>Budget vs Costs</h3>
+        <canvas id="budgetAndCostsChart"></canvas>
+    </div>
+</div>
+
+<!-- Thêm Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // 1. Asset Distribution by Category
+    var assetData = @Html.Raw(Json.Serialize(Model.AssetDistribution));
+    new Chart(document.getElementById('assetDistributionChart'), {
+        type: 'pie',
+        data: {
+            labels: assetData.map(item => item.category_name),
+            datasets: [{
+                label: 'Assets',
+                data: assetData.map(item => item.count),
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50', '#E7E9ED']
+            }]
+        },
+        options: { plugins: { title: { display: true, text: 'Asset Distribution by Category' } } }
+    });
+
+    // 2. Asset Distributed by Condition
+    var conditionData = @Html.Raw(Json.Serialize(Model.AssetCondition));
+    new Chart(document.getElementById('assetConditionChart'), {
+        type: 'bar',
+        data: {
+            labels: conditionData.map(item => item.condition),
+            datasets: [{
+                label: 'Assets',
+                data: conditionData.map(item => item.count),
+                backgroundColor: '#36A2EB',
+                barPercentage : 0.25,
+                categoryPercentage: 0.5
+            }]
+        },
+        options: {
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'Count' } } },
+            plugins: { title: { display: true, text: 'Asset Distribution by Condition' } }
+        }
+    });
+
+    // 3. Task Status Distribution
+    var taskData = @Html.Raw(Json.Serialize(Model.TaskStatus));
+    new Chart(document.getElementById('taskStatusChart'), {
+        type: 'pie',
+        data: {
+            labels: taskData.map(item => item.status),
+            datasets: [{
+                label: 'Tasks',
+                data: taskData.map(item => item.count),
+                backgroundColor: ['#FF6384', '#36A2EB', '#4CAF50', '#FFCE56']
+            }]
+        },
+        options: { plugins: { title: { display: true, text: 'Task Status Distribution' } } }
+    });
+
+    // 4. Incident Type Distribution
+    var incidentTypeData = @Html.Raw(Json.Serialize(Model.IncidentTypes));
+    new Chart(document.getElementById('incidentTypeChart'), {
+        type: 'pie',
+        data: {
+            labels: incidentTypeData.map(item => item.incident_type),
+            datasets: [{
+                label: 'Incidents',
+                data: incidentTypeData.map(item => item.count),
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50', '#E7E9ED']
+            }]
+        },
+        options: { plugins: { title: { display: true, text: 'Incident Type Distribution' } } }
+    });
+
+    // 5. Incidents Over Time
+    var incidentsOverTimeData = @Html.Raw(Json.Serialize(Model.IncidentsOverTime));
+    new Chart(document.getElementById('incidentsOverTimeChart'), {
+        type: 'line',
+        data: {
+            labels: incidentsOverTimeData.map(item => `${item.year}-${item.month}`),
+            datasets: [{
+                label: 'Incidents',
+                data: incidentsOverTimeData.map(item => item.count),
+                borderColor: '#36A2EB',
+                fill: false
+            }]
+        },
+        options: {
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'Count' } } },
+            plugins: { title: { display: true, text: 'Incidents Over Time' } }
+        }
+    });
+
+    // 6. Budget and Costs
+    var budgetCostData = @Html.Raw(Json.Serialize(Model.BudgetAndCosts));
+    new Chart(document.getElementById('budgetAndCostsChart'), {
+        type: 'bar',
+        data: {
+            labels: budgetCostData.map(item => item.fiscal_year),
+            datasets: [
+                {
+                    label: 'Total Budget',
+                    data: budgetCostData.map(item => item.total_budget),
+                    backgroundColor: '#36A2EB', // Màu xanh cho budget
+                    barPercentage: 0.8, // Độ rộng cột
+                    categoryPercentage: 0.9
+                },
+                {
+                    label: 'Total Cost',
+                    data: budgetCostData.map(item => item.total_cost),
+                    backgroundColor: '#FF6384', // Màu đỏ cho cost
+                    barPercentage: 0.8, // Độ rộng cột
+                    categoryPercentage: 0.9
+                }
+            ]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Amount' },
+                    ticks: { stepSize: 5000000 } // Bước để dễ nhìn
+                },
+                x: {
+                    title: { display: true, text: 'Fiscal Year' }
+                }
+            },
+            plugins: {
+                title: { display: true, text: 'Budget vs Costs' },
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return `${context.dataset.label}: ${context.raw.toLocaleString()}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+<!-- Hiển thị lỗi nếu có -->
+@if (!ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <p>@error.ErrorMessage</p>
+        }
+    </div>
+}

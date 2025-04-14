@@ -1,4 +1,4 @@
-﻿namespace Road_Infrastructure_Asset_Management.Model.Response
+﻿namespace RoadInfrastructureAssetManagementFrontend.Model.Request
 {
     public class UsersRequest
     {
@@ -7,5 +7,6 @@
         public string full_name { get; set; } = string.Empty;
         public string email { get; set; } = string.Empty;
         public string role { get; set; } = string.Empty;
+        public IFormFile image { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace Road_Infrastructure_Asset_Management.Model.Request
+﻿namespace RoadInfrastructureAssetManagementFrontend.Model.Response
 {
     public class UsersResponse
     {

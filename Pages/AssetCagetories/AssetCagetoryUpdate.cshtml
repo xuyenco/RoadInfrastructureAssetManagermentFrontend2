@@ -1,0 +1,176 @@
+﻿@page "{id:int}"
+@model RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories.AssetCagetoryUpdateModel
+@{
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cập nhật Danh Mục Tài Sản</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .attribute-row, .lifecycle-row {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-control, .form-select {
+            margin-right: 10px;
+            width: auto;
+            flex-grow: 1;
+        }
+
+        .btn-add {
+            margin-top: 10px;
+        }
+
+        .btn-remove {
+            margin-left: 10px;
+            color: #dc3545;
+            border: none;
+            background: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+            .btn-remove:hover {
+                color: #b02a37;
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Cập nhật Danh Mục Tài Sản</h1>
+        @if (!ModelState.IsValid)
+        {
+            <div class="alert alert-danger">
+                @foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            </div>
+        }
+        <form method="post" enctype="multipart/form-data" class="form-section">
+            <div class="mb-3">
+                <label for="cagetory_name" class="form-label">Tên danh mục:</label>
+                <input type="text" id="cagetory_name" name="cagetory_name" class="form-control" value="@Model.AssetCategory.cagetory_name" required />
+            </div>
+            <div class="mb-3">
+                <label for="geometry_type" class="form-label">Loại hình học:</label>
+                <select id="geometry_type" name="geometry_type" class="form-select" required>
+                    <option value="point" selected="@(Model.AssetCategory.geometry_type == "point")">Point</option>
+                    <option value="line" selected="@(Model.AssetCategory.geometry_type == "line")">Line</option>
+                    <option value="polygon" selected="@(Model.AssetCategory.geometry_type == "polygon")">Polygon</option>
+                </select>
+            </div>
+
+            <h3>Thuộc tính (Attributes Schema)</h3>
+            <div id="attributes-container"></div>
+            <button type="button" class="btn btn-primary btn-add" onclick="addAttribute()">Thêm thuộc tính</button>
+
+            <h3>Giai đoạn (Lifecycle Stages)</h3>
+            <div id="lifecycle-container"></div>
+            <button type="button" class="btn btn-primary btn-add" onclick="addLifecycleStage()">Thêm giai đoạn</button>
+
+            <div class="mb-3">
+                <label for="marker" class="form-label">Marker Icon (Để trống nếu không thay đổi):</label>
+                <input type="file" id="marker" name="marker" class="form-control" accept=".png,.jpg,.jpeg" />
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-success">Cập nhật danh mục</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let attributeIndex = 0;
+        let lifecycleIndex = 0;
+
+        // Load dữ liệu attributes schema
+        const attributesSchema = @Html.Raw(Model.AssetCategory.attributes_schema);
+        if (attributesSchema) {
+            const required = attributesSchema.required || [];
+            const properties = attributesSchema.properties || {};
+            for (const [name, prop] of Object.entries(properties)) {
+                const html = `
+                    <div class="attribute-row">
+                        <input type="text" name="attributes[${attributeIndex}].Name" value="${name}" placeholder="Tên thuộc tính" class="form-control" required />
+                        <select name="attributes[${attributeIndex}].Type" class="form-select" required>
+                            <option value="string" ${prop.type === 'string' ? 'selected' : ''}>String</option>
+                            <option value="integer" ${prop.type === 'integer' ? 'selected' : ''}>Integer</option>
+                            <option value="number" ${prop.type === 'number' ? 'selected' : ''}>Number</option>
+                            <option value="boolean" ${prop.type === 'boolean' ? 'selected' : ''}>Boolean</option>
+                        </select>
+                        <input type="text" name="attributes[${attributeIndex}].Description" value="${prop.description || ''}" placeholder="Mô tả" class="form-control" />
+                        <label class="checkbox me-3">
+                            <input type="checkbox" name="attributes[${attributeIndex}].IsRequired" ${required.includes(name) ? 'checked' : ''} /> Bắt buộc
+                        </label>
+                        <input type="text" name="attributes[${attributeIndex}].EnumValuesStr" value="${prop.enum ? prop.enum.join(', ') : ''}" placeholder="Enum values (cách bởi dấu phẩy)" class="form-control" />
+                        <button type="button" class="btn-remove" onclick="removeRow(this)">✕</button>
+                    </div>
+                `;
+                document.getElementById('attributes-container').insertAdjacentHTML('beforeend', html);
+                attributeIndex++;
+            }
+        }
+
+        // Load dữ liệu lifecycle stages
+        const lifecycleStages = @Html.Raw(Model.AssetCategory.lifecycle_stages);
+        if (lifecycleStages && Array.isArray(lifecycleStages)) {
+            lifecycleStages.forEach(stage => {
+                const html = `
+                    <div class="lifecycle-row">
+                        <input type="text" name="lifecycle_stages" value="${stage}" placeholder="Tên giai đoạn" class="form-control" required />
+                        <button type="button" class="btn-remove" onclick="removeRow(this)">✕</button>
+                    </div>
+                `;
+                document.getElementById('lifecycle-container').insertAdjacentHTML('beforeend', html);
+                lifecycleIndex++;
+            });
+        }
+
+        function addAttribute() {
+            const container = document.getElementById('attributes-container');
+            const html = `
+                <div class="attribute-row">
+                    <input type="text" name="attributes[${attributeIndex}].Name" placeholder="Tên thuộc tính" class="form-control" required />
+                    <select name="attributes[${attributeIndex}].Type" class="form-select" required>
+                        <option value="string">String</option>
+                        <option value="integer">Integer</option>
+                        <option value="number">Number</option>
+                        <option value="boolean">Boolean</option>
+                    </select>
+                    <input type="text" name="attributes[${attributeIndex}].Description" placeholder="Mô tả" class="form-control" />
+                    <label class="checkbox me-3">
+                        <input type="checkbox" name="attributes[${attributeIndex}].IsRequired" /> Bắt buộc
+                    </label>
+                    <input type="text" name="attributes[${attributeIndex}].EnumValuesStr" placeholder="Enum values (cách bởi dấu phẩy)" class="form-control" />
+                    <button type="button" class="btn-remove" onclick="removeRow(this)">✕</button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            attributeIndex++;
+        }
+
+        function addLifecycleStage() {
+            const container = document.getElementById('lifecycle-container');
+            const html = `
+                <div class="lifecycle-row">
+                    <input type="text" name="lifecycle_stages" placeholder="Tên giai đoạn" class="form-control" required />
+                    <button type="button" class="btn-remove" onclick="removeRow(this)">✕</button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            lifecycleIndex++;
+        }
+
+        function removeRow(button) {
+            button.parentElement.remove();
+        }
+    </script>
+</body>
+</html>

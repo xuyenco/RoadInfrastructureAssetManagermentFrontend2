@@ -1,0 +1,19 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Users.LogoutModel
+@{
+}
+
+
+<div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+    <ul class="navbar-nav flex-grow-1">
+        <!-- Các liên kết hiện tại -->
+    </ul>
+    <ul class="navbar-nav">
+        @if (!string.IsNullOrEmpty(HttpContext.Session.GetString("AccessToken")))
+        {
+            <li class="nav-item">
+                <a class="nav-link text-dark" asp-area="" asp-page="/Users/Logout">Logout</a>
+            </li>
+        }
+    </ul>
+</div>

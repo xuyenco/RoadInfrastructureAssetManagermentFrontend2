@@ -1,90 +1,108 @@
 ﻿using Road_Infrastructure_Asset_Management.Model.Request;
 using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
+using System.Net;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend.Service
 {
-    public class BudgetsService : IBudgetsService
+    public class BudgetsService : BaseService,IBudgetsService
     {
-        private readonly HttpClient _httpClient;
-
-        public BudgetsService(IHttpClientFactory httpClientFactory)
+        public BudgetsService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+            : base(httpClientFactory, httpContextAccessor)
         {
-            _httpClient = httpClientFactory.CreateClient("ApiClient"); // Lấy HttpClient có BaseAddress đã cấu hình
         }
 
-        // Get all budgets
         public async Task<List<BudgetsResponse>> GetAllBudgetsAsync()
         {
-            var response = await _httpClient.GetAsync("api/budgets");
-            response.EnsureSuccessStatusCode(); // Throw if not successful
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync("api/budgets"));
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve budgets: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<List<BudgetsResponse>>(content);
         }
 
-        // Get asset by ID
         public async Task<BudgetsResponse?> GetBudgetByIdAsync(int id)
         {
-            var response = await _httpClient.GetAsync($"api/budgets/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync($"api/budgets/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Budget not found
+                return null;
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve budget with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<BudgetsResponse>(content);
         }
 
-        // Create a new asset
         public async Task<BudgetsResponse?> CreateBudgetAsync(BudgetsRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/budgets", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.PostAsJsonAsync("api/budgets", request));
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to create budget: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<BudgetsResponse>(content);
         }
 
-        // Update an existing asset
         public async Task<BudgetsResponse?> UpdateBudgetAsync(int id, BudgetsRequest request)
         {
-            var response = await _httpClient.PatchAsJsonAsync($"api/budgets/{id}", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.PatchAsJsonAsync($"api/budgets/{id}", request));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Budget not found
+                return null;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to update budget with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<BudgetsResponse>(content);
         }
 
-        // Delete an asset
         public async Task<bool> DeleteBudgetAsync(int id)
         {
-            var response = await _httpClient.DeleteAsync($"api/budgets/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.DeleteAsync($"api/budgets/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return false; // Asset not found
+                return false;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict)
             {
-                return false; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Failed to delete budget with ID {id}: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to delete budget with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
-            return true; // Successfully deleted
+            return true;
         }
     }
 }

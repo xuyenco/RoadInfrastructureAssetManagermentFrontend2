@@ -11,91 +11,86 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body {
-            height: 100vh;
-            margin: 0;
             font-family: 'Segoe UI', sans-serif;
-        }
-
-        .container-fluid {
-            height: 100%;
-            display: flex;
-        }
-
-        .sidebar {
-            width: 250px;
-            background-color: #f8f9fa;
-            border-right: 1px solid #dee2e6;
             padding: 20px;
-            overflow-y: auto;
         }
 
-            .sidebar h3 {
-                color: #343a40;
-                margin-bottom: 20px;
-            }
-
-            .sidebar .list-group-item {
-                cursor: pointer;
-                border-radius: 4px;
-                margin-bottom: 5px;
-            }
-
-                .sidebar .list-group-item:hover {
-                    background-color: #e9ecef;
-                }
-
-                .sidebar .list-group-item.active {
-                    background-color: #007bff;
-                    color: white;
-                }
-
-        .main-content {
-            flex-grow: 1;
+        .tab-content {
+            margin-top: 20px;
             padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .content-container {
-            width: 100%;
-            max-width: 800px;
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
         }
 
         #map {
             height: 400px;
+            width: 100%;
             margin-top: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .nav-tabs .nav-link {
+            border-radius: 0;
+        }
+
+        .category-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .tab-pane {
+            min-height: 500px;
+        }
+
+        .section-title {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.5em;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <!-- Sidebar bên trái -->
-        <div class="sidebar">
-            <h3>Danh mục tài sản</h3>
-            <div class="list-group">
-                @foreach (var category in Model.Categories)
-                {
-                    <div class="list-group-item" data-id="@category.cagetory_id" onclick="loadForm(@category.cagetory_id)">
-                        @category.cagetory_name
-                    </div>
-                }
-            </div>
-        </div>
+    <div class="container">
+        <h1>Tạo Tài Sản Mới</h1>
+        <ul class="nav nav-tabs" id="assetCreateTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">Thông Tin Tài Sản</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="attributes-tab" data-bs-toggle="tab" data-bs-target="#attributes" type="button" role="tab" disabled>Thuộc Tính</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="review-tab" data-bs-toggle="tab" data-bs-target="#review" type="button" role="tab" disabled>Kiểm Tra Lại</button>
+            </li>
+        </ul>
 
-        <!-- Nội dung chính -->
-        <div class="main-content">
-            <div class="content-container">
-                <h1>Tạo Tài Sản Mới</h1>
-                <form method="post" action="/Assets/AssetCreate">
-                    <input type="hidden" asp-for="NewAsset.cagetory_id" id="cagetoryId" />
-                    <div id="form-content">
-                        <p>Chọn một danh mục từ sidebar để tạo tài sản.</p>
+        <form method="post" id="assetForm">
+            <div class="tab-content" id="assetCreateTabContent">
+                <!-- Tab 1: Thông Tin Tài Sản (Gộp Chọn Danh Mục, Thông Tin Cơ Bản, Vị Trí) -->
+                <div class="tab-pane fade show active" id="info" role="tabpanel">
+                    <!-- Phần Chọn Danh Mục -->
+                    <div class="section-title">Chọn Danh Mục</div>
+                    <div class="category-list">
+                        @foreach (var category in Model.Categories)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="NewAsset.cagetory_id" id="category_@category.cagetory_id" value="@category.cagetory_id" onchange="selectCategory(this.value)">
+                                <label class="form-check-label" for="category_@category.cagetory_id">
+                                    @category.cagetory_name
+                                </label>
+                            </div>
+                        }
                     </div>
-                    <div id="map"></div>
+                    <div id="geoTypeDisplay" class="form-group mt-3" style="display: none;">
+                        <label>Loại Hình Học</label>
+                        <input type="text" id="geoType" class="form-control" readonly />
+                    </div>
+
+                    <!-- Phần Thông Tin Cơ Bản -->
+                    <div class="section-title">Thông Tin Cơ Bản</div>
                     <div class="form-group">
                         <label asp-for="NewAsset.condition">Tình trạng</label>
                         <input asp-for="NewAsset.condition" class="form-control" required />
@@ -103,12 +98,8 @@
                     </div>
                     <div class="form-group">
                         <label asp-for="NewAsset.lifecycle_stage">Giai đoạn vòng đời</label>
-                        <select asp-for="NewAsset.lifecycle_stage" class="form-control" required>
-                            <option value="">Chọn giai đoạn</option>
-                            <option value="planned">Planned</option>
-                            <option value="installed">Installed</option>
-                            <option value="maintained">Maintained</option>
-                            <option value="decommissioned">Decommissioned</option>
+                        <select asp-for="NewAsset.lifecycle_stage" id="lifecycleStageSelect" class="form-control" required>
+                            <option value="">Chọn giai đoạn</option> <!-- Thêm option mặc định nếu muốn -->
                         </select>
                         <span asp-validation-for="NewAsset.lifecycle_stage" class="text-danger"></span>
                     </div>
@@ -118,74 +109,198 @@
                     </div>
                     <div class="form-group">
                         <label asp-for="NewAsset.expected_lifetime">Tuổi thọ dự kiến (năm)</label>
-                        <input asp-for="NewAsset.expected_lifetime" type="number" class="form-control" />
+                        <input asp-for="NewAsset.expected_lifetime" type="number" class="form-control" min="0" />
                     </div>
                     <div class="form-group">
                         <label asp-for="NewAsset.last_inspection_date">Ngày kiểm tra cuối</label>
                         <input asp-for="NewAsset.last_inspection_date" type="date" class="form-control" />
                     </div>
+
+                    <!-- Phần Vị Trí -->
+                    <div class="section-title">Vị Trí</div>
+                    <div id="map"></div>
+                    <div id="coordinatesInput">
+                        <p id="instructionText">Click on the map to select a point.</p>
+                        <div id="manualCoordinates" class="mt-3">
+                            <div class="form-group">
+                                <label asp-for="GeometrySystem">Hệ thống tọa độ</label>
+                                <select asp-for="GeometrySystem" class="form-control" id="geometrySystem" required>
+                                    <option value="">Chọn hệ tọa độ</option>
+                                    <option value="wgs84">WGS84</option>
+                                    <option value="vn2000">VN2000</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="manualLat">Vĩ độ (Latitude):</label>
+                                <input type="text" id="manualLat" class="form-control" placeholder="Nhập vĩ độ" />
+                            </div>
+                            <div class="form-group">
+                                <label for="manualLng">Kinh độ (Longitude):</label>
+                                <input type="text" id="manualLng" class="form-control" placeholder="Nhập kinh độ" />
+                            </div>
+                            <div class="form-group" id="manualCoordsGroup" style="display: none;">
+                                <label for="manualCoords">Tọa độ (dạng JSON):</label>
+                                <textarea id="manualCoords" class="form-control" rows="3" placeholder='Ví dụ: [[x1, y1], [x2,y2]]'></textarea>
+                            </div>
+                        </div>
+                    </div>
                     <input type="hidden" asp-for="NewAsset.geometry.type" id="geometryType" />
                     <input type="hidden" asp-for="NewAsset.geometry.coordinates" id="geometryCoordinates" />
-                    <input type="hidden" asp-for="NewAsset.attributes" id="attributes" />
-                    <button type="submit" class="btn btn-primary">Tạo</button>
-                </form>
+
+                    <button type="button" class="btn btn-primary mt-3" onclick="nextTab('attributes-tab')">Tiếp Theo</button>
+                </div>
+
+                <!-- Tab 2: Thuộc Tính -->
+                <div class="tab-pane fade" id="attributes" role="tabpanel">
+                    <div id="attributes-content">
+                        <p>Đang tải thuộc tính...</p>
+                    </div>
+                    <button type="button" class="btn btn-secondary mt-3 me-2" onclick="prevTab('info-tab')">Quay Lại</button>
+                    <button type="button" class="btn btn-primary mt-3" onclick="nextTab('review-tab')">Tiếp Theo</button>
+                </div>
+
+                <!-- Tab 3: Kiểm Tra Lại -->
+                <div class="tab-pane fade" id="review" role="tabpanel">
+                    <h4>Tóm tắt thông tin</h4>
+                    <div id="review-content"></div>
+                    <button type="button" class="btn btn-secondary mt-3 me-2" onclick="prevTab('attributes-tab')">Quay Lại</button>
+                    <button type="submit" class="btn btn-success mt-3">Tạo Tài Sản</button>
+                </div>
             </div>
-        </div>
+            <input type="hidden" id="attributesHidden" asp-for="NewAsset.attributes" />
+        </form>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script>
         let map, currentLayer, coordinates = [];
+        let selectedCategoryId = null;
+        let currentCenter = [21.0285, 105.8542];
+        let currentZoom = 13;
+        let isPointSelected = false;
+        let currentGeoType = 'point'; // Giá trị mặc định
 
         // Khởi tạo bản đồ
         document.addEventListener('DOMContentLoaded', function () {
-            map = L.map('map').setView([10.8231, 106.6297], 13); // TP.HCM
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+            try {
+                map = L.map('map', {
+                    center: currentCenter,
+                    zoom: currentZoom,
+                    zoomControl: true
+                });
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                const geocoder = L.Control.Geocoder.nominatim();
+                L.Control.geocoder({ geocoder: geocoder }).addTo(map);
+
+                map.on('moveend zoomend', function () {
+                    currentCenter = map.getCenter();
+                    currentZoom = map.getZoom();
+                });
+            } catch (error) {
+                console.error('Error initializing map:', error);
+            }
         });
 
-        function loadForm(id) {
-            $('.list-group-item').removeClass('active');
-            $(`.list-group-item[data-id="${id}"]`).addClass('active');
-            $('#cagetoryId').val(id);
+        $(document).ready(function () {
+            $('#assetCreateTabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                if (e.target.id === 'info-tab') {
+                    setTimeout(function () {
+                        map.invalidateSize();
+                        map.setView(currentCenter, currentZoom);
+                    }, 100);
+                }
+                if (e.target.id === 'review-tab') {
+                    updateReview();
+                }
+            });
+        });
 
+        function selectCategory(id) {
+            selectedCategoryId = id;
+            $('#attributes-tab').prop('disabled', false);
             $.ajax({
-                url: '/Assets/AssetCreate?handler=GetCategorySchema&id=' + id,
+                url: '/Assets/AssetCreate2?handler=GetCategorySchema', // Đảm bảo URL đúng
+                data: { id: id },
                 method: 'GET',
-                success: function (data) {
-                    $('#form-content').html(data);
-                    bindFormEvents();
+                success: function (response) {
+                    console.log("Response from server:", response); // Kiểm tra dữ liệu trả về
+
+                    // Cập nhật geometry type
+                    let geoType = response.geometryType || 'Point';
+                    if (geoType.toLowerCase() === 'line') geoType = 'LineString';
+                    currentGeoType = geoType.toLowerCase();
+                    $('#geoType').val(currentGeoType);
+                    $('#geoTypeDisplay').show();
+                    $('#geometryType').val(currentGeoType);
+
+                    // Cập nhật danh sách lifecycle_stage
+                    var lifecycleSelect = $('#lifecycleStageSelect'); // Sử dụng id mới
+                    lifecycleSelect.empty(); // Xóa các option hiện tại
+                    lifecycleSelect.append('<option value="">Chọn giai đoạn</option>');
+
+                    if (response.lifecycleStages && response.lifecycleStages.length > 0) {
+                        response.lifecycleStages.forEach(function (stage) {
+                            lifecycleSelect.append(`<option value="${stage}">${stage}</option>`);
+                        });
+                    } else {
+                        lifecycleSelect.append('<option value="" disabled>Không có giai đoạn nào</option>');
+                    }
+
+                    updateForm();
                 },
-                error: function () {
-                    $('#form-content').html('<p>Đã xảy ra lỗi khi tải form.</p>');
+                error: function (xhr, status, error) {
+                    console.error('AJAX error:', error, xhr.responseText);
+                    currentGeoType = 'point';
+                    $('#geoType').val(currentGeoType);
+                    $('#geoTypeDisplay').show();
+                    $('#geometryType').val(currentGeoType);
+
+                    var lifecycleSelect = $('#lifecycleStageSelect'); // Sử dụng id mới
+                    lifecycleSelect.empty();
+                    lifecycleSelect.append('<option value="">Chọn giai đoạn</option>');
+                    lifecycleSelect.append('<option value="" disabled>Lỗi tải giai đoạn</option>');
+
+                    updateForm();
                 }
             });
         }
 
-        function bindFormEvents() {
-            const attributeInputs = document.querySelectorAll('.attribute-input');
-            attributeInputs.forEach(input => input.addEventListener('change', updateAttributes));
-            updateForm();
-
-            const form = document.querySelector('form');
-            form.addEventListener('submit', function (e) {
-                const formData = new FormData(form);
-                console.log('Form submitting:', Object.fromEntries(formData));
+        function loadAttributes(id) {
+            $.ajax({
+                url: '/Assets/AssetCreate2?handler=GetCategorySchema',
+                data: { id: id },
+                method: 'GET',
+                success: function (data) {
+                    console.log("Response from server:", data); // Kiểm tra dữ liệu trả về
+                    $('#attributes-content').html(data.html); // Chèn chuỗi HTML từ data.html
+                    $('#attributes-content .attribute-input').on('change', updateAttributes); // Gán sự kiện change
+                },
+                error: function (xhr, status, error) {
+                    console.error('AJAX error loading attributes:', error);
+                    $('#attributes-content').html('<p>Đã xảy ra lỗi khi tải thuộc tính.</p>');
+                }
             });
         }
 
         function updateForm() {
-            let geoType = document.getElementById('geoType')?.value?.toLowerCase();
             const coordinatesInput = document.getElementById('coordinatesInput');
-            if (!coordinatesInput || !geoType) {
-                console.error('Missing geoType or coordinatesInput');
+            const instructionText = document.getElementById('instructionText');
+            const manualLat = document.getElementById('manualLat');
+            const manualLng = document.getElementById('manualLng');
+            const manualCoordsGroup = document.getElementById('manualCoordsGroup');
+            const manualCoords = document.getElementById('manualCoords');
+
+            if (!coordinatesInput) {
+                console.error('coordinatesInput element not found');
                 return;
             }
-
-            if (geoType === 'line') geoType = 'linestring';
-            console.log('Normalized geoType:', geoType);
 
             coordinates = [];
             if (currentLayer) {
@@ -193,71 +308,175 @@
                 currentLayer = null;
             }
 
-            map.off('click');
-            map.off('dblclick');
+            map.off('click').off('dblclick');
+            isPointSelected = false;
 
-            if (geoType === 'point') {
-                coordinatesInput.innerHTML = '<p>Nhấp vào bản đồ để chọn điểm.</p>';
+            // Reset các ô input
+            manualLat.value = '';
+            manualLng.value = '';
+            manualCoords.value = '';
+
+            if (currentGeoType === 'point') {
+                instructionText.textContent = 'Click on the map to select a point or enter coordinates manually below.';
+                manualCoordsGroup.style.display = 'none';
+                manualLat.parentElement.style.display = 'block';
+                manualLng.parentElement.style.display = 'block';
                 map.on('click', onMapClickPoint);
-            } else if (geoType === 'linestring') {
-                coordinatesInput.innerHTML = '<p>Nhấp để thêm điểm vào đường. Nhấp đúp để hoàn thành.</p>';
+            } else if (currentGeoType === 'linestring') {
+                instructionText.textContent = 'Click on the map to add points to the line (double-click to finish) or enter coordinates manually below.';
+                manualCoordsGroup.style.display = 'block';
+                manualLat.parentElement.style.display = 'none';
+                manualLng.parentElement.style.display = 'none';
                 map.on('click', onMapClickLine);
                 map.on('dblclick', finishLineString);
-            } else if (geoType === 'polygon') {
-                coordinatesInput.innerHTML = '<p>Nhấp để thêm điểm vào đa giác. Nhấp đúp để hoàn thành.</p>';
+            } else if (currentGeoType === 'polygon') {
+                instructionText.textContent = 'Click on the map to add points to the polygon (double-click to finish) or enter coordinates manually below.';
+                manualCoordsGroup.style.display = 'block';
+                manualLat.parentElement.style.display = 'none';
+                manualLng.parentElement.style.display = 'none';
                 map.on('click', onMapClickPolygon);
                 map.on('dblclick', finishPolygon);
             }
+
+            // Lắng nghe thay đổi thủ công từ người dùng và cập nhật bản đồ
+            manualLat.oninput = manualLng.oninput = function () {
+                if (currentGeoType === 'point' && manualLat.value && manualLng.value) {
+                    const lat = parseFloat(manualLat.value);
+                    const lng = parseFloat(manualLng.value);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        coordinates = [lng, lat];
+                        updateGeometry('Point', coordinates);
+                        updateMapFromManualInput();
+                    }
+                }
+            };
+            manualCoords.oninput = function () {
+                if (currentGeoType !== 'point' && manualCoords.value) {
+                    try {
+                        coordinates = JSON.parse(manualCoords.value);
+                        updateGeometry(currentGeoType === 'linestring' ? 'LineString' : 'Polygon',
+                            currentGeoType === 'polygon' ? [coordinates] : coordinates);
+                        updateMapFromManualInput();
+                    } catch (e) {
+                        console.error('Invalid coordinates JSON:', e);
+                    }
+                }
+            };
         }
 
         function onMapClickPoint(e) {
-            if (currentLayer) map.removeLayer(currentLayer);
+            if (isPointSelected) {
+                console.log('Point already selected, ignoring click');
+                return;
+            }
+
+            if (!e || !e.latlng) {
+                console.error('Invalid click event or latlng:', e);
+                return;
+            }
+
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
             coordinates = [e.latlng.lng, e.latlng.lat];
             currentLayer = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
-            updateGeometryField('Point', coordinates);
-            map.off('click');
+            document.getElementById('manualLat').value = e.latlng.lat;
+            document.getElementById('manualLng').value = e.latlng.lng;
+            document.getElementById('geometrySystem').value = 'wgs84';
+            updateGeometry('Point', coordinates);
+            isPointSelected = true;
+
+            const geocoder = L.Control.Geocoder.nominatim();
+            geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), function (results) {
+                if (results.length > 0) {
+                    $('#dia_chi').val(results[0].name);
+                    updateAttributes();
+                }
+            });
         }
 
         function onMapClickLine(e) {
+            if (!e || !e.latlng) {
+                console.error('Invalid click event or latlng:', e);
+                return;
+            }
+
             coordinates.push([e.latlng.lng, e.latlng.lat]);
-            if (currentLayer) map.removeLayer(currentLayer);
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
             currentLayer = L.polyline(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
-            updateGeometryField('LineString', coordinates);
+            document.getElementById('manualCoords').value = JSON.stringify(coordinates);
+            document.getElementById('geometrySystem').value = 'wgs84';
+            updateGeometry('LineString', coordinates);
         }
 
         function finishLineString() {
             if (coordinates.length < 2) {
-                alert('Đường yêu cầu ít nhất 2 điểm.');
+                alert('A LineString requires at least 2 points.');
                 return;
             }
-            if (currentLayer) map.removeLayer(currentLayer);
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
             currentLayer = L.polyline(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
-            updateGeometryField('LineString', coordinates);
-            map.off('click');
-            map.off('dblclick');
+            document.getElementById('manualCoords').value = JSON.stringify(coordinates);
+            updateGeometry('LineString', coordinates);
+            map.off('click').off('dblclick');
         }
 
         function onMapClickPolygon(e) {
+            if (!e || !e.latlng) {
+                console.error('Invalid click event or latlng:', e);
+                return;
+            }
+
             coordinates.push([e.latlng.lng, e.latlng.lat]);
-            if (currentLayer) map.removeLayer(currentLayer);
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
             currentLayer = L.polygon(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
-            updateGeometryField('Polygon', [coordinates]);
+            document.getElementById('manualCoords').value = JSON.stringify(coordinates);
+            document.getElementById('geometrySystem').value = 'wgs84';
+            updateGeometry('Polygon', [coordinates]);
         }
 
         function finishPolygon() {
             if (coordinates.length < 3) {
-                alert('Đa giác yêu cầu ít nhất 3 điểm.');
+                alert('A Polygon requires at least 3 points.');
                 return;
             }
             coordinates.push(coordinates[0]);
-            if (currentLayer) map.removeLayer(currentLayer);
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
             currentLayer = L.polygon(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
-            updateGeometryField('Polygon', [coordinates]);
-            map.off('click');
-            map.off('dblclick');
+            document.getElementById('manualCoords').value = JSON.stringify(coordinates);
+            updateGeometry('Polygon', [coordinates]);
+            map.off('click').off('dblclick');
         }
 
-        function updateGeometryField(type, coords) {
+        function updateMapFromManualInput() {
+            console.log('now we change point on map');
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
+
+            if (currentGeoType === 'point' && coordinates.length === 2) {
+                const [lng, lat] = coordinates;
+                currentLayer = L.marker([lat, lng]).addTo(map);
+                map.setView([lat, lng], currentZoom); // Tự động di chuyển bản đồ đến điểm mới
+                isPointSelected = true;
+            } else if (currentGeoType === 'linestring' && coordinates.length >= 1) {
+                currentLayer = L.polyline(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
+                map.fitBounds(currentLayer.getBounds()); // Tự động điều chỉnh khung nhìn
+            } else if (currentGeoType === 'polygon' && coordinates[0].length >= 3) {
+                currentLayer = L.polygon(coordinates[0].map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
+                map.fitBounds(currentLayer.getBounds()); // Tự động điều chỉnh khung nhìn
+            }
+        }
+
+        function updateGeometry(type, coords) {
             const geometryTypeField = document.getElementById('geometryType');
             const geometryCoordinatesField = document.getElementById('geometryCoordinates');
             if (geometryTypeField && geometryCoordinatesField) {
@@ -267,18 +486,77 @@
             } else {
                 console.error('Geometry fields not found');
             }
+            updateReview();
         }
 
         function updateAttributes() {
             const attributes = {};
-            document.querySelectorAll('.attribute-input').forEach(input => {
-                attributes[input.id] = input.value || '';
+            $('#attributes-content .attribute-input').each(function () {
+                attributes[$(this).attr('id')] = $(this).val() || '';
             });
-            const attributesField = document.getElementById('attributes');
-            if (attributesField) {
-                attributesField.value = JSON.stringify(attributes);
-                console.log('Attributes updated:', attributes);
+            $('#attributesHidden').val(JSON.stringify(attributes));
+            updateReview();
+        }
+
+        function nextTab(tabId) {
+            const currentTab = $('.nav-link.active').attr('id');
+            if (validateTab(currentTab)) {
+                $(`#${tabId}`).prop('disabled', false).tab('show');
+                if (tabId === 'attributes-tab' && selectedCategoryId) {
+                    loadAttributes(selectedCategoryId);
+                }
             }
+        }
+
+        function prevTab(tabId) {
+            $(`#${tabId}`).tab('show');
+        }
+
+        function validateTab(tabId) {
+            if (tabId === 'info-tab') {
+                if (!selectedCategoryId) {
+                    alert('Vui lòng chọn một danh mục.');
+                    return false;
+                }
+                const requiredFields = $('#info .form-control[required]');
+                let valid = true;
+                requiredFields.each(function () {
+                    if (!$(this).val()) {
+                        $(this).next('.text-danger').text('Trường này là bắt buộc.');
+                        valid = false;
+                    } else {
+                        $(this).next('.text-danger').text('');
+                    }
+                });
+                if (!valid) {
+                    return false;
+                }
+                if (!coordinates.length) {
+                    alert('Vui lòng chọn vị trí trên bản đồ hoặc nhập tọa độ thủ công.');
+                    return false;
+                }
+                return true;
+            }
+            return true;
+        }
+
+        function updateReview() {
+            let reviewHtml = '<ul>';
+            $('#assetForm').serializeArray().forEach(function (field) {
+                if (field.name !== 'NewAsset.geometry.coordinates' && field.name !== 'NewAsset.attributes') {
+                    reviewHtml += `<li><strong>${field.name.replace('NewAsset.', '')}:</strong> ${field.value || 'Chưa nhập'}</li>`;
+                }
+            });
+            const attributes = JSON.parse($('#attributesHidden').val() || '{}');
+            for (let key in attributes) {
+                reviewHtml += `<li><strong>${key}:</strong> ${attributes[key] || 'Chưa nhập'}</li>`;
+            }
+            const coords = JSON.parse($('#geometryCoordinates').val() || '[]');
+            if (coords.length) {
+                reviewHtml += `<li><strong>Tọa độ:</strong> ${JSON.stringify(coords)}</li>`;
+            }
+            reviewHtml += '</ul>';
+            $('#review-content').html(reviewHtml);
         }
     </script>
 </body>

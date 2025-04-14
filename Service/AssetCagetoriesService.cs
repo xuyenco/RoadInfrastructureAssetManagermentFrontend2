@@ -1,90 +1,169 @@
-﻿using Road_Infrastructure_Asset_Management.Model.Request;
+﻿using Road_Infrastructure_Asset_Management.Model.ImageUpload;
+using Road_Infrastructure_Asset_Management.Model.Request;
 using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend.Service
 {
-    public class AssetCagetoriesService : IAssetCagetoriesService
+    public class AssetCagetoriesService : BaseService,IAssetCagetoriesService
     {
-        private readonly HttpClient _httpClient;
-
-        public AssetCagetoriesService(IHttpClientFactory httpClientFactory)
+        public AssetCagetoriesService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+            : base(httpClientFactory, httpContextAccessor)
         {
-            _httpClient = httpClientFactory.CreateClient("ApiClient"); // Lấy HttpClient có BaseAddress đã cấu hình
         }
 
-        // Get all assetcagetories
         public async Task<List<AssetCagetoriesResponse>> GetAllAssetCagetoriesAsync()
         {
-            var response = await _httpClient.GetAsync("api/assetcagetories");
-            response.EnsureSuccessStatusCode(); // Throw if not successful
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync("api/assetCagetories"));
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve asset categories: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<List<AssetCagetoriesResponse>>(content);
         }
 
-        // Get asset by ID
         public async Task<AssetCagetoriesResponse?> GetAssetCagetoriesByIdAsync(int id)
         {
-            var response = await _httpClient.GetAsync($"api/assetcagetories/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync($"api/assetCagetories/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return null; // Asset not found
+                return null;
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to retrieve asset cagetory with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<AssetCagetoriesResponse>(content);
         }
 
-        // Create a new asset
         public async Task<AssetCagetoriesResponse?> CreateAssetCagetoriesAsync(AssetCagetoriesRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/assetcagetories", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            var formData = new MultipartFormDataContent();
+
+            // Thêm các trường cơ bản
+            formData.Add(new StringContent(request.cagetory_name ?? ""), "cagetory_name");
+            formData.Add(new StringContent(request.geometry_type ?? ""), "geometry_type");
+            formData.Add(new StringContent(request.attributes_schema ?? ""), "attributes_schema"); // Chuỗi JSON
+            formData.Add(new StringContent(request.lifecycle_stages ?? ""), "lifecycle_stages");   // Chuỗi JSON
+
+            // Xử lý file ảnh
+            if (request.marker != null && request.marker.Length > 0)
             {
-                return null; // Bad request
+                var fileContent = new StreamContent(request.marker.OpenReadStream());
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.marker.ContentType);
+                formData.Add(fileContent, "marker", request.marker.FileName);
             }
-            response.EnsureSuccessStatusCode();
+            else
+            {
+                throw new ArgumentException("File ảnh marker là bắt buộc.");
+            }
+
+            // Log dữ liệu gửi lên để debug
+            foreach (var item in formData)
+            {
+                var value = item switch
+                {
+                    StringContent stringContent => await stringContent.ReadAsStringAsync(),
+                    StreamContent => "[File]",
+                    _ => item.ToString()
+                };
+                Console.WriteLine($"{item.Headers.ContentDisposition.Name}: {value}");
+            }
+
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.PostAsync("api/AssetCagetories", formData));
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Yêu cầu không hợp lệ: {errorContent}");
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Không thể tạo danh mục tài sản: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<AssetCagetoriesResponse>(content);
         }
 
-        // Update an existing asset
         public async Task<AssetCagetoriesResponse?> UpdateAssetCagetoriesAsync(int id, AssetCagetoriesRequest request)
         {
-            var response = await _httpClient.PatchAsJsonAsync($"api/assetcagetories/{id}", request);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var formData = new MultipartFormDataContent();
+            // Thêm các trường cơ bản
+            formData.Add(new StringContent(request.cagetory_name ?? ""), "cagetory_name");
+            formData.Add(new StringContent(request.geometry_type ?? ""), "geometry_type");
+            formData.Add(new StringContent(request.attributes_schema ?? ""), "attributes_schema"); // Chuỗi JSON
+            formData.Add(new StringContent(request.lifecycle_stages ?? ""), "lifecycle_stages");   // Chuỗi JSON
+
+            // Xử lý file ảnh
+            if (request.marker != null && request.marker.Length > 0)
             {
-                return null; // Asset not found
+                var fileContent = new StreamContent(request.marker.OpenReadStream());
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.marker.ContentType);
+                formData.Add(fileContent, "marker", request.marker.FileName);
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+
+            // Log dữ liệu gửi lên để debug
+            foreach (var item in formData)
             {
-                return null; // Bad request
+                var value = item switch
+                {
+                    StringContent stringContent => await stringContent.ReadAsStringAsync(),
+                    StreamContent => "[File]",
+                    _ => item.ToString()
+                };
+                Console.WriteLine($"{item.Headers.ContentDisposition.Name}: {value}");
             }
-            response.EnsureSuccessStatusCode();
+
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.PatchAsync($"api/assetCagetories/{id}", formData));
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new ArgumentException($"Invalid request: {errorContent}");
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to update asset cagetory with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<AssetCagetoriesResponse>(content);
         }
 
-        // Delete an asset
         public async Task<bool> DeleteAssetCagetoriesAsync(int id)
         {
-            var response = await _httpClient.DeleteAsync($"api/assetcagetories/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.DeleteAsync($"api/assetCagetories/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return false; // Asset not found
+                return false;
             }
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict)
             {
-                return false; // Bad request
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Failed to delete asset cagetory with ID {id}: {errorContent}");
             }
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to delete asset cagetory with ID {id}: {response.StatusCode} - {errorContent}");
+            }
 
-            return true; // Successfully deleted
+            return true;
         }
     }
 }

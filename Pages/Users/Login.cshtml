@@ -1,0 +1,43 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend.Pages.Users.LoginModel
+
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h2 class="text-center mb-4">Login</h2>
+
+            <form method="post" class="card p-4 shadow-sm">
+                <div class="form-group mb-3">
+                    <label asp-for="LoginRequest.Username" class="form-label">Username</label>
+                    <input asp-for="LoginRequest.Username" class="form-control" placeholder="Enter your username" />
+                    <span asp-validation-for="LoginRequest.Username" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="LoginRequest.Password" class="form-label">Password</label>
+                    <input asp-for="LoginRequest.Password" type="password" class="form-control" placeholder="Enter your password" />
+                    <span asp-validation-for="LoginRequest.Password" class="text-danger"></span>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-block">Login</button>
+                </div>
+            </form>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger mt-3" role="alert">
+                    @Model.ErrorMessage
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

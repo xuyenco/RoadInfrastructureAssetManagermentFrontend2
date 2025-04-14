@@ -1,41 +1,87 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend.Pages.Tasks.IndexModel
 @{
+    Layout = "_Layout";
 }
+
 <!DOCTYPE html>
 <html>
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        body { background-color: #f8f9fa; }
-        .container { margin-top: 20px; }
-        .h1, .h3 { color: #343a40; font-weight: bold; }
-        .table-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); padding: 20px; }
-        .btn-primary { transition: background-color 0.3s; }
-        .btn-primary:hover { background-color: #0056b3; }
-        .thead-light th { background-color: #e9ecef; color: #495057; }
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .h1, .h3 {
+            color: #343a40;
+            font-weight: bold;
+        }
+
+        .table-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .btn-primary {
+            transition: background-color 0.3s;
+        }
+
+            .btn-primary:hover {
+                background-color: #0056b3;
+            }
+
+        .thead-light th {
+            background-color: #e9ecef;
+            color: #495057;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Danh sách Nhiệm vụ</h1>
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @TempData["Error"]
+            </div>
+        }
     </div>
 
     <div class="text-center table-container">
         <p class="h3 p-3">Danh sách Nhiệm vụ</p>
         <div class="row mb-3">
-            <div class="col-md-4">
-                <input type="text" class="form-control" placeholder="Tìm kiếm theo trạng thái..." id="searchInput">
+            <div class="col-md-4 d-flex">
+                <input type="text" class="form-control" placeholder="Tìm kiếm..." id="searchInput">
+                <select class="form-select ms-2" id="searchField" style="width: 150px;">
+                    <option value="5">Trạng thái</option>
+                    <option value="0">Mã Tài sản</option>
+                    <option value="1">Người được giao</option>
+                    <option value="2">Loại Nhiệm vụ</option>
+                    <option value="3">Mô tả</option>
+                    <option value="4">Ưu tiên</option>
+                    <option value="6">Ngày đến hạn</option>
+                </select>
             </div>
         </div>
         <div>
-            <a class="btn btn-primary btn-sm mb-3" href="/Tasks/TaskCreate">
+            <a class="btn btn-primary btn-sm mb-3" asp-page="/Tasks/TaskCreate">
                 <i class="fas fa-plus"></i> Tạo Nhiệm vụ mới
             </a>
+            <button class="btn btn-success btn-sm mb-3" onclick="exportTasksReport()">
+                <i class="fas fa-file-export"></i> Xuất báo cáo
+            </button>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm table-striped">
                     <thead class="thead-light">
                         <tr>
+                            <th>Mã nhiệm vụ</th>
                             <th>Mã Tài sản</th>
                             <th>Người được giao</th>
                             <th>Loại Nhiệm vụ</th>
@@ -50,13 +96,14 @@
                         @foreach (var task in Model.Tasks)
                         {
                             <tr data-task-id="@task.asset_id">
+                                <td>@task.task_id</td>
                                 <td>@task.asset_id</td>
                                 <td>@task.assigned_to</td>
                                 <td>@task.task_type</td>
                                 <td>@task.description</td>
                                 <td>@task.priority</td>
                                 <td>@task.status</td>
-                                <td>@task.due_date.ToString()</td>
+                                <td>@(task.due_date.HasValue ? task.due_date.Value.ToString("dd/MM/yyyy") : "Chưa có dữ liệu")</td>
                                 <td>
                                     <a class="btn btn-info btn-sm" href="/Tasks/Detail?id=@task.asset_id" data-toggle="tooltip" title="Xem chi tiết">
                                         <i class="fas fa-eye"></i> Chi tiết
@@ -64,7 +111,7 @@
                                     <button class="btn btn-danger btn-sm delete-btn" data-id="@task.asset_id" data-toggle="tooltip" title="Xóa nhiệm vụ">
                                         <i class="fas fa-trash-alt"></i> Xóa
                                     </button>
-                                    <a class="btn btn-secondary btn-sm" href="/Tasks/Update?id=@task.asset_id" data-toggle="tooltip" title="Cập nhật nhiệm vụ">
+                                    <a class="btn btn-secondary btn-sm" asp-page="/Tasks/TaskUpdate" asp-route-id="@task.task_id" data-toggle="tooltip" title="Cập nhật nhiệm vụ">
                                         <i class="fas fa-edit"></i> Cập nhật
                                     </a>
                                 </td>
@@ -76,49 +123,60 @@
         </div>
     </div>
 
-    <!-- Script cho tìm kiếm, tooltip và xử lý xóa -->
+    @Html.AntiForgeryToken()
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script>
-        $(document).ready(function(){
+         // Xử lý xuất báo cáo
+        function exportTasksReport() {
+            window.location.href = "/Tasks/Index?handler=ExportExcel";
+        }
+        $(document).ready(function () {
             $('[data-toggle="tooltip"]').tooltip();
 
             // Xử lý sự kiện xóa
-            $('.delete-btn').on('click', function() {
+            $('.delete-btn').on('click', function () {
                 const taskId = $(this).data('id');
                 if (confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) {
                     $.ajax({
-                        url: '/Tasks/Index?handler=Delete', // Gọi handler Delete trong PageModel
+                        url: '/Tasks/Index?handler=Delete',
                         type: 'POST',
                         data: { id: taskId },
                         headers: {
-                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() // CSRF token
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                         },
-                        success: function(response) {
+                        success: function (response) {
                             if (response.success) {
-                                $(`tr[data-task-id="${taskId}"]`).remove(); // Xóa hàng khỏi bảng
+                                $(`tr[data-task-id="${taskId}"]`).remove();
                                 alert('Xóa nhiệm vụ thành công!');
                             } else {
-                                alert('Xóa nhiệm vụ thất bại: ' + response.message);
+                                alert('Xóa nhiệm vụ thất bại: ' + (response.message || 'Không rõ nguyên nhân'));
                             }
                         },
-                        error: function() {
-                            alert('Đã xảy ra lỗi khi xóa nhiệm vụ.');
+                        error: function (xhr) {
+                            let errorMsg = xhr.responseJSON?.message || 'Đã xảy ra lỗi khi xóa nhiệm vụ.';
+                            alert(errorMsg);
                         }
                     });
                 }
             });
 
             // Xử lý tìm kiếm
-            $('#searchInput').on('keyup', function() {
+            $('#searchInput').on('keyup', function () {
                 let filter = this.value.toLowerCase();
+                let searchFieldIndex = parseInt($('#searchField').val());
                 let rows = $('#taskTableBody tr');
 
-                rows.each(function() {
-                    let status = $(this).find('td:eq(5)').text().toLowerCase(); // Lọc theo cột status
-                    $(this).toggle(status.includes(filter));
+                rows.each(function () {
+                    let cellValue = $(this).find(`td:eq(${searchFieldIndex})`).text().toLowerCase();
+                    $(this).toggle(cellValue.includes(filter));
                 });
             });
+
+            $('#searchField').on('change', function () {
+                $('#searchInput').trigger('keyup');
+            });
+
+
         });
     </script>
 </body>
-</html>
