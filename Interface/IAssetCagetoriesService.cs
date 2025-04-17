@@ -1,5 +1,4 @@
-﻿using Road_Infrastructure_Asset_Management.Model.ImageUpload;
-using Road_Infrastructure_Asset_Management.Model.Request;
+﻿using Road_Infrastructure_Asset_Management.Model.Request;
 using Road_Infrastructure_Asset_Management.Model.Response;
 
 namespace RoadInfrastructureAssetManagementFrontend.Interface

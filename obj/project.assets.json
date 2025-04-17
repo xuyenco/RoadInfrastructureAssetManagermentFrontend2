@@ -1003,11 +1003,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Lenovo\\source\\repos\\RoadInfrastructureAssetManagementFrontend\\RoadInfrastructureAssetManagementFrontend.csproj",
-      "projectName": "RoadInfrastructureAssetManagementFrontend",
-      "projectPath": "C:\\Users\\Lenovo\\source\\repos\\RoadInfrastructureAssetManagementFrontend\\RoadInfrastructureAssetManagementFrontend.csproj",
+      "projectUniqueName": "C:\\Users\\Lenovo\\source\\repos\\RoadInfrastructureAssetManagementFrontend2\\RoadInfrastructureAssetManagementFrontend2\\RoadInfrastructureAssetManagementFrontend2.csproj",
+      "projectName": "RoadInfrastructureAssetManagementFrontend2",
+      "projectPath": "C:\\Users\\Lenovo\\source\\repos\\RoadInfrastructureAssetManagementFrontend2\\RoadInfrastructureAssetManagementFrontend2\\RoadInfrastructureAssetManagementFrontend2.csproj",
       "packagesPath": "C:\\Users\\Lenovo\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Lenovo\\source\\repos\\RoadInfrastructureAssetManagementFrontend\\obj\\",
+      "outputPath": "C:\\Users\\Lenovo\\source\\repos\\RoadInfrastructureAssetManagementFrontend2\\RoadInfrastructureAssetManagementFrontend2\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Lenovo\\AppData\\Roaming\\NuGet\\NuGet.Config",

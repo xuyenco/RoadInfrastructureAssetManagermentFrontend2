@@ -6,6 +6,7 @@ using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
@@ -25,24 +26,29 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
         {
             try
             {
-                // Lấy dữ liệu tasks
                 var tasks = await _tasksService.GetAllTasksAsync();
 
-                ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
                 using (var package = new ExcelPackage())
                 {
                     var worksheet = package.Workbook.Worksheets.Add("Tasks Report");
 
                     // Thêm header
-                    string[] headers = new[] {
-                        "Mã Tài sản",
-                        "Người được giao",
+                    string[] headers = new[]
+                    {
+                        "Mã Nhiệm vụ",
                         "Loại Nhiệm vụ",
-                        "Mô tả",
-                        "Ưu tiên",
+                        "Khối lượng công việc",
                         "Trạng thái",
-                        "Ngày đến hạn"
+                        "Địa chỉ",
+                        "Hình học",
+                        "Ngày bắt đầu",
+                        "Ngày kết thúc",
+                        "Đơn vị thực hiện",
+                        "Người giám sát",
+                        "Tóm tắt phương pháp",
+                        "Kết quả chính"
                     };
 
                     for (int i = 0; i < headers.Length; i++)
@@ -57,15 +63,28 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
                     int row = 2;
                     foreach (var task in tasks)
                     {
-                        worksheet.Cells[row, 1].Value = task.asset_id;
-                        worksheet.Cells[row, 2].Value = task.assigned_to;
-                        worksheet.Cells[row, 3].Value = task.task_type;
-                        worksheet.Cells[row, 4].Value = task.description;
-                        worksheet.Cells[row, 5].Value = task.priority;
-                        worksheet.Cells[row, 6].Value = task.status;
-                        worksheet.Cells[row, 7].Value = task.due_date.HasValue
-                            ? task.due_date.Value.ToString("dd/MM/yyyy")
+                        worksheet.Cells[row, 1].Value = task.task_id;
+                        worksheet.Cells[row, 2].Value = task.task_type;
+                        worksheet.Cells[row, 3].Value = task.work_volume;
+                        worksheet.Cells[row, 4].Value = task.status;
+                        worksheet.Cells[row, 5].Value = task.address;
+                        worksheet.Cells[row, 6].Value = task.geometry != null
+                            ? $"{task.geometry.type}: {System.Text.Json.JsonSerializer.Serialize(task.geometry.coordinates)}"
                             : "Chưa có dữ liệu";
+                        worksheet.Cells[row, 7].Value = task.start_date.HasValue
+                            ? task.start_date.Value.ToString("dd/MM/yyyy")
+                            : "Chưa có dữ liệu";
+                        worksheet.Cells[row, 8].Value = task.end_date.HasValue
+                            ? task.end_date.Value.ToString("dd/MM/yyyy")
+                            : "Chưa có dữ liệu";
+                        worksheet.Cells[row, 9].Value = task.execution_unit_id.HasValue
+                            ? task.execution_unit_id.Value.ToString()
+                            : "Chưa có dữ liệu";
+                        worksheet.Cells[row, 10].Value = task.supervisor_id.HasValue
+                            ? task.supervisor_id.Value.ToString()
+                            : "Chưa có dữ liệu";
+                        worksheet.Cells[row, 11].Value = task.method_summary;
+                        worksheet.Cells[row, 12].Value = task.main_result;
                         row++;
                     }
 
@@ -99,10 +118,9 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
             }
         }
 
-        [ValidateAntiForgeryToken] // Thêm bảo mật CSRF
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {
-            Console.WriteLine($"Received task id to delete: {id}");
             try
             {
                 var result = await _tasksService.DeleteTaskAsync(id);
@@ -110,17 +128,14 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
             }
             catch (ArgumentException ex)
             {
-                Console.WriteLine($"Argument error: {ex.Message}");
                 return new JsonResult(new { success = false, message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                Console.WriteLine($"Invalid operation: {ex.Message}");
                 return new JsonResult(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Unexpected error: {ex.Message}");
                 return new JsonResult(new { success = false, message = $"An error occurred: {ex.Message}" });
             }
         }

@@ -57,9 +57,9 @@
         <div class="sidebar">
             <h4>Filters</h4>
             <div class="filter-group">
-                <label>Priority</label>
-                <select id="priorityFilter" class="form-control">
-                    <option value="">All Priorities</option>
+                <label>Severity Level</label>
+                <select id="severityFilter" class="form-control">
+                    <option value="">All Severity Levels</option>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
@@ -68,7 +68,7 @@
             </div>
 
             <div class="filter-group">
-                <label>Status</label>
+                <label>Processing Status</label>
                 <select id="statusFilter" class="form-control">
                     <option value="">All Statuses</option>
                     <option value="reported">Reported</option>
@@ -104,7 +104,7 @@
 
         // Tải dữ liệu từ GeoServer layer cite:incidents_layer
         function loadIncidentsFromGeoServer() {
-            const url = 'http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:incidents_layer&outputFormat=application/json';
+            const url = 'http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:incidents_layer_2&outputFormat=application/json';
             return fetch(url)
                 .then(response => {
                     if (!response.ok) throw new Error('Failed to fetch incidents from GeoServer');
@@ -113,14 +113,17 @@
                 .then(data => {
                     allIncidents = data.features.map(feature => ({
                         incident_id: feature.properties.incident_id,
-                        incident_type: feature.properties.incident_type,
-                        description: feature.properties.description,
-                        priority: feature.properties.priority,
-                        status: feature.properties.status,
-                        location: {
+                        address: feature.properties.address,
+                        geometry: {
                             type: feature.geometry.type,
                             coordinates: feature.geometry.coordinates
-                        }
+                        },
+                        route: feature.properties.route,
+                        severity_level: feature.properties.severity_level,
+                        damage_level: feature.properties.damage_level,
+                        processing_status: feature.properties.processing_status,
+                        task_id: feature.properties.task_id,
+                        created_at: feature.properties.created_at
                     }));
                     console.log("Incidents loaded from GeoServer:", allIncidents);
                     updateMarkers(allIncidents);
@@ -133,15 +136,19 @@
             var markers = [];
 
             incidents.forEach(function (incident) {
-                if (incident.location && incident.location.coordinates && incident.location.type === "Point") {
-                    var coords = incident.location.coordinates;
+                if (incident.geometry && incident.geometry.coordinates && incident.geometry.type === "Point") {
+                    var coords = incident.geometry.coordinates;
                     var marker = L.marker([coords[1], coords[0]]); // Giả sử tọa độ là [lng, lat]
 
                     marker.bindPopup(
-                        "<b>" + incident.incident_type + "</b><br>" +
-                        "Description: " + incident.description + "<br>" +
-                        "Priority: " + incident.priority + "<br>" +
-                        "Status: " + incident.status + "<br>" +
+                        "<b>Incident ID: " + incident.incident_id + "</b><br>" +
+                        "Address: " + (incident.address || "N/A") + "<br>" +
+                        "Route: " + (incident.route || "N/A") + "<br>" +
+                        "Severity Level: " + incident.severity_level + "<br>" +
+                        "Damage Level: " + incident.damage_level + "<br>" +
+                        "Status: " + incident.processing_status + "<br>" +
+                        "Task ID: " + (incident.task_id || "N/A") + "<br>" +
+                        "Created At: " + (incident.created_at || "N/A") + "<br>" +
                         "<button id='update-btn-" + incident.incident_id + "' class='btn btn-primary btn-sm mt-2'>Cập nhật</button>" +
                         "<button id='history-btn-" + incident.incident_id + "' class='btn btn-primary btn-sm mt-2'>Lịch sử</button>" +
                         "<button id='detail-btn-" + incident.incident_id + "' class='btn btn-primary btn-sm mt-2'>Chi tiết</button>",
@@ -171,18 +178,18 @@
         }
 
         function filterIncidents() {
-            var priority = document.getElementById('priorityFilter').value;
+            var severity = document.getElementById('severityFilter').value;
             var status = document.getElementById('statusFilter').value;
 
             var filteredIncidents = allIncidents.filter(function (incident) {
-                return (!priority || incident.priority === priority) &&
-                    (!status || incident.status === status);
+                return (!severity || incident.severity_level === severity) &&
+                    (!status || incident.processing_status === status);
             });
 
             updateMarkers(filteredIncidents);
         }
 
-        document.getElementById('priorityFilter').addEventListener('change', filterIncidents);
+        document.getElementById('severityFilter').addEventListener('change', filterIncidents);
         document.getElementById('statusFilter').addEventListener('change', filterIncidents);
 
         // Tải dữ liệu khi trang khởi tạo

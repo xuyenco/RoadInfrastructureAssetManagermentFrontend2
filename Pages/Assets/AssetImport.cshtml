@@ -1,4 +1,4 @@
-﻿@page
+﻿@* @page
 @model RoadInfrastructureAssetManagementFrontend.Pages.Assets.AssetImportModel
 @{
 }
@@ -25,9 +25,9 @@
         <label for="categorySelect">Chọn danh mục để tải file mẫu:</label>
         <select id="categorySelect" name="categoryId" class="form-control">
             <option value="">Chọn danh mục</option>
-            @foreach (var cagetory in Model.Categories)
+            @foreach (var category in Model.Categories)
             {
-                <option value="@cagetory.cagetory_id">@cagetory.cagetory_name</option>
+                <option value="@category.category_id">@category.category_name</option>
             }
         </select>
     </div>
@@ -53,4 +53,4 @@
         var url = "/Assets/AssetImport?handler=DownloadExcelTemplate&categoryId=" + categoryId;
         window.location.href = url;
     }
-</script>
+</script> *@

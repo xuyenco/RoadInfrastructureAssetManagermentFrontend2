@@ -67,9 +67,9 @@
             </li>
         </ul>
 
-        <form method="post" id="assetForm">
+        <form method="post" id="assetForm" enctype="multipart/form-data">
             <div class="tab-content" id="assetCreateTabContent">
-                <!-- Tab 1: Thông Tin Tài Sản (Gộp Chọn Danh Mục, Thông Tin Cơ Bản, Vị Trí) -->
+                <!-- Tab 1: Thông Tin Tài Sản -->
                 <div class="tab-pane fade show active" id="info" role="tabpanel">
                     <!-- Phần Chọn Danh Mục -->
                     <div class="section-title">Chọn Danh Mục</div>
@@ -77,9 +77,9 @@
                         @foreach (var category in Model.Categories)
                         {
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="NewAsset.cagetory_id" id="category_@category.cagetory_id" value="@category.cagetory_id" onchange="selectCategory(this.value)">
-                                <label class="form-check-label" for="category_@category.cagetory_id">
-                                    @category.cagetory_name
+                                <input class="form-check-input" type="radio" name="NewAsset.category_id" id="category_@category.category_id" value="@category.category_id" onchange="selectCategory(this.value)">
+                                <label class="form-check-label" for="category_@category.category_id">
+                                    @category.category_name
                                 </label>
                             </div>
                         }
@@ -92,28 +92,59 @@
                     <!-- Phần Thông Tin Cơ Bản -->
                     <div class="section-title">Thông Tin Cơ Bản</div>
                     <div class="form-group">
-                        <label asp-for="NewAsset.condition">Tình trạng</label>
-                        <input asp-for="NewAsset.condition" class="form-control" required />
-                        <span asp-validation-for="NewAsset.condition" class="text-danger"></span>
+                        <label asp-for="NewAsset.asset_name">Tên tài sản</label>
+                        <input asp-for="NewAsset.asset_name" class="form-control" required />
+                        <span asp-validation-for="NewAsset.asset_name" class="text-danger"></span>
                     </div>
                     <div class="form-group">
-                        <label asp-for="NewAsset.lifecycle_stage">Giai đoạn vòng đời</label>
-                        <select asp-for="NewAsset.lifecycle_stage" id="lifecycleStageSelect" class="form-control" required>
-                            <option value="">Chọn giai đoạn</option> <!-- Thêm option mặc định nếu muốn -->
-                        </select>
-                        <span asp-validation-for="NewAsset.lifecycle_stage" class="text-danger"></span>
+                        <label asp-for="NewAsset.asset_code">Mã tài sản</label>
+                        <input asp-for="NewAsset.asset_code" class="form-control" required />
+                        <span asp-validation-for="NewAsset.asset_code" class="text-danger"></span>
                     </div>
                     <div class="form-group">
-                        <label asp-for="NewAsset.installation_date">Ngày lắp đặt</label>
-                        <input asp-for="NewAsset.installation_date" type="date" class="form-control" />
+                        <label asp-for="NewAsset.address">Địa chỉ</label>
+                        <input asp-for="NewAsset.address" class="form-control" required />
+                        <span asp-validation-for="NewAsset.address" class="text-danger"></span>
                     </div>
                     <div class="form-group">
-                        <label asp-for="NewAsset.expected_lifetime">Tuổi thọ dự kiến (năm)</label>
-                        <input asp-for="NewAsset.expected_lifetime" type="number" class="form-control" min="0" />
+                        <label asp-for="NewAsset.construction_year">Năm xây dựng</label>
+                        <input asp-for="NewAsset.construction_year" type="date" class="form-control" />
                     </div>
                     <div class="form-group">
-                        <label asp-for="NewAsset.last_inspection_date">Ngày kiểm tra cuối</label>
-                        <input asp-for="NewAsset.last_inspection_date" type="date" class="form-control" />
+                        <label asp-for="NewAsset.operation_year">Năm vận hành</label>
+                        <input asp-for="NewAsset.operation_year" type="date" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.land_area">Diện tích đất (m²)</label>
+                        <input asp-for="NewAsset.land_area" type="number" step="0.01" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.floor_area">Diện tích sàn (m²)</label>
+                        <input asp-for="NewAsset.floor_area" type="number" step="0.01" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.original_value">Giá trị ban đầu (VNĐ)</label>
+                        <input asp-for="NewAsset.original_value" type="number" step="0.01" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.remaining_value">Giá trị còn lại (VNĐ)</label>
+                        <input asp-for="NewAsset.remaining_value" type="number" step="0.01" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.asset_status">Tình trạng tài sản</label>
+                        <input asp-for="NewAsset.asset_status" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.installation_unit">Đơn vị lắp đặt</label>
+                        <input asp-for="NewAsset.installation_unit" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="NewAsset.management_unit">Đơn vị quản lý</label>
+                        <input asp-for="NewAsset.management_unit" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label for="image">Hình ảnh</label>
+                        <input type="file" id="image" name="NewAsset.image" class="form-control" accept="image/*" />
                     </div>
 
                     <!-- Phần Vị Trí -->
@@ -144,10 +175,9 @@
                             </div>
                         </div>
                     </div>
-                    <input type="hidden" asp-for="NewAsset.geometry.type" id="geometryType" />
-                    <input type="hidden" asp-for="NewAsset.geometry.coordinates" id="geometryCoordinates" />
-
+                    <input type="hidden" id="geometryHidden" name="NewAsset.geometry" />
                     <button type="button" class="btn btn-primary mt-3" onclick="nextTab('attributes-tab')">Tiếp Theo</button>
+
                 </div>
 
                 <!-- Tab 2: Thuộc Tính -->
@@ -167,11 +197,11 @@
                     <button type="submit" class="btn btn-success mt-3">Tạo Tài Sản</button>
                 </div>
             </div>
-            <input type="hidden" id="attributesHidden" asp-for="NewAsset.attributes" />
+            <input type="hidden" id="customAttributesHidden" asp-for="NewAsset.custom_attributes" />
         </form>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+ <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
@@ -220,53 +250,44 @@
                     updateReview();
                 }
             });
+
+            // Intercept form submission to ensure geometry is sent as raw JSON
+            $('#assetForm').on('submit', function (e) {
+                const geometryHiddenField = document.getElementById('geometryHidden');
+                if (geometryHiddenField && geometryHiddenField.value) {
+                    try {
+                        // Parse and re-stringify to ensure clean JSON
+                        const geometryObj = JSON.parse(geometryHiddenField.value);
+                        geometryHiddenField.value = JSON.stringify(geometryObj, null, 0); // No extra formatting
+                    } catch (error) {
+                        console.error('Error parsing geometry JSON:', error);
+                        alert('Định dạng hình học không hợp lệ.');
+                        e.preventDefault(); // Prevent form submission if geometry is invalid
+                    }
+                }
+            });
         });
 
         function selectCategory(id) {
             selectedCategoryId = id;
             $('#attributes-tab').prop('disabled', false);
             $.ajax({
-                url: '/Assets/AssetCreate2?handler=GetCategorySchema', // Đảm bảo URL đúng
+                url: '/Assets/AssetCreate2?handler=GetCategorySchema',
                 data: { id: id },
                 method: 'GET',
                 success: function (response) {
-                    console.log("Response from server:", response); // Kiểm tra dữ liệu trả về
-
-                    // Cập nhật geometry type
                     let geoType = response.geometryType || 'Point';
                     if (geoType.toLowerCase() === 'line') geoType = 'LineString';
                     currentGeoType = geoType.toLowerCase();
                     $('#geoType').val(currentGeoType);
                     $('#geoTypeDisplay').show();
-                    $('#geometryType').val(currentGeoType);
-
-                    // Cập nhật danh sách lifecycle_stage
-                    var lifecycleSelect = $('#lifecycleStageSelect'); // Sử dụng id mới
-                    lifecycleSelect.empty(); // Xóa các option hiện tại
-                    lifecycleSelect.append('<option value="">Chọn giai đoạn</option>');
-
-                    if (response.lifecycleStages && response.lifecycleStages.length > 0) {
-                        response.lifecycleStages.forEach(function (stage) {
-                            lifecycleSelect.append(`<option value="${stage}">${stage}</option>`);
-                        });
-                    } else {
-                        lifecycleSelect.append('<option value="" disabled>Không có giai đoạn nào</option>');
-                    }
-
                     updateForm();
                 },
                 error: function (xhr, status, error) {
-                    console.error('AJAX error:', error, xhr.responseText);
+                    console.error('AJAX error:', error);
                     currentGeoType = 'point';
                     $('#geoType').val(currentGeoType);
                     $('#geoTypeDisplay').show();
-                    $('#geometryType').val(currentGeoType);
-
-                    var lifecycleSelect = $('#lifecycleStageSelect'); // Sử dụng id mới
-                    lifecycleSelect.empty();
-                    lifecycleSelect.append('<option value="">Chọn giai đoạn</option>');
-                    lifecycleSelect.append('<option value="" disabled>Lỗi tải giai đoạn</option>');
-
                     updateForm();
                 }
             });
@@ -278,9 +299,8 @@
                 data: { id: id },
                 method: 'GET',
                 success: function (data) {
-                    console.log("Response from server:", data); // Kiểm tra dữ liệu trả về
-                    $('#attributes-content').html(data.html); // Chèn chuỗi HTML từ data.html
-                    $('#attributes-content .attribute-input').on('change', updateAttributes); // Gán sự kiện change
+                    $('#attributes-content').html(data.html);
+                    $('#attributes-content .attribute-input').on('change', updateAttributes);
                 },
                 error: function (xhr, status, error) {
                     console.error('AJAX error loading attributes:', error);
@@ -465,26 +485,26 @@
             if (currentGeoType === 'point' && coordinates.length === 2) {
                 const [lng, lat] = coordinates;
                 currentLayer = L.marker([lat, lng]).addTo(map);
-                map.setView([lat, lng], currentZoom); // Tự động di chuyển bản đồ đến điểm mới
+                map.setView([lat, lng], currentZoom);
                 isPointSelected = true;
             } else if (currentGeoType === 'linestring' && coordinates.length >= 1) {
                 currentLayer = L.polyline(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
-                map.fitBounds(currentLayer.getBounds()); // Tự động điều chỉnh khung nhìn
+                map.fitBounds(currentLayer.getBounds());
             } else if (currentGeoType === 'polygon' && coordinates[0].length >= 3) {
                 currentLayer = L.polygon(coordinates[0].map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
-                map.fitBounds(currentLayer.getBounds()); // Tự động điều chỉnh khung nhìn
+                map.fitBounds(currentLayer.getBounds());
             }
         }
 
         function updateGeometry(type, coords) {
-            const geometryTypeField = document.getElementById('geometryType');
-            const geometryCoordinatesField = document.getElementById('geometryCoordinates');
-            if (geometryTypeField && geometryCoordinatesField) {
-                geometryTypeField.value = type;
-                geometryCoordinatesField.value = JSON.stringify(coords);
-                console.log('Geometry updated:', { type, coordinates: coords });
+            const geometryHiddenField = document.getElementById('geometryHidden');
+            if (geometryHiddenField) {
+                // Store raw JSON object instead of stringified JSON
+                const geometryObj = { type: type, coordinates: coords };
+                geometryHiddenField.value = JSON.stringify(geometryObj); // Ensure single stringify
+                console.log('Geometry updated:', geometryObj);
             } else {
-                console.error('Geometry fields not found');
+                console.error('Geometry field not found');
             }
             updateReview();
         }
@@ -494,7 +514,7 @@
             $('#attributes-content .attribute-input').each(function () {
                 attributes[$(this).attr('id')] = $(this).val() || '';
             });
-            $('#attributesHidden').val(JSON.stringify(attributes));
+            $('#customAttributesHidden').val(JSON.stringify(attributes));
             updateReview();
         }
 
@@ -528,9 +548,6 @@
                         $(this).next('.text-danger').text('');
                     }
                 });
-                if (!valid) {
-                    return false;
-                }
                 if (!coordinates.length) {
                     alert('Vui lòng chọn vị trí trên bản đồ hoặc nhập tọa độ thủ công.');
                     return false;
@@ -541,19 +558,21 @@
         }
 
         function updateReview() {
-            let reviewHtml = '<ul>';
+            let reviewHtml = '<h5>Thông Tin Cơ Bản</h5><ul>';
             $('#assetForm').serializeArray().forEach(function (field) {
-                if (field.name !== 'NewAsset.geometry.coordinates' && field.name !== 'NewAsset.attributes') {
+                if (field.name.startsWith('NewAsset.') && field.name !== 'NewAsset.geometry' && field.name !== 'NewAsset.custom_attributes') {
                     reviewHtml += `<li><strong>${field.name.replace('NewAsset.', '')}:</strong> ${field.value || 'Chưa nhập'}</li>`;
                 }
             });
-            const attributes = JSON.parse($('#attributesHidden').val() || '{}');
+            reviewHtml += '</ul><h5>Thuộc Tính Động</h5><ul>';
+            const attributes = JSON.parse($('#customAttributesHidden').val() || '{}');
             for (let key in attributes) {
                 reviewHtml += `<li><strong>${key}:</strong> ${attributes[key] || 'Chưa nhập'}</li>`;
             }
-            const coords = JSON.parse($('#geometryCoordinates').val() || '[]');
-            if (coords.length) {
-                reviewHtml += `<li><strong>Tọa độ:</strong> ${JSON.stringify(coords)}</li>`;
+            reviewHtml += '</ul><h5>Tọa Độ</h5><ul>';
+            const geometry = JSON.parse($('#geometryHidden').val() || '{}');
+            if (geometry.coordinates) {
+                reviewHtml += `<li><strong>Tọa độ:</strong> ${JSON.stringify(geometry.coordinates)}</li>`;
             }
             reviewHtml += '</ul>';
             $('#review-content').html(reviewHtml);

@@ -1,7 +1,7 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend.Pages.Incidents.IncidentCreateModel
 @{
-    Layout = "_Layout"; // Sử dụng layout chung
+    Layout = "_Layout";
 }
 
 <!DOCTYPE html>
@@ -64,10 +64,10 @@
             transition: background-color 0.3s ease, transform 0.2s ease;
         }
 
-        .btn-primary:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-        }
+            .btn-primary:hover {
+                background-color: #2980b9;
+                transform: translateY(-2px);
+            }
 
         .btn-secondary {
             background-color: #34495e;
@@ -78,10 +78,10 @@
             transition: background-color 0.3s ease, transform 0.2s ease;
         }
 
-        .btn-secondary:hover {
-            background-color: #2c3e50;
-            transform: translateY(-2px);
-        }
+            .btn-secondary:hover {
+                background-color: #2c3e50;
+                transform: translateY(-2px);
+            }
 
         .btn i {
             margin-right: 8px;
@@ -137,13 +137,25 @@
 
             <form method="post" enctype="multipart/form-data">
                 <div class="form-group">
+                    <label for="address">Địa chỉ</label>
+                    <input asp-for="Incident.address" class="form-control" />
+                    <span asp-validation-for="Incident.address" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="route">Tuyến đường</label>
+                    <input asp-for="Incident.route" class="form-control" />
+                    <span asp-validation-for="Incident.route" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
                     <label for="geometryType">Loại hình học</label>
-                    <select class="form-control" id="geometryType" asp-for="Incident.location.type" required>
+                    <select class="form-control" id="geometryType" asp-for="Incident.geometry.type" required>
                         <option value="">Chọn loại</option>
                         <option value="Point">Điểm</option>
                         <option value="LineString">Đường</option>
                     </select>
-                    <span asp-validation-for="Incident.location.type" class="text-danger"></span>
+                    <span asp-validation-for="Incident.geometry.type" class="text-danger"></span>
                 </div>
 
                 <div class="form-group">
@@ -174,66 +186,47 @@
                         </div>
                     </div>
                 </div>
-                <input type="hidden" id="coordinatesJson" name="Incident.location.coordinates" />
+                <input type="hidden" id="coordinatesJson" name="Incident.geometry.coordinates" />
 
                 <div class="form-group">
-                    <label asp-for="Incident.asset_id">Asset ID</label>
-                    <input asp-for="Incident.asset_id" id="Incident_asset_id" class="form-control" type="number" min="0" />
-                    <span asp-validation-for="Incident.asset_id" class="text-danger"></span>
-                </div>
-
-                <div class="form-group">
-                    <label asp-for="Incident.reported_by">Reported By (ID Người dùng)</label>
-                    <input asp-for="Incident.reported_by" class="form-control" type="number" min="1" required />
-                    <span asp-validation-for="Incident.reported_by" class="text-danger"></span>
-                </div>
-
-                <div class="form-group">
-                    <label asp-for="Incident.incident_type">Incident Type</label>
-                    <input asp-for="Incident.incident_type" class="form-control" required />
-                    <span asp-validation-for="Incident.incident_type" class="text-danger"></span>
-                </div>
-
-                <div class="form-group">
-                    <label asp-for="Incident.description">Description</label>
-                    <textarea asp-for="Incident.description" class="form-control" rows="3" required></textarea>
-                    <span asp-validation-for="Incident.description" class="text-danger"></span>
-                </div>
-
-                <div class="form-group">
-                    <label asp-for="Incident.priority">Priority</label>
-                    <select asp-for="Incident.priority" class="form-control" required>
-                        <option value="">Chọn mức độ ưu tiên</option>
+                    <label asp-for="Incident.severity_level">Mức độ nghiêm trọng</label>
+                    <select asp-for="Incident.severity_level" class="form-control" required>
+                        <option value="">Chọn mức độ</option>
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                         <option value="critical">Critical</option>
                     </select>
-                    <span asp-validation-for="Incident.priority" class="text-danger"></span>
+                    <span asp-validation-for="Incident.severity_level" class="text-danger"></span>
                 </div>
 
                 <div class="form-group">
-                    <label asp-for="Incident.status">Status</label>
-                    <select asp-for="Incident.status" class="form-control" required>
+                    <label asp-for="Incident.damage_level">Mức độ hư hỏng</label>
+                    <select asp-for="Incident.damage_level" class="form-control" required>
+                        <option value="">Chọn mức độ</option>
+                        <option value="minor">Minor</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="severe">Severe</option>
+                    </select>
+                    <span asp-validation-for="Incident.damage_level" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Incident.processing_status">Trạng thái xử lý</label>
+                    <select asp-for="Incident.processing_status" class="form-control" required>
                         <option value="">Chọn trạng thái</option>
                         <option value="reported">Reported</option>
                         <option value="under review">Under Review</option>
                         <option value="resolved">Resolved</option>
                         <option value="closed">Closed</option>
                     </select>
-                    <span asp-validation-for="Incident.status" class="text-danger"></span>
+                    <span asp-validation-for="Incident.processing_status" class="text-danger"></span>
                 </div>
 
                 <div class="form-group">
-                    <label asp-for="Incident.resolved_at">Resolved At</label>
-                    <input asp-for="Incident.resolved_at" class="form-control" type="datetime-local" />
-                    <span asp-validation-for="Incident.resolved_at" class="text-danger"></span>
-                </div>
-
-                <div class="form-group">
-                    <label asp-for="Incident.notes">Notes</label>
-                    <textarea asp-for="Incident.notes" class="form-control" rows="3" required></textarea>
-                    <span asp-validation-for="Incident.notes" class="text-danger"></span>
+                    <label asp-for="Incident.task_id">Mã nhiệm vụ</label>
+                    <input asp-for="Incident.task_id" class="form-control" type="number" min="0" />
+                    <span asp-validation-for="Incident.task_id" class="text-danger"></span>
                 </div>
 
                 <div class="form-group">
@@ -273,8 +266,8 @@
         var currentGeoType = '';
         var allAssets = [];
         var assetLayer;
-        var radius = 100; // Bán kính (mét)
-        var assetCategories = @Html.Raw(Json.Serialize(Model.AssetCategories)); // Truyền AssetCategories từ backend
+        var radius = 100;
+        var assetCategories = @Html.Raw(Json.Serialize(Model.AssetCategories));
 
         function loadAllAssets() {
             return fetch('http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:valid_road_assets_layer&outputFormat=application/json')
@@ -310,10 +303,10 @@
                             })
                         }).addTo(assetLayer);
                         marker.bindPopup(`
-                            <b>Asset ID:</b> ${asset.properties.asset_id}<br>
-                            <b>Loại:</b> ${category ? category.cagetory_name : asset.properties.category_id}<br>
-                            <button onclick="selectAsset(${asset.properties.asset_id})">Chọn</button>
-                        `);
+                                    <b>Asset ID:</b> ${asset.properties.asset_id}<br>
+                                    <b>Loại:</b> ${category ? category.cagetory_name : asset.properties.category_id}<br>
+                                    <button onclick="selectAsset(${asset.properties.asset_id})">Chọn</button>
+                                `);
                     }
                 }
             });

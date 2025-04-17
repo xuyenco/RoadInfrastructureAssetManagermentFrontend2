@@ -1,14 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
-using Road_Infrastructure_Asset_Management.Model.Request;
+using Road_Infrastructure_Asset_Management.Model.Geometry;
 using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
-using RoadInfrastructureAssetManagementFrontend.Model.Response;
-using RoadInfrastructureAssetManagementFrontend.Service;
-using System;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
 {
@@ -24,24 +21,44 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
         [BindProperty]
         public TasksRequest Task { get; set; } = new TasksRequest();
 
+        [BindProperty]
+        public string GeometrySystem { get; set; }
+
         public void OnGet()
         {
             // Hiển thị form rỗng khi trang được tải
         }
-        public async Task<IActionResult> OnGetDownloadExcelTemplateAsync()
+
+        public IActionResult OnGetDownloadExcelTemplate()
         {
-            ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             using (var package = new ExcelPackage())
             {
-                var worksheet = package.Workbook.Worksheets.Add("Template for Task input");
-                var header = new List<string> { "Asset Id", "Assigned To", "Task Type", "Description", "Priority ('low', 'medium', 'high')", "Status ('pending', 'in-progress', 'completed', 'cancelled')", "Due Date" };
-                for (int i = 0; i < header.Count; i++)
+                var worksheet = package.Workbook.Worksheets.Add("Template for Task Input");
+                var headers = new List<string>
                 {
-                    worksheet.Cells[1, i + 1].Value = header[i];
+                "Task Type",
+                "Work Volume",
+                "Status ('pending', 'in-progress', 'completed', 'cancelled')",
+                "Address",
+                "Geometry Type ('Point', 'LineString')",
+                "Geometry Coordinates (JSON format)",
+                "Start Date (yyyy-MM-dd)",
+                "End Date (yyyy-MM-dd)",
+                "Execution Unit ID",
+                "Supervisor ID",
+                "Method Summary",
+                "Main Result"
+                };
+
+                for (int i = 0; i < headers.Count; i++)
+                {
+                    worksheet.Cells[1, i + 1].Value = headers[i];
+                    worksheet.Cells[1, i + 1].Style.Font.Bold = true;
                 }
                 worksheet.Cells.AutoFitColumns();
                 var stream = new MemoryStream(package.GetAsByteArray());
-                return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Task Template.xlsx");
+                return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Task_Template.xlsx");
             }
         }
 
@@ -49,19 +66,19 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
         {
             if (excelFile == null || excelFile.Length == 0)
             {
-                Console.WriteLine("No file uploaded.");
-                return BadRequest("Vui lòng chọn file Excel.");
+                TempData["Error"] = "Vui lòng chọn file Excel.";
+                return RedirectToPage();
             }
 
             try
             {
-                var Tasks = new List<TasksRequest>();
+                var tasks = new List<TasksRequest>();
                 var errorRows = new List<ExcelErrorRow>();
                 using (var stream = new MemoryStream())
                 {
                     await excelFile.CopyToAsync(stream);
                     stream.Position = 0;
-                    ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
+                    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
                     using (var package = new ExcelPackage(stream))
                     {
                         var worksheet = package.Workbook.Worksheets[0];
@@ -70,8 +87,8 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
 
                         if (rowCount < 2 || colCount < 1)
                         {
-                            Console.WriteLine("File Excel is empty or invalid.");
-                            return BadRequest("File Excel trống hoặc không hợp lệ.");
+                            TempData["Error"] = "File Excel trống hoặc không hợp lệ.";
+                            return RedirectToPage();
                         }
 
                         var headers = new List<string>();
@@ -92,69 +109,121 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
 
                                 switch (header)
                                 {
-                                    case "asset id":
-                                        task.asset_id = int.TryParse(value, out var calId) ? calId : 0;
-                                        break;
-                                    case "assigned to":
-                                        task.assigned_to = int.TryParse(value, out var fisyear) ? fisyear : 0;
-                                        break;
                                     case "task type":
                                         task.task_type = value;
                                         break;
-                                    case "description":
-                                        task.description = value;
-                                        break;
-                                    case "priority":
-                                        task.priority = value;
+                                    case "work volume":
+                                        task.work_volume = value;
                                         break;
                                     case "status":
                                         task.status = value;
                                         break;
-                                    case "due date":
-                                        task.due_date = DateTime.TryParse(value, out var duedate) ? duedate : null;
-                                        break; 
+                                    case "address":
+                                        task.address = value;
+                                        break;
+                                    case "geometry type":
+                                        task.geometry.type = value;
+                                        break;
+                                    case "geometry coordinates":
+                                        task.geometry.coordinates = value;
+                                        break;
+                                    case "start date":
+                                        task.start_date = DateTime.TryParse(value, out var startDate) ? startDate : null;
+                                        break;
+                                    case "end date":
+                                        task.end_date = DateTime.TryParse(value, out var endDate) ? endDate : null;
+                                        break;
+                                    case "execution unit id":
+                                        task.execution_unit_id = int.TryParse(value, out var unitId) ? unitId : null;
+                                        break;
+                                    case "supervisor id":
+                                        task.supervisor_id = int.TryParse(value, out var supId) ? supId : null;
+                                        break;
+                                    case "method summary":
+                                        task.method_summary = value;
+                                        break;
+                                    case "main result":
+                                        task.main_result = value;
+                                        break;
                                 }
                             }
-                            Tasks.Add(task);
+                            tasks.Add(task);
                         }
 
                         int successCount = 0;
-                        for (int i = 0; i < Tasks.Count; i++)
+                        for (int i = 0; i < tasks.Count; i++)
                         {
-                            var task = Tasks[i];
+                            var task = tasks[i];
                             var rowNumber = i + 2;
 
-                            if (!new[] { "low", "medium", "high"}.Contains(Tasks[i].priority))
+                            // Validate required fields
+                            if (string.IsNullOrWhiteSpace(task.task_type) ||
+                            string.IsNullOrWhiteSpace(task.status) ||
+                            string.IsNullOrWhiteSpace(task.geometry.type) ||
+                            task.geometry.coordinates == null)
                             {
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
-                                    OriginalData = JsonSerializer.Serialize(Tasks[i]),
-                                    ErrorMessage = "Dữ liệu không hợp lệ: Priority phải là 1 trong những giá trị sau: low,medium,high."
+                                    OriginalData = JsonSerializer.Serialize(task),
+                                    ErrorMessage = "Thiếu dữ liệu bắt buộc: task_type, status, geometry.type, hoặc geometry.coordinates."
                                 });
                                 continue;
                             }
-                            if (!new[] { "pending", "in-progress", "completed", "cancelled" }.Contains(Tasks[i].status))
+
+                            // Validate status
+                            if (!new[] { "pending", "in-progress", "completed", "cancelled" }.Contains(task.status.ToLower()))
                             {
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
-                                    OriginalData = JsonSerializer.Serialize(Tasks[i]),
-                                    ErrorMessage = "Dữ liệu không hợp lệ: Status phải là 1 trong những giá trị sau: pending, in-progress,completed,canvelled."
+                                    OriginalData = JsonSerializer.Serialize(task),
+                                    ErrorMessage = "Trạng thái không hợp lệ: phải là 'pending', 'in-progress', 'completed', hoặc 'cancelled'."
+                                });
+                                continue;
+                            }
+
+                            // Validate geometry type
+                            if (!new[] { "Point", "LineString" }.Contains(task.geometry.type))
+                            {
+                                errorRows.Add(new ExcelErrorRow
+                                {
+                                    RowNumber = rowNumber,
+                                    OriginalData = JsonSerializer.Serialize(task),
+                                    ErrorMessage = "Loại hình học không hợp lệ: phải là 'Point' hoặc 'LineString'."
+                                });
+                                continue;
+                            }
+
+                            // Validate JSON coordinates
+                            try
+                            {
+                                if (task.geometry.coordinates is string coordStr && !string.IsNullOrWhiteSpace(coordStr))
+                                {
+                                    task.geometry.coordinates = JsonSerializer.Deserialize<object>(coordStr);
+                                }
+                            }
+                            catch
+                            {
+                                errorRows.Add(new ExcelErrorRow
+                                {
+                                    RowNumber = rowNumber,
+                                    OriginalData = JsonSerializer.Serialize(task),
+                                    ErrorMessage = "Tọa độ không phải là JSON hợp lệ."
                                 });
                                 continue;
                             }
 
                             try
                             {
-                                var createTask = await _tasksService.CreateTaskAsync(task);
-                                if (createTask == null)
+                                var createdTask = await _tasksService.CreateTaskAsync(task);
+                                if (createdTask == null)
                                 {
                                     errorRows.Add(new ExcelErrorRow
                                     {
                                         RowNumber = rowNumber,
                                         OriginalData = JsonSerializer.Serialize(task),
-                                        ErrorMessage = "Không thể tạo task (lỗi từ service)."
+                                        ErrorMessage = "Không thể tạo nhiệm vụ (lỗi từ service)."
                                     });
                                 }
                                 else
@@ -168,7 +237,7 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
                                 {
                                     RowNumber = rowNumber,
                                     OriginalData = JsonSerializer.Serialize(task),
-                                    ErrorMessage = $"Lỗi khi tạo tài sản: {ex.Message}"
+                                    ErrorMessage = $"Lỗi khi tạo nhiệm vụ: {ex.Message}"
                                 });
                             }
                         }
@@ -201,61 +270,103 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
                         {
                             TempData["SuccessCount"] = successCount;
                         }
-
-                        return RedirectToPage();
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing Excel file: {ex.Message}");
-                return BadRequest($"Lỗi khi xử lý file Excel: {ex.Message}");
+                TempData["Error"] = $"Lỗi khi xử lý file Excel: {ex.Message}";
             }
+
+            return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (!ModelState.IsValid)
+            if (Task.geometry == null) Task.geometry = new GeoJsonGeometry();
+
+            var geometryType = Request.Form["Task.geometry.type"];
+            if (!string.IsNullOrEmpty(geometryType) && (geometryType == "Point" || geometryType == "LineString"))
             {
-                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    Console.WriteLine($"Validation error: {error.ErrorMessage}");
-                }
-                return Page(); // Trả về trang nếu dữ liệu không hợp lệ
+                Task.geometry.type = geometryType;
+                ModelState["Task.geometry.type"].Errors.Clear();
+                ModelState["Task.geometry.type"].ValidationState = ModelValidationState.Valid;
             }
+            else
+            {
+                ModelState.AddModelError("Task.geometry.type", "Loại hình học phải là 'Point' hoặc 'LineString'.");
+            }
+
+            var coordinatesJson = Request.Form["Task.geometry.coordinates"];
+            if (!string.IsNullOrEmpty(coordinatesJson))
+            {
+                try
+                {
+                    Task.geometry.coordinates = JsonSerializer.Deserialize<object>(coordinatesJson);
+                    Console.WriteLine($"Raw coordinates: {JsonSerializer.Serialize(Task.geometry.coordinates)}");
+
+                    if (GeometrySystem == "wgs84")
+                    {
+                        Task.geometry = CoordinateConverter.ConvertGeometryToVN2000(Task.geometry);
+                        Console.WriteLine($"Converted to VN2000: {JsonSerializer.Serialize(Task.geometry.coordinates)}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("Task.geometry.coordinates", $"Định dạng tọa độ không hợp lệ: {ex.Message}");
+                }
+            }
+            else
+            {
+                ModelState.AddModelError("Task.geometry.coordinates", "Tọa độ là bắt buộc.");
+            }
+
+
+            //if (!ModelState.IsValid)
+            //{
+            //    return Page();
+            //}
 
             try
             {
-                Console.WriteLine($"Creating task with Asset ID: {Task.asset_id}, Assigned To: {Task.assigned_to}");
+                Console.WriteLine($"Creating task: {JsonSerializer.Serialize(Task)}");
                 var createdTask = await _tasksService.CreateTaskAsync(Task);
                 if (createdTask == null)
                 {
-                    TempData["Error"] = "Không thể tạo Task. Dữ liệu trả về từ dịch vụ là null.";
-                    Console.WriteLine("Task creation failed: null response from service.");
+                    TempData["Error"] = "Không thể tạo nhiệm vụ. Dữ liệu trả về từ dịch vụ là null.";
                     return Page();
                 }
 
-                TempData["Success"] = "Task đã được tạo thành công!";
+                TempData["Success"] = "Nhiệm vụ đã được tạo thành công!";
                 return RedirectToPage("/Tasks/Index");
+            }
+            catch (JsonException)
+            {
+                ModelState.AddModelError("Task.geometry.coordinates", "Tọa độ phải là JSON hợp lệ.");
+                return Page();
             }
             catch (ArgumentException ex)
             {
-                Console.WriteLine($"Argument error: {ex.Message}");
                 TempData["Error"] = ex.Message;
                 return Page();
             }
             catch (InvalidOperationException ex)
             {
-                Console.WriteLine($"Invalid operation: {ex.Message}");
                 TempData["Error"] = ex.Message;
                 return Page();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Unexpected error: {ex.Message}, StackTrace: {ex.StackTrace}");
-                TempData["Error"] = $"Đã xảy ra lỗi khi tạo Task: {ex.Message}";
+                TempData["Error"] = $"Đã xảy ra lỗi khi tạo nhiệm vụ: {ex.Message}";
                 return Page();
             }
         }
+    }
+
+    public class ExcelErrorRow
+    {
+        public int RowNumber { get; set; }
+        public string OriginalData { get; set; } = string.Empty;
+        public string ErrorMessage { get; set; } = string.Empty;
     }
 }

@@ -10,7 +10,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Danh Sách Danh Mục Tài Sản</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body {
             background-color: #f4f6f9;
@@ -19,10 +18,12 @@
             margin: 0;
             overflow: hidden;
         }
+
         .container-fluid {
             height: 100vh;
             display: flex;
         }
+
         .sidebar {
             width: 280px;
             background-color: #ffffff;
@@ -33,18 +34,21 @@
             height: 100%;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
         }
+
         .sidebar-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
+
         .sidebar h3 {
             color: #2c3e50;
             font-weight: 600;
             font-size: 1.5rem;
             margin: 0;
         }
+
         .list-group-item {
             border: none;
             border-radius: 6px;
@@ -53,19 +57,23 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        .list-group-item:hover {
-            background-color: #eef2f7;
-        }
-        .list-group-item.active {
-            background-color: #007bff;
-            color: #ffffff;
-        }
+
+            .list-group-item:hover {
+                background-color: #eef2f7;
+            }
+
+            .list-group-item.active {
+                background-color: #007bff;
+                color: #ffffff;
+            }
+
         .content {
             flex-grow: 1;
             padding: 30px;
             overflow-y: auto;
             margin-left: 280px;
         }
+
         .content-container {
             background-color: #ffffff;
             border-radius: 10px;
@@ -73,27 +81,18 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
             min-height: 80vh;
         }
+
         h1 {
             color: #2c3e50;
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 20px;
         }
-        #map-preview {
-            height: 400px; /* Tăng chiều cao để hiển thị rõ hơn */
-            width: 100%;
-            border-radius: 6px;
-            border: 1px solid #dee2e6;
-            margin-top: 15px;
-        }
-        .btn-create {
-            background-color: #28a745;
-            border: none;
-            padding: 8px 15px;
-            font-size: 0.9rem;
-        }
-        .btn-create:hover {
-            background-color: #218838;
+
+        .category-image {
+            max-width: 200px;
+            height: auto;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -103,15 +102,15 @@
         <div class="sidebar">
             <div class="sidebar-header">
                 <h3>Danh mục tài sản</h3>
-                <a href="/AssetCagetories/AssetCagetoryCreate" class="btn btn-create btn-sm text-white">
+                <a href="/AssetCagetories/AssetCagetoryCreate" class="btn btn-create btn-sm text-white" style="background-color: #28a745; border: none; padding: 8px 15px; font-size: 0.9rem;">
                     <i class="fas fa-plus"></i> Tạo mới
                 </a>
             </div>
             <div class="list-group">
                 @foreach (var category in Model.Categories)
                 {
-                    <div class="list-group-item" data-id="@category.cagetory_id" onclick="showDetail(@category.cagetory_id)">
-                        @category.cagetory_name
+                    <div class="list-group-item" data-id="@category.category_id" onclick="showDetail(@category.category_id)">
+                        @category.category_name
                     </div>
                 }
             </div>
@@ -127,102 +126,23 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let map; // Biến toàn cục để quản lý bản đồ
-        const layerConfig = {
-            1: { name: 'street_lights_layer', iconUrl: 'https://example.com/street-light-icon.png' },
-            2: { name: 'traffic_signs_layer', iconUrl: 'https://example.com/traffic-sign-icon.png' },
-            3: { name: 'bridges_layer', iconUrl: 'https://example.com/bridge-icon.png' },
-            4: { name: 'roads_layer', iconUrl: 'https://example.com/road-icon.png' }
-        };
+            function showDetail(id) {
+                $('.list-group-item').removeClass('active');
+                $(`.list-group-item[data-id="${id}"]`).addClass('active');
 
-        function showDetail(id) {
-            $('.list-group-item').removeClass('active');
-            $(`.list-group-item[data-id="${id}"]`).addClass('active');
-
-            $.ajax({
-                url: '/AssetCagetories/Index?handler=GetDetail&id=' + id,
-                method: 'GET',
-                success: function (data) {
-                    $('#detail-content').html(data);
-
-                    // Khởi tạo hoặc cập nhật bản đồ
-                    if (map) {
-                        map.remove();
-                    }
-
-                    map = L.map('map-preview').setView([10.8231, 106.6297], 13); // Tọa độ mặc định
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© OpenStreetMap contributors'
-                    }).addTo(map);
-
-                    // Lấy dữ liệu từ GeoServer qua WFS dựa trên category_id
-                    const layerName = layerConfig[id]?.name;
-                    if (layerName) {
-                        fetch(`http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=your_workspace:${layerName}&outputFormat=application/json`)
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.features && data.features.length > 0) {
-                                    const geoJsonLayer = L.geoJSON(data, {
-                                        onEachFeature: function (feature, layer) {
-                                            layer.bindPopup(
-                                                `Asset ID: ${feature.properties.asset_id}<br>` +
-                                                `Condition: ${feature.properties.condition}`
-                                            );
-                                        },
-                                        pointToLayer: function (feature, latlng) {
-                                            const iconUrl = layerConfig[id]?.iconUrl || 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
-                                            return L.marker(latlng, {
-                                                icon: L.icon({
-                                                    iconUrl: iconUrl,
-                                                    iconSize: [25, 41],
-                                                    iconAnchor: [12, 41]
-                                                })
-                                            });
-                                        }
-                                    }).addTo(map);
-
-                                    // Tự động zoom vào vùng chứa các asset
-                                    map.fitBounds(geoJsonLayer.getBounds());
-                                } else {
-                                    console.log(`No assets found for category ID: ${id}`);
-                                    L.marker([10.8231, 106.6297], {
-                                        icon: L.icon({
-                                            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                                            iconSize: [25, 41],
-                                            iconAnchor: [12, 41]
-                                        })
-                                    }).addTo(map);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error fetching GeoServer data:', error);
-                                L.marker([10.8231, 106.6297], {
-                                    icon: L.icon({
-                                        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                                        iconSize: [25, 41],
-                                        iconAnchor: [12, 41]
-                                    })
-                                }).addTo(map);
-                            });
-                    } else {
-                        console.log(`No layer configured for category ID: ${id}`);
-                        L.marker([10.8231, 106.6297], {
-                            icon: L.icon({
-                                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                                iconSize: [25, 41],
-                                iconAnchor: [12, 41]
-                            })
-                        }).addTo(map);
-                    }
-                },
-                error: function () {
-                    $('#detail-content').html('<p class="text-danger">Đã xảy ra lỗi khi tải chi tiết.</p>');
-                }
-            });
-        }
+        $.ajax({
+            url: '/AssetCagetories/Index?handler=GetDetail&id=' + id,
+            method: 'GET',
+            success: function (data) {
+                $('#detail-content').html(data);
+            },
+                    error: function () {
+                $('#detail-content').html('<p class="text-danger">Đã xảy ra lỗi khi tải chi tiết.</p>');
+            }
+        });
+            }
     </script>
 </body>
 </html>

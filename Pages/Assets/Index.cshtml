@@ -54,7 +54,7 @@
                     <option value="">All Categories</option>
                     @foreach (var category in Model.AssetCategories)
                     {
-                        <option value="@category.cagetory_id">@category.cagetory_name</option>
+                        <option value="@category.category_id">@category.category_name</option>
                     }
                 </select>
             </div>
@@ -81,7 +81,8 @@
                 return;
             }
 
-            const map = L.map('map');
+            // Khởi tạo bản đồ với trung tâm và zoom mặc định
+            const map = L.map('map').setView([10.8231, 106.6297], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
@@ -93,8 +94,8 @@
             // Tạo layerConfig từ assetCategories
             const layerConfig = {};
             assetCategories.forEach(category => {
-                layerConfig[category.cagetory_id] = {
-                    name: category.cagetory_name.toLowerCase().replace(/\s+/g, '_') + '_layer', // Tạo tên layer từ cagetory_name
+                layerConfig[category.category_id] = {
+                    name: category.category_name.toLowerCase().replace(/\s+/g, '_') + '_layer',
                     iconUrl: category.marker_url || defaultIconUrl
                 };
             });
@@ -106,7 +107,7 @@
                 const cached = localStorage.getItem(key);
                 if (cached) {
                     const { data, timestamp } = JSON.parse(cached);
-                    const age = (Date.now - timestamp) / 1000; 
+                    const age = (Date.now - timestamp) / 1000; //date.now lỗi để bỏ cache
                     if (age < maxAgeInSec) {
                         return data;
                     } else {
@@ -124,16 +125,22 @@
                 localStorage.setItem(key, JSON.stringify(cacheEntry));
             }
 
-            function createPopupContent(feature, attributes) {
+            function createPopupContent(feature) {
                 // Xử lý các thuộc tính cố định từ feature.properties
                 const fixedProperties = {
                     'ID': feature.properties.asset_id,
-                    'Loại tài sản': feature.properties.category_id,
-                    'Tình trạng': feature.properties.condition || 'N/A',
-                    'Giai đoạn vòng đời': feature.properties.lifecycle_stage || 'N/A',
-                    'Ngày lắp đặt': feature.properties.installation_date || 'N/A',
-                    'Tuổi thọ dự kiến': feature.properties.expected_lifetime ?
-                        `${feature.properties.expected_lifetime} năm` : 'N/A'
+                    'Tên tài sản': feature.properties.asset_name || 'N/A',
+                    'Mã tài sản': feature.properties.asset_code || 'N/A',
+                    'Địa chỉ': feature.properties.address || 'N/A',
+                    'Năm xây dựng': feature.properties.construction_year ? new Date(feature.properties.construction_year).toLocaleDateString() : 'N/A',
+                    'Năm vận hành': feature.properties.operation_year ? new Date(feature.properties.operation_year).toLocaleDateString() : 'N/A',
+                    'Diện tích đất': feature.properties.land_area ? `${feature.properties.land_area} m²` : 'N/A',
+                    'Diện tích sàn': feature.properties.floor_area ? `${feature.properties.floor_area} m²` : 'N/A',
+                    'Giá trị ban đầu': feature.properties.original_value ? `${feature.properties.original_value.toLocaleString()} VNĐ` : 'N/A',
+                    'Giá trị còn lại': feature.properties.remaining_value ? `${feature.properties.remaining_value.toLocaleString()} VNĐ` : 'N/A',
+                    'Tình trạng': feature.properties.asset_status || 'N/A',
+                    'Đơn vị lắp đặt': feature.properties.installation_unit || 'N/A',
+                    'Đơn vị quản lý': feature.properties.management_unit || 'N/A'
                 };
 
                 // Tạo HTML cho các thuộc tính cố định
@@ -149,11 +156,11 @@
 
                 // Tạo HTML cho các thuộc tính động từ attributes
                 let dynamicAttributesContent = '';
+                let attributes = JSON.parse(feature.properties.custom_attributes || '{}');
                 for (const [key, value] of Object.entries(attributes)) {
                     const formattedKey = key
                         .replace(/_/g, ' ')
                         .replace(/\b\w/g, c => c.toUpperCase());
-
                     dynamicAttributesContent += `
                     <tr>
                         <td style="padding: 5px; font-weight: bold; border-bottom: 1px solid #eee;">${formattedKey}:</td>
@@ -203,16 +210,14 @@
                             });
                         },
                         style: (feature) => {
-                            // Style cho LineString
                             return {
-                                color: '#ff7800', // Màu đường (có thể thay đổi)
-                                weight: 5,        // Độ dày đường
-                                opacity: 0.65     // Độ trong suốt
+                                color: '#ff7800',
+                                weight: 5,
+                                opacity: 0.65
                             };
                         },
                         onEachFeature: (feature, layer) => {
-                            let attributes = JSON.parse(feature.properties.attributes || '{}');
-                            const popupContent = createPopupContent(feature, attributes);
+                            const popupContent = createPopupContent(feature);
                             layer.bindPopup(popupContent);
                             layer.on('popupopen', () => {
                                 document.getElementById(`update-btn-${feature.properties.asset_id}`).addEventListener('click', (e) => {
@@ -227,7 +232,7 @@
                     return Promise.resolve();
                 }
 
-                return fetch(`http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:valid_road_assets_layer&outputFormat=application/json&cql_filter=category_id=${categoryId}`)
+                return fetch(`http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:assets_layer_2&outputFormat=application/json&cql_filter=category_id=${categoryId}`)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -257,8 +262,7 @@
                                     };
                                 },
                                 onEachFeature: (feature, layer) => {
-                                    let attributes = JSON.parse(feature.properties.attributes || '{}');
-                                    const popupContent = createPopupContent(feature, attributes);
+                                    const popupContent = createPopupContent(feature);
                                     layer.bindPopup(popupContent);
                                     layer.on('popupopen', () => {
                                         document.getElementById(`update-btn-${feature.properties.asset_id}`).addEventListener('click', (e) => {
@@ -300,12 +304,18 @@
                     }
                 }
 
+                // Chỉ gọi fitBounds nếu có layer hợp lệ
                 if (markersLayer.getLayers().length > 0) {
                     const group = L.featureGroup(markersLayer.getLayers());
-                    if (group.getBounds().isValid()) {
-                        map.fitBounds(group.getBounds());
+                    const bounds = group.getBounds();
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds, { padding: [50, 50] });
+                    } else {
+                        console.warn('Invalid bounds, setting default view');
+                        map.setView([10.8231, 106.6297], 13);
                     }
                 } else {
+                    console.log('No layers to display, setting default view');
                     map.setView([10.8231, 106.6297], 13);
                 }
             }

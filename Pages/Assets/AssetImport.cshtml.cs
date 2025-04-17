@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿/*using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using OfficeOpenXml;
 using Road_Infrastructure_Asset_Management.Model.Geometry;
@@ -42,14 +42,14 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Assets
 
             using (var package = new ExcelPackage())
             {
-                var worksheet = package.Workbook.Worksheets.Add($"Asset template for {category.cagetory_name}");
+                var worksheet = package.Workbook.Worksheets.Add($"Asset template for {category.category_name}");
                 var fixedColumns = new List<string>
                 {
                     "cagetory_id", "condition", "lifecycle_stage", "installation_date", "expected_lifetime", "last_inspection_date", "geometry_type", "geometry_coordinates"
                 };
                 // Seprate atributes_schema to dictionary
-                var properties = category.attributes_schema != null &&
-                                category.attributes_schema.TryGetValue("properties", out var props) &&
+                var properties = category.attribute_schema != null &&
+                                category.attribute_schema.TryGetValue("properties", out var props) &&
                                 props != null
                                 ? JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(props)) : new Dictionary<string, object>();
                 var attributeColumns = properties.Keys.ToList();
@@ -244,3 +244,4 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Assets
         }
     }
 }
+*/

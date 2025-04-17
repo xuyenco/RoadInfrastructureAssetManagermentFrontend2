@@ -22,11 +22,11 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Assets
 
         [BindProperty]
         public AssetsRequest NewAsset { get; set; } = new AssetsRequest();
+
+        [BindProperty]
         public string GeometrySystem { get; set; }
 
         public List<AssetCagetoriesResponse> Categories { get; set; } = new List<AssetCagetoriesResponse>();
-        public AssetCagetoriesResponse SelectedCategories { get; set; }
-
 
         public async Task OnGetAsync()
         {
@@ -35,22 +35,19 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Assets
 
         public async Task<IActionResult> OnGetGetCategorySchemaAsync(int id)
         {
-            var SelectedCategories = await _assetCagetoriesService.GetAssetCagetoriesByIdAsync(id);
-            if (SelectedCategories == null)
+            var selectedCategories = await _assetCagetoriesService.GetAssetCagetoriesByIdAsync(id);
+            if (selectedCategories == null)
             {
                 return new JsonResult(new { html = "<p>Không tìm thấy danh mục.</p>" });
             }
 
             var html = "";
-            var properties = SelectedCategories.attributes_schema != null && SelectedCategories.attributes_schema.TryGetValue("properties", out var props) && props != null
+            var properties = selectedCategories.attribute_schema != null && selectedCategories.attribute_schema.TryGetValue("properties", out var props) && props != null
                 ? JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(props))
                 : new Dictionary<string, object>();
-            var requiredFields = SelectedCategories.attributes_schema != null && SelectedCategories.attributes_schema.TryGetValue("required", out var req) && req != null
+            var requiredFields = selectedCategories.attribute_schema != null && selectedCategories.attribute_schema.TryGetValue("required", out var req) && req != null
                 ? JsonSerializer.Deserialize<List<object>>(JsonSerializer.Serialize(req))
                 : new List<object>();
-
-            // Lấy lifecycle_stages trực tiếp từ SelectedCategories
-            var lifecycleStages = SelectedCategories.lifecycle_stages ?? new List<string>(); // Nếu null, trả về mảng rỗng
 
             if (properties.Count == 0)
             {
@@ -65,12 +62,10 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Assets
                         : new Dictionary<string, object>();
                     var isRequired = requiredFields.Contains(prop.Key);
                     var inputType = details.TryGetValue("type", out var type) ? type.ToString() : "string";
-                    Console.WriteLine($"Du lieu nhap dao duoi dang:{inputType}");
 
                     html += $@"
-            <div class='form-group'>
-                <label for='{prop.Key}'>{prop.Key} {(isRequired ? "(bắt buộc)" : "")}</label>";
-
+                <div class='form-group'>
+                    <label for='{prop.Key}'>{prop.Key} {(isRequired ? "(bắt buộc)" : "")}</label>";
                     if (details.TryGetValue("enum", out var enumObj) && enumObj != null)
                     {
                         var enumValues = enumObj as List<object> ?? JsonSerializer.Deserialize<List<object>>(JsonSerializer.Serialize(enumObj));
@@ -101,8 +96,7 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Assets
             return new JsonResult(new
             {
                 html,
-                geometryType = SelectedCategories.geometry_type ?? "Point",
-                lifecycleStages = lifecycleStages // Trả về trực tiếp từ SelectedCategories
+                geometryType = selectedCategories.geometry_type ?? "Point"
             });
         }
 
@@ -111,68 +105,48 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Assets
             Console.WriteLine("Post method start - Request received");
             Console.WriteLine($"Form data: {JsonSerializer.Serialize(Request.Form)}");
 
-            if (NewAsset.geometry == null) NewAsset.geometry = new GeoJsonGeometry();
-
-            
-
-            // Xử lý geometry.type
-            var geometryType = Request.Form["NewAsset.geometry.type"];
-            if (!string.IsNullOrEmpty(geometryType))
-            {
-                NewAsset.geometry.type = geometryType;
-                // Xóa lỗi ModelState cho geometry.type nếu gán thành công
-                if (ModelState.ContainsKey("NewAsset.geometry.type"))
-                {
-                    ModelState["NewAsset.geometry.type"].Errors.Clear();
-                    ModelState["NewAsset.geometry.type"].ValidationState = ModelValidationState.Valid;
-                    Console.WriteLine("Cleared ModelState errors for NewAsset.geometry.type");
-                }
-            }
-            else
-            {
-                ModelState.AddModelError("NewAsset.geometry.type", "Loại hình học là bắt buộc.");
-            }
-
-            // Xử lý geometry.coordinates
-            var coordinatesJson = Request.Form["NewAsset.geometry.coordinates"];
-            if (!string.IsNullOrEmpty(coordinatesJson))
+            // Xử lý geometry (chuỗi JSON)
+            var geometryJson = Request.Form["NewAsset.geometry"];
+            if (!string.IsNullOrEmpty(geometryJson))
             {
                 try
                 {
-                    // Parse tọa độ từ chuỗi JSON
-                    NewAsset.geometry.coordinates = JsonSerializer.Deserialize<object>(coordinatesJson);
-                    Console.WriteLine($"Parsed coordinates: {JsonSerializer.Serialize(NewAsset.geometry.coordinates)}");
-
-                    // Xóa lỗi ModelState cho coordinates nếu gán thành công
-                    if (ModelState.ContainsKey("NewAsset.geometry.coordinates"))
+                    // Gán trực tiếp chuỗi JSON vào NewAsset.geometry
+                    NewAsset.geometry = geometryJson;
+                    if (ModelState.ContainsKey("NewAsset.geometry"))
                     {
-                        ModelState["NewAsset.geometry.coordinates"].Errors.Clear();
-                        ModelState["NewAsset.geometry.coordinates"].ValidationState = ModelValidationState.Valid;
-                        Console.WriteLine("Cleared ModelState errors for NewAsset.geometry.coordinates");
+                        ModelState["NewAsset.geometry"].Errors.Clear();
+                        ModelState["NewAsset.geometry"].ValidationState = ModelValidationState.Valid;
                     }
                 }
                 catch (Exception ex)
                 {
-                    ModelState.AddModelError("NewAsset.geometry.coordinates", $"Định dạng tọa độ không hợp lệ: {ex.Message}");
-                    Console.WriteLine($"Error parsing coordinates: {ex.Message}");
+                    ModelState.AddModelError("NewAsset.geometry", $"Định dạng GeoJSON không hợp lệ: {ex.Message}");
                 }
             }
             else
             {
-                ModelState.AddModelError("NewAsset.geometry.coordinates", "Tọa độ là bắt buộc.");
-                Console.WriteLine("Coordinates field is empty in form data");
+                ModelState.AddModelError("NewAsset.geometry", "Hình học là bắt buộc.");
             }
 
-            //Xử lý geometrySystem
+            // Xử lý GeometrySystem (chuyển đổi tọa độ nếu cần)
             var geometrySystem = Request.Form["GeometrySystem"];
-            if (!string.IsNullOrEmpty(geometrySystem))
+            if (!string.IsNullOrEmpty(geometrySystem) && !string.IsNullOrEmpty(NewAsset.geometry))
             {
                 if (geometrySystem == "wgs84")
                 {
-                    Console.WriteLine($"Before convert wgs84 to vn2000, new coordinate:{JsonSerializer.Serialize(NewAsset.geometry.coordinates)}");
-                    var vn2000Geometry = CoordinateConverter.ConvertGeometryToVN2000(NewAsset.geometry, 48);
-                    NewAsset.geometry = vn2000Geometry;
-                    Console.WriteLine($"After convert wgs84 to vn2000, new coordinate:{JsonSerializer.Serialize(NewAsset.geometry.coordinates)}");
+                    try
+                    {
+                        // Parse tạm geometry để chuyển đổi tọa độ
+                        var geoJsonGeometry = JsonSerializer.Deserialize<GeoJsonGeometry>(NewAsset.geometry);
+                        var vn2000Geometry = CoordinateConverter.ConvertGeometryToVN2000(geoJsonGeometry, 48);
+                        // Gán lại chuỗi JSON sau khi chuyển đổi
+                        NewAsset.geometry = JsonSerializer.Serialize(vn2000Geometry);
+                    }
+                    catch (Exception ex)
+                    {
+                        ModelState.AddModelError("NewAsset.geometry", $"Lỗi chuyển đổi tọa độ: {ex.Message}");
+                    }
                 }
             }
             else
@@ -180,28 +154,20 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Assets
                 ModelState.AddModelError("GeometrySystem", "Phải chọn loại hệ thống địa lý");
             }
 
-            // Xử lý attributes
-            var attributesJson = Request.Form["NewAsset.attributes"];
-            if (!string.IsNullOrEmpty(attributesJson))
+            // Xử lý custom_attributes
+            var customAttributesJson = Request.Form["NewAsset.custom_attributes"];
+            if (!string.IsNullOrEmpty(customAttributesJson))
             {
-                try
+                NewAsset.custom_attributes = customAttributesJson;
+                if (ModelState.ContainsKey("NewAsset.custom_attributes"))
                 {
-                    NewAsset.attributes = JsonSerializer.Deserialize<Dictionary<string, object>>(attributesJson);
-                    Console.WriteLine($"Parsed attributes: {JsonSerializer.Serialize(NewAsset.attributes)}");
-
-                    // Xóa lỗi ModelState cho attributes nếu gán thành công
-                    if (ModelState.ContainsKey("NewAsset.attributes"))
-                    {
-                        ModelState["NewAsset.attributes"].Errors.Clear();
-                        ModelState["NewAsset.attributes"].ValidationState = ModelValidationState.Valid;
-                        Console.WriteLine("Cleared ModelState errors for NewAsset.attributes");
-                    }
+                    ModelState["NewAsset.custom_attributes"].Errors.Clear();
+                    ModelState["NewAsset.custom_attributes"].ValidationState = ModelValidationState.Valid;
                 }
-                catch (Exception ex)
-                {
-                    ModelState.AddModelError("NewAsset.attributes", $"Định dạng thuộc tính không hợp lệ: {ex.Message}");
-                    Console.WriteLine($"Error parsing attributes: {ex.Message}");
-                }
+            }
+            else
+            {
+                ModelState.AddModelError("NewAsset.custom_attributes", "Thuộc tính tùy chỉnh là bắt buộc.");
             }
 
             // Kiểm tra ModelState
@@ -222,12 +188,19 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Assets
                 if (createdAsset == null)
                 {
                     ModelState.AddModelError("", "Không thể tạo tài sản.");
-                    Console.WriteLine("Asset");
+                    Console.WriteLine("Asset creation returned null");
                     Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
                     return Page();
                 }
                 Console.WriteLine("Asset created successfully");
                 return RedirectToPage("/Assets/Index");
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                ModelState.AddModelError("", $"Lỗi từ API: {ex.Message}");
+                Console.WriteLine($"BadRequest from API: {ex.Message}");
+                Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
+                return Page();
             }
             catch (Exception ex)
             {

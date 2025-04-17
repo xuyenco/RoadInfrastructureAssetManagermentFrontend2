@@ -1,11 +1,9 @@
-﻿using Road_Infrastructure_Asset_Management.Model.ImageUpload;
-using Road_Infrastructure_Asset_Management.Model.Request;
+﻿using Road_Infrastructure_Asset_Management.Model.Request;
 using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend.Service
 {
@@ -51,21 +49,30 @@ namespace RoadInfrastructureAssetManagementFrontend.Service
             var formData = new MultipartFormDataContent();
 
             // Thêm các trường cơ bản
-            formData.Add(new StringContent(request.cagetory_name ?? ""), "cagetory_name");
+            formData.Add(new StringContent(request.category_name ?? ""), "category_name");
             formData.Add(new StringContent(request.geometry_type ?? ""), "geometry_type");
-            formData.Add(new StringContent(request.attributes_schema ?? ""), "attributes_schema"); // Chuỗi JSON
-            formData.Add(new StringContent(request.lifecycle_stages ?? ""), "lifecycle_stages");   // Chuỗi JSON
+            formData.Add(new StringContent(request.attribute_schema ?? ""), "attribute_schema"); // Chuỗi JSON
 
             // Xử lý file ảnh
-            if (request.marker != null && request.marker.Length > 0)
+            if (request.sample_image != null && request.sample_image.Length > 0)
             {
-                var fileContent = new StreamContent(request.marker.OpenReadStream());
-                fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.marker.ContentType);
-                formData.Add(fileContent, "marker", request.marker.FileName);
+                var fileContent = new StreamContent(request.sample_image.OpenReadStream());
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.sample_image.ContentType);
+                formData.Add(fileContent, "sample_image", request.sample_image.FileName);
             }
             else
             {
-                throw new ArgumentException("File ảnh marker là bắt buộc.");
+                throw new ArgumentException("File ảnh mẫu là bắt buộc.");
+            }
+            if (request.icon != null && request.icon.Length > 0)
+            {
+                var fileContent = new StreamContent(request.icon.OpenReadStream());
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.icon.ContentType);
+                formData.Add(fileContent, "icon", request.icon.FileName);
+            }
+            else
+            {
+                throw new ArgumentException("File ảnh icon là bắt buộc.");
             }
 
             // Log dữ liệu gửi lên để debug
@@ -100,17 +107,22 @@ namespace RoadInfrastructureAssetManagementFrontend.Service
         {
             var formData = new MultipartFormDataContent();
             // Thêm các trường cơ bản
-            formData.Add(new StringContent(request.cagetory_name ?? ""), "cagetory_name");
+            formData.Add(new StringContent(request.category_name ?? ""), "category_name");
             formData.Add(new StringContent(request.geometry_type ?? ""), "geometry_type");
-            formData.Add(new StringContent(request.attributes_schema ?? ""), "attributes_schema"); // Chuỗi JSON
-            formData.Add(new StringContent(request.lifecycle_stages ?? ""), "lifecycle_stages");   // Chuỗi JSON
+            formData.Add(new StringContent(request.attribute_schema ?? ""), "attribute_schema");   // Chuỗi JSON
 
             // Xử lý file ảnh
-            if (request.marker != null && request.marker.Length > 0)
+            if (request.sample_image != null && request.sample_image.Length > 0)
             {
-                var fileContent = new StreamContent(request.marker.OpenReadStream());
-                fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.marker.ContentType);
-                formData.Add(fileContent, "marker", request.marker.FileName);
+                var fileContent = new StreamContent(request.sample_image.OpenReadStream());
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.sample_image.ContentType);
+                formData.Add(fileContent, "sample_image", request.sample_image.FileName);
+            }
+            if (request.icon != null && request.icon.Length > 0)
+            {
+                var fileContent = new StreamContent(request.icon.OpenReadStream());
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.icon.ContentType);
+                formData.Add(fileContent, "icon", request.icon.FileName);
             }
 
             // Log dữ liệu gửi lên để debug

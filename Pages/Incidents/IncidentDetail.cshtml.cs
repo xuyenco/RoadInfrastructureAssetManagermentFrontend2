@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Road_Infrastructure_Asset_Management.Model.Request;
 using RoadInfrastructureAssetManagementFrontend.Interface;
-using RoadInfrastructureAssetManagementFrontend.Model.Response;
+using Road_Infrastructure_Asset_Management.Model.Response;
 using System.Text.Json;
+using Road_Infrastructure_Asset_Management.Model.Request;
+using RoadInfrastructureAssetManagementFrontend.Model.Response;
+using Road_Infrastructure_Asset_Management.Model.Geometry;
 
 namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
 {
@@ -20,13 +22,13 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
 
         public IncidentsResponse Incident { get; set; }
         public List<IncidentImageResponse> IncidentImages { get; set; } = new List<IncidentImageResponse>();
-        public string LocationDisplay { get; set; } = "Không xác định"; // Chuỗi hiển thị tọa độ
+        public string LocationDisplay { get; set; } = "Không xác định";
+        public GeoJsonGeometry Wgs84Geometry { get; set; }
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
             try
             {
-                // Lấy thông tin incident
                 Incident = await _incidentsService.GetIncidentByIdAsync(id);
                 if (Incident == null)
                 {
@@ -34,17 +36,21 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
                     return RedirectToPage("/Incidents/Index");
                 }
 
-                // Xử lý tọa độ từ location
-                if (Incident.location != null && Incident.location.coordinates != null)
+                if (Incident.geometry != null && Incident.geometry.coordinates != null)
                 {
-                    LocationDisplay = ParseCoordinates(Incident.location.type, Incident.location.coordinates);
+                    // VN2000 coordinates for display
+                    LocationDisplay = ParseCoordinates(Incident.geometry.type, Incident.geometry.coordinates);
+
+                    // Convert to WGS84 for map display
+                    Wgs84Geometry = CoordinateConverter.ConvertGeometryToWGS84(Incident.geometry);
                 }
 
-                // Lấy danh sách ảnh liên quan theo incident_id
+                Console.WriteLine($"Dữ liệu tọa độ cho bản đồ. \n Location Display : {LocationDisplay} \n Wgs84Geometry = {Wgs84Geometry}");
+
                 IncidentImages = await _incidentImageService.GetAllIncidentImagesByIncidentId(Incident.incident_id);
                 if (IncidentImages == null)
                 {
-                    IncidentImages = new List<IncidentImageResponse>(); // Nếu không có ảnh, trả về danh sách rỗng
+                    IncidentImages = new List<IncidentImageResponse>();
                 }
 
                 return Page();
@@ -53,7 +59,7 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
             {
                 Console.WriteLine($"Unauthorized access: {ex.Message}");
                 TempData["Error"] = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
-                return RedirectToPage("/Login"); // Giả định có trang Login
+                return RedirectToPage("/Login");
             }
             catch (Exception ex)
             {

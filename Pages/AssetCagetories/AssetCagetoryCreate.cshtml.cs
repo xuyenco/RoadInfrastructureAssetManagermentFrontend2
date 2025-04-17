@@ -15,6 +15,7 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories
             _assetCagetoriesService = assetCagetoriesService;
         }
 
+        [BindProperty]
         public AssetCagetoriesRequest AssetCategory { get; set; } = new();
 
         public void OnGet()
@@ -23,12 +24,7 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories
 
         public async Task<IActionResult> OnPostAsync()
         {
-            // === PHẦN 1: Bind dữ liệu cơ bản ===
-            AssetCategory.cagetory_name = Request.Form["cagetory_name"];
-            AssetCategory.geometry_type = Request.Form["geometry_type"];
-            AssetCategory.marker = Request.Form.Files["marker"];
-
-            // === PHẦN 2: Xử lý Attributes Schema ===
+            // Xử lý Attributes Schema
             var attributeNames = Request.Form.Keys.Where(k => k.StartsWith("attributes["));
             var tempAttributes = new List<AttributeDefinition>();
 
@@ -69,38 +65,28 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories
                 if (attr.IsRequired) requiredFields.Add(attr.Name);
             }
 
-            AssetCategory.attributes_schema = JsonSerializer.Serialize(new
+            AssetCategory.attribute_schema = JsonSerializer.Serialize(new
             {
                 required = requiredFields,
                 properties = properties
             });
 
-            // === PHẦN 3: Xử lý Lifecycle Stages ===
-            var lifecycleStages = Request.Form["lifecycle_stages"]
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Select(s => (string)s)
-                .ToList();
+            // Lấy file từ form
+            AssetCategory.sample_image = Request.Form.Files["sample_image"];
+            AssetCategory.icon = Request.Form.Files["icon"];
 
-            if (lifecycleStages.Count == 0)
-            {
-                ModelState.AddModelError("lifecycle_stages", "Ít nhất một giai đoạn lifecycle là bắt buộc.");
-                return Page();
-            }
+            // Kiểm tra ModelState
+            //if (!ModelState.IsValid)
+            //{
+            //    var errors = ModelState.ToDictionary(
+            //        kvp => kvp.Key,
+            //        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+            //    );
+            //    Console.WriteLine($"Validation errors: {JsonSerializer.Serialize(errors)}");
+            //    return Page();
+            //}
 
-            AssetCategory.lifecycle_stages = JsonSerializer.Serialize(lifecycleStages);
-
-            // === PHẦN 4: Kiểm tra ModelState ===
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
-                );
-                Console.WriteLine($"Validation errors: {JsonSerializer.Serialize(errors)}");
-                return Page();
-            }
-
-            // === PHẦN 5: Gửi request lên service ===
+            // Gửi request lên service
             try
             {
                 var result = await _assetCagetoriesService.CreateAssetCagetoriesAsync(AssetCategory);

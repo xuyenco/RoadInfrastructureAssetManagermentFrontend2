@@ -1,7 +1,7 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend.Pages.Incidents.IncidentUpdateModel
 @{
-    Layout = "_Layout"; // Sử dụng layout chung
+    Layout = "_Layout";
     ViewData["Title"] = "Cập nhật Incident";
 }
 
@@ -10,191 +10,251 @@
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         .container {
-            margin-top: 20px;
+            margin-top: 40px;
+            max-width: 1200px;
         }
 
         .form-container {
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-bottom: 40px;
         }
 
-        .btn-primary, .btn-secondary {
-            transition: background-color 0.3s;
+        h1 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h3 {
+            font-size: 1.75rem;
+            color: #34495e;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            border-color: #3498db;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
         }
 
             .btn-primary:hover {
-                background-color: #0056b3;
+                background-color: #2980b9;
+                transform: translateY(-2px);
             }
 
+        .btn-secondary {
+            background-color: #34495e;
+            border-color: #34495e;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
             .btn-secondary:hover {
-                background-color: #5a6268;
+                background-color: #2c3e50;
+                transform: translateY(-2px);
             }
+
+        .btn i {
+            margin-right: 8px;
+        }
 
         #map {
             height: 400px;
             width: 100%;
-            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .text-muted {
+            color: #7f8c8d;
+        }
+
+        .alert {
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Cập nhật Incident</h1>
-    </div>
 
-    <div class="form-container">
-        <h3 class="mb-3">Thông tin Incident</h3>
+        <div class="form-container">
+            <h3>Thông tin Incident</h3>
 
-        @if (TempData["Error"] != null)
-        {
-            <div class="alert alert-danger" role="alert">
-                @TempData["Error"]
-            </div>
-        }
-
-        @if (!ViewData.ModelState.IsValid)
-        {
-            <div class="alert alert-danger" role="alert">
-                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    <p>@error.ErrorMessage</p>
-                }
-            </div>
-        }
-
-        @if (Model.Incident == null)
-        {
-            <p class="text-danger">Không tìm thấy sự cố để cập nhật.</p>
-        }
-        else
-        {
-            <form method="post">
-                <div class="form-group mb-3">
-                    <label class="form-label">ID</label>
-                    <input class="form-control" value="@Model.Id" disabled />
-                    <input type="hidden" asp-for="Id" />
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger" role="alert">
+                    @TempData["Error"]
                 </div>
+            }
 
-                <div class="form-group mb-3">
-                    <label asp-for="Incident.asset_id">Asset ID</label>
-                    <input asp-for="Incident.asset_id" class="form-control" type="number" min="1" required />
-                    <span asp-validation-for="Incident.asset_id" class="text-danger"></span>
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger" role="alert">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <p>@error.ErrorMessage</p>
+                    }
                 </div>
+            }
 
-                <div class="form-group mb-3">
-                    <label asp-for="Incident.reported_by">Reported By (ID Người dùng)</label>
-                    <input asp-for="Incident.reported_by" class="form-control" type="number" min="1" required />
-                    <span asp-validation-for="Incident.reported_by" class="text-danger"></span>
-                </div>
+            @if (Model.Incident == null)
+            {
+                <p class="text-danger">Không tìm thấy sự cố để cập nhật.</p>
+            }
+            else
+            {
+                <form method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label class="form-label">ID</label>
+                        <input class="form-control" value="@Model.Id" disabled />
+                        <input type="hidden" asp-for="Id" />
+                    </div>
 
-                <div class="form-group mb-3">
-                    <label asp-for="Incident.incident_type">Incident Type</label>
-                    <input asp-for="Incident.incident_type" class="form-control" required />
-                    <span asp-validation-for="Incident.incident_type" class="text-danger"></span>
-                </div>
+                    <div class="form-group">
+                        <label asp-for="Incident.address">Địa chỉ</label>
+                        <input asp-for="Incident.address" class="form-control" />
+                        <span asp-validation-for="Incident.address" class="text-danger"></span>
+                    </div>
 
-                <div class="form-group mb-3">
-                    <label asp-for="Incident.description">Description</label>
-                    <textarea asp-for="Incident.description" class="form-control" rows="3" required></textarea>
-                    <span asp-validation-for="Incident.description" class="text-danger"></span>
-                </div>
+                    <div class="form-group">
+                        <label asp-for="Incident.route">Tuyến đường</label>
+                        <input asp-for="Incident.route" class="form-control" />
+                        <span asp-validation-for="Incident.route" class="text-danger"></span>
+                    </div>
 
-                <div class="form-group mb-3">
-                    <label asp-for="Incident.priority">Priority</label>
-                    <select asp-for="Incident.priority" class="form-control" required>
-                        <option value="">Chọn mức độ ưu tiên</option>
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="critical">Critical</option>
-                    </select>
-                    <span asp-validation-for="Incident.priority" class="text-danger"></span>
-                </div>
+                    <div class="form-group">
+                        <label asp-for="Incident.severity_level">Mức độ nghiêm trọng</label>
+                        <select asp-for="Incident.severity_level" class="form-control" required>
+                            <option value="">Chọn mức độ</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                        <span asp-validation-for="Incident.severity_level" class="text-danger"></span>
+                    </div>
 
-                <div class="form-group mb-3">
-                    <label asp-for="Incident.status">Status</label>
-                    <select asp-for="Incident.status" class="form-control" required>
-                        <option value="">Chọn trạng thái</option>
-                        <option value="reported">Reported</option>
-                        <option value="under review">Under Review</option>
-                        <option value="resolved">Resolved</option>
-                        <option value="closed">Closed</option>
-                    </select>
-                    <span asp-validation-for="Incident.status" class="text-danger"></span>
-                </div>
+                    <div class="form-group">
+                        <label asp-for="Incident.damage_level">Mức độ hư hỏng</label>
+                        <select asp-for="Incident.damage_level" class="form-control" required>
+                            <option value="">Chọn mức độ</option>
+                            <option value="minor">Minor</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="severe">Severe</option>
+                        </select>
+                        <span asp-validation-for="Incident.damage_level" class="text-danger"></span>
+                    </div>
 
-                <div class="form-group mb-3">
-                    <label asp-for="Incident.resolved_at">Resolved At</label>
-                    <input asp-for="Incident.resolved_at" class="form-control" type="datetime-local" />
-                    <span asp-validation-for="Incident.resolved_at" class="text-danger"></span>
-                </div>
+                    <div class="form-group">
+                        <label asp-for="Incident.processing_status">Trạng thái xử lý</label>
+                        <select asp-for="Incident.processing_status" class="form-control" required>
+                            <option value="">Chọn trạng thái</option>
+                            <option value="reported">Reported</option>
+                            <option value="under review">Under Review</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                        <span asp-validation-for="Incident.processing_status" class="text-danger"></span>
+                    </div>
 
-                <div class="form-group mb-3">
-                    <label asp-for="Incident.notes">Notes</label>
-                    <textarea asp-for="Incident.notes" class="form-control" rows="3" required></textarea>
-                    <span asp-validation-for="Incident.notes" class="text-danger"></span>
-                </div>
+                    <div class="form-group">
+                        <label asp-for="Incident.task_id">Mã nhiệm vụ</label>
+                        <input asp-for="Incident.task_id" class="form-control" type="number" min="0" />
+                        <span asp-validation-for="Incident.task_id" class="text-danger"></span>
+                    </div>
 
-                <!-- Bản đồ ở dưới cùng -->
-                <div class="form-group mb-3">
-                    <label for="geometryType">Loại hình học</label>
-                    <select class="form-control" id="geometryType" asp-for="Incident.location.type" required disabled>
-                        <option value="Point">Điểm</option>
-                        <option value="LineString">Đường</option>
-                    </select>
-                    <span asp-validation-for="Incident.location.type" class="text-danger"></span>
-                </div>
+                    <div class="form-group">
+                        <label for="Images">Ảnh liên quan (có thể chọn nhiều ảnh)</label>
+                        <input type="file" class="form-control" id="Images" name="Images" multiple accept="image/*" />
+                    </div>
 
-                <!-- Bản đồ và nhập tọa độ thủ công -->
-                <h4>Vị trí (@Model.Incident.location.type)</h4>
-                <div id="map"></div>
-                <div id="coordinatesInput" class="mt-3">
-                    <p id="instructionText"></p>
-                    <div id="manualCoordinates">
-                        <div class="form-group">
-                            <label for="geometrySystem">Hệ thống tọa độ</label>
-                            <select id="geometrySystem" class="form-control" required>
-                                <option value="wgs84">WGS84</option>
-                                <option value="vn2000">VN2000</option>
-                            </select>
-                        </div>
-                        <div class="form-group" id="pointInputs">
-                            <label for="manualLat">Vĩ độ (Latitude):</label>
-                            <input type="number" step="any" id="manualLat" class="form-control" placeholder="Nhập vĩ độ" />
-                        </div>
-                        <div class="form-group" id="pointInputsLng">
-                            <label for="manualLng">Kinh độ (Longitude):</label>
-                            <input type="number" step="any" id="manualLng" class="form-control" placeholder="Nhập kinh độ" />
-                        </div>
-                        <div class="form-group" id="multiCoordsGroup" style="display: none;">
-                            <label for="manualCoords">Tọa độ (dạng JSON):</label>
-                            <textarea id="manualCoords" class="form-control" rows="3" placeholder='Ví dụ: [[x1, y1], [x2, y2]]'></textarea>
+                    <div class="form-group">
+                        <label for="geometryType">Loại hình học</label>
+                        <select class="form-control" id="geometryType" asp-for="Incident.geometry.type" required>
+                            <option value="Point">Điểm</option>
+                            <option value="LineString">Đường</option>
+                        </select>
+                        <span asp-validation-for="Incident.geometry.type" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="geometrySystem">Hệ tọa độ</label>
+                        <select id="geometrySystem" class="form-control" required>
+                            <option value="wgs84">WGS84</option>
+                            <option value="vn2000">VN2000</option>
+                        </select>
+                    </div>
+
+                    <div id="map"></div>
+                    <div id="coordinatesInput" class="mt-3">
+                        <p id="instructionText"></p>
+                        <div id="manualCoordinates">
+                            <div class="form-group" id="pointInputs">
+                                <label for="manualLat">Vĩ độ (Latitude):</label>
+                                <input type="number" step="any" id="manualLat" class="form-control" placeholder="Nhập vĩ độ" />
+                            </div>
+                            <div class="form-group" id="pointInputsLng">
+                                <label for="manualLng">Kinh độ (Longitude):</label>
+                                <input type="number" step="any" id="manualLng" class="form-control" placeholder="Nhập kinh độ" />
+                            </div>
+                            <div class="form-group" id="multiCoordsGroup" style="display: none;">
+                                <label for="manualCoords">Tọa độ (dạng JSON):</label>
+                                <textarea id="manualCoords" class="form-control" rows="3" placeholder='Ví dụ: [[x1, y1], [x2, y2]]'></textarea>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <input type="hidden" id="geometryType" asp-for="Incident.location.type" />
-                <input type="hidden" id="coordinatesJson" asp-for="Incident.location.coordinates" />
-                <input type="hidden" id="geometrySystemHidden" name="GeometrySystem" />
+                    @* <input type="hidden" id="geometryTypeHidden" asp-for="Incident.geometry.type" /> *@
+                    <input type="hidden" id="coordinatesJson" asp-for="Incident.geometry.coordinates" />
+                    <input type="hidden" id="geometrySystemHidden" name="GeometrySystem" />
 
-                <div class="mt-3">
-                    <button type="button" id="resetButton" class="btn btn-secondary">Reset về tọa độ gốc</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Cập nhật Incident
-                    </button>
-                    <a href="/Incidents/Index" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Quay lại
-                    </a>
-                </div>
-            </form>
-        }
+                    <div class="form-group text-center">
+                        <button type="button" id="resetButton" class="btn btn-secondary">
+                            <i class="fas fa-undo"></i> Reset về tọa độ gốc
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Cập nhật Incident
+                        </button>
+                        <a href="/Incidents/Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Quay lại
+                        </a>
+                    </div>
+                </form>
+            }
+        </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -202,10 +262,10 @@
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
     <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
     <script>
-        var originalGeometryVN2000 = @Html.Raw(Json.Serialize(Model.Incident?.location)); // Tọa độ gốc từ backend (VN2000)
-        var originalGeometryWGS84 = @Html.Raw(Json.Serialize(CoordinateConverter.ConvertGeometryToWGS84(Model.Incident?.location))); // Tọa độ gốc WGS84
-        var currentGeometryWGS84 = JSON.parse(JSON.stringify(originalGeometryWGS84)); // Hiển thị trên bản đồ
-        var currentCoordinates = JSON.parse(JSON.stringify(originalGeometryWGS84.coordinates)); // Tọa độ hiện tại
+        var originalGeometryVN2000 = @Html.Raw(Json.Serialize(Model.Incident?.geometry));
+        var originalGeometryWGS84 = @Html.Raw(Json.Serialize(CoordinateConverter.ConvertGeometryToWGS84(Model.Incident?.geometry)));
+        var currentGeometryWGS84 = JSON.parse(JSON.stringify(originalGeometryWGS84));
+        var currentCoordinates = JSON.parse(JSON.stringify(originalGeometryWGS84.coordinates));
         var map = L.map('map').setView(getInitialCenter(), 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -213,10 +273,6 @@
         var layer;
         var selectedCoordinates = [];
 
-        // Khởi tạo dựa trên loại hình học
-        initializeForm();
-
-        // Hàm khởi tạo giao diện và sự kiện
         function initializeForm() {
             var geoType = currentGeometryWGS84.type.toLowerCase();
             var instructionText = document.getElementById('instructionText');
@@ -240,57 +296,40 @@
                 multiCoordsGroup.style.display = 'block';
                 map.on('click', onMapClickLine);
                 map.on('dblclick', finishLineString);
-            } else if (geoType === 'polygon') {
-                instructionText.textContent = 'Click trên bản đồ để thêm điểm vào đa giác (double-click để kết thúc) hoặc nhập tọa độ thủ công bên dưới.';
-                pointInputs.style.display = 'none';
-                pointInputsLng.style.display = 'none';
-                multiCoordsGroup.style.display = 'block';
-                map.on('click', onMapClickPolygon);
-                map.on('dblclick', finishPolygon);
             }
 
             initializeLayer();
             updateInputs();
         }
 
-        // Hàm lấy trung tâm ban đầu
         function getInitialCenter() {
             if (currentGeometryWGS84.type === 'Point') {
                 return [currentGeometryWGS84.coordinates[1], currentGeometryWGS84.coordinates[0]];
             } else if (currentGeometryWGS84.type === 'LineString') {
                 return [currentGeometryWGS84.coordinates[0][1], currentGeometryWGS84.coordinates[0][0]];
-            } else if (currentGeometryWGS84.type === 'Polygon') {
-                return [currentGeometryWGS84.coordinates[0][0][1], currentGeometryWGS84.coordinates[0][0][0]];
             }
         }
 
-        // Khởi tạo layer
         function initializeLayer() {
             if (layer) map.removeLayer(layer);
             if (currentGeometryWGS84.type === 'Point') {
                 layer = L.marker([currentGeometryWGS84.coordinates[1], currentGeometryWGS84.coordinates[0]]).addTo(map);
             } else if (currentGeometryWGS84.type === 'LineString') {
                 layer = L.polyline(currentGeometryWGS84.coordinates.map(c => [c[1], c[0]]), { color: 'blue' }).addTo(map);
-            } else if (currentGeometryWGS84.type === 'Polygon') {
-                layer = L.polygon(currentGeometryWGS84.coordinates[0].map(c => [c[1], c[0]]), { color: 'blue' }).addTo(map);
             }
             updateHiddenInputs();
         }
 
-        // Cập nhật layer
         function updateLayer() {
             if (layer) map.removeLayer(layer);
             if (currentGeometryWGS84.type === 'Point') {
                 layer = L.marker([currentGeometryWGS84.coordinates[1], currentGeometryWGS84.coordinates[0]]).addTo(map);
             } else if (currentGeometryWGS84.type === 'LineString') {
                 layer = L.polyline(selectedCoordinates.length > 0 ? selectedCoordinates.map(c => [c[1], c[0]]) : currentGeometryWGS84.coordinates.map(c => [c[1], c[0]]), { color: 'blue' }).addTo(map);
-            } else if (currentGeometryWGS84.type === 'Polygon') {
-                layer = L.polygon(selectedCoordinates.length > 0 ? [selectedCoordinates.map(c => [c[1], c[0]])] : currentGeometryWGS84.coordinates[0].map(c => [c[1], c[0]]), { color: 'blue' }).addTo(map);
             }
             updateHiddenInputs();
         }
 
-        // Cập nhật các trường nhập thủ công
         function updateInputs() {
             var system = document.getElementById('geometrySystem').value;
             var geoType = currentGeometryWGS84.type.toLowerCase();
@@ -304,15 +343,13 @@
             }
         }
 
-        // Cập nhật hidden fields
         function updateHiddenInputs() {
             var system = document.getElementById('geometrySystem').value;
-            document.getElementById('geometryType').value = currentGeometryWGS84.type;
+            document.getElementById('geometryTypeHidden').value = currentGeometryWGS84.type;
             document.getElementById('coordinatesJson').value = JSON.stringify(currentCoordinates);
             document.getElementById('geometrySystemHidden').value = system;
         }
 
-        // Xử lý click cho Point
         function onMapClickPoint(e) {
             currentGeometryWGS84 = { type: 'Point', coordinates: [e.latlng.lng, e.latlng.lat] };
             currentCoordinates = currentGeometryWGS84.coordinates;
@@ -320,13 +357,11 @@
             updateInputs();
         }
 
-        // Xử lý click cho LineString
         function onMapClickLine(e) {
             selectedCoordinates.push([e.latlng.lng, e.latlng.lat]);
             updateLayer();
         }
 
-        // Kết thúc LineString
         function finishLineString() {
             if (selectedCoordinates.length < 2) {
                 alert('LineString cần ít nhất 2 điểm.');
@@ -340,33 +375,10 @@
             map.off('click').off('dblclick');
         }
 
-        // Xử lý click cho Polygon
-        function onMapClickPolygon(e) {
-            selectedCoordinates.push([e.latlng.lng, e.latlng.lat]);
-            updateLayer();
-        }
-
-        // Kết thúc Polygon
-        function finishPolygon() {
-            if (selectedCoordinates.length < 3) {
-                alert('Polygon cần ít nhất 3 điểm.');
-                return;
-            }
-            selectedCoordinates.push(selectedCoordinates[0]); // Đóng vòng
-            currentGeometryWGS84 = { type: 'Polygon', coordinates: [selectedCoordinates] };
-            currentCoordinates = currentGeometryWGS84.coordinates;
-            selectedCoordinates = [];
-            updateLayer();
-            updateInputs();
-            map.off('click').off('dblclick');
-        }
-
-        // Khi thay đổi hệ tọa độ trong dropdown
         document.getElementById('geometrySystem').addEventListener('change', function () {
-            updateInputs(); // Chỉ cập nhật giá trị hiển thị
+            updateInputs();
         });
 
-        // Khi nhập thủ công
         document.getElementById('manualLat').addEventListener('input', onManualInputChange);
         document.getElementById('manualLng').addEventListener('input', onManualInputChange);
         document.getElementById('manualCoords').addEventListener('input', onManualInputChange);
@@ -391,7 +403,7 @@
                     var coords = JSON.parse(document.getElementById('manualCoords').value);
                     currentCoordinates = coords;
                     if (system === 'wgs84') {
-                        currentGeometryWGS84 = { type: geoType === 'linestring' ? 'LineString' : 'Polygon', coordinates: coords };
+                        currentGeometryWGS84 = { type: 'LineString', coordinates: coords };
                     }
                     updateLayer();
                     updateInputs();
@@ -401,11 +413,14 @@
             }
         }
 
-        // Reset về tọa độ gốc
         document.getElementById('resetButton').addEventListener('click', function () {
             currentGeometryWGS84 = JSON.parse(JSON.stringify(originalGeometryWGS84));
             currentCoordinates = JSON.parse(JSON.stringify(originalGeometryWGS84.coordinates));
             selectedCoordinates = [];
+            initializeForm();
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
             initializeForm();
         });
     </script>

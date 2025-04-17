@@ -1,4 +1,5 @@
 ﻿@page
+@using System.Text.Json
 @model RoadInfrastructureAssetManagementFrontend.Pages.Assets.AssetUpdateModel
 @{
     ViewData["Title"] = "Cập nhật Asset";
@@ -9,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         #map { height: 400px; width: 100%; margin-bottom: 15px; }
+        .form-group { margin-bottom: 1rem; }
+        .form-label { font-weight: bold; }
     </style>
 </head>
 
@@ -20,96 +23,124 @@
 }
 else
 {
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
         <div class="form-group mb-3">
             <label class="form-label">ID</label>
             <input class="form-control" value="@Model.AssetResponse.asset_id" disabled />
             <input type="hidden" asp-for="AssetId" />
         </div>
 
+        <!-- Thông Tin Cơ Bản -->
+        <h2>Thông Tin Cơ Bản</h2>
         <div class="form-group mb-3">
-            <label asp-for="AssetRequest.cagetory_id" class="form-label">Category ID</label>
-            <input asp-for="AssetRequest.cagetory_id" class="form-control" type="number" min="1" readonly />
-            <span asp-validation-for="AssetRequest.cagetory_id" class="text-danger"></span>
+            <label asp-for="AssetRequest.asset_name" class="form-label">Tên tài sản</label>
+            <input asp-for="AssetRequest.asset_name" class="form-control" required />
+            <span asp-validation-for="AssetRequest.asset_name" class="text-danger"></span>
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.asset_code" class="form-label">Mã tài sản</label>
+            <input asp-for="AssetRequest.asset_code" class="form-control" required />
+            <span asp-validation-for="AssetRequest.asset_code" class="text-danger"></span>
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.address" class="form-label">Địa chỉ</label>
+            <input asp-for="AssetRequest.address" class="form-control" required />
+            <span asp-validation-for="AssetRequest.address" class="text-danger"></span>
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.construction_year" class="form-label">Năm xây dựng</label>
+            <input asp-for="AssetRequest.construction_year" type="date" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.operation_year" class="form-label">Năm vận hành</label>
+            <input asp-for="AssetRequest.operation_year" type="date" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.land_area" class="form-label">Diện tích đất (m²)</label>
+            <input asp-for="AssetRequest.land_area" type="number" step="0.01" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.floor_area" class="form-label">Diện tích sàn (m²)</label>
+            <input asp-for="AssetRequest.floor_area" type="number" step="0.01" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.original_value" class="form-label">Giá trị ban đầu (VNĐ)</label>
+            <input asp-for="AssetRequest.original_value" type="number" step="0.01" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.remaining_value" class="form-label">Giá trị còn lại (VNĐ)</label>
+            <input asp-for="AssetRequest.remaining_value" type="number" step="0.01" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.asset_status" class="form-label">Tình trạng tài sản</label>
+            <input asp-for="AssetRequest.asset_status" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.installation_unit" class="form-label">Đơn vị lắp đặt</label>
+            <input asp-for="AssetRequest.installation_unit" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <label asp-for="AssetRequest.management_unit" class="form-label">Đơn vị quản lý</label>
+            <input asp-for="AssetRequest.management_unit" class="form-control" />
+        </div>
+        <div class="form-group mb-3">
+            <label for="image" class="form-label">Hình ảnh</label>
+            <input type="file" id="image" name="AssetRequest.image" class="form-control" accept="image/*" />
         </div>
 
-        <!-- Attributes động -->
-        <h2>Thuộc tính</h2>
-        @if (Model.AssetResponse.attributes != null && Model.AssetResponse.attributes.Any())
-        {
-            @foreach (var attr in Model.AssetResponse.attributes)
-            {
-                <div class="form-group mb-3">
-                    <label class="form-label">@attr.Key</label>
-                    <input name="AssetRequest.attributes[@attr.Key]" value="@attr.Value" class="form-control" type="text" />
-                </div>
-            }
-        }
-        else
-        {
-            <p class="text-muted">Không có thuộc tính nào để hiển thị.</p>
-        }
-
+        <!-- Chọn Danh Mục -->
+        <h2>Chọn Danh Mục</h2>
         <div class="form-group mb-3">
-            <label asp-for="AssetRequest.lifecycle_stage" class="form-label">Giai đoạn vòng đời</label>
-            <input asp-for="AssetRequest.lifecycle_stage" class="form-control" type="text" />
-            <span asp-validation-for="AssetRequest.lifecycle_stage" class="text-danger"></span>
+            <label asp-for="AssetRequest.category_id" class="form-label">Danh mục</label>
+            <select asp-for="AssetRequest.category_id" class="form-control" onchange="selectCategory(this.value)" required>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category.category_id">@category.category_name</option>
+                }
+            </select>
+            <span asp-validation-for="AssetRequest.category_id" class="text-danger"></span>
+        </div>
+        <div id="geoTypeDisplay" class="form-group mb-3">
+            <label>Loại Hình Học</label>
+            <input type="text" id="geoType" class="form-control" value="@Model.AssetResponse.geometry?.type" readonly />
         </div>
 
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.installation_date" class="form-label">Ngày lắp đặt</label>
-            <input asp-for="AssetRequest.installation_date" class="form-control" type="date" />
-            <span asp-validation-for="AssetRequest.installation_date" class="text-danger"></span>
-        </div>
-
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.expected_lifetime" class="form-label">Tuổi thọ dự kiến</label>
-            <input asp-for="AssetRequest.expected_lifetime" class="form-control" type="number" min="1" />
-            <span asp-validation-for="AssetRequest.expected_lifetime" class="text-danger"></span>
-        </div>
-
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.condition" class="form-label">Tình trạng</label>
-            <input asp-for="AssetRequest.condition" class="form-control" type="text" />
-            <span asp-validation-for="AssetRequest.condition" class="text-danger"></span>
-        </div>
-
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.last_inspection_date" class="form-label">Ngày kiểm tra cuối</label>
-            <input asp-for="AssetRequest.last_inspection_date" class="form-control" type="date" />
-            <span asp-validation-for="AssetRequest.last_inspection_date" class="text-danger"></span>
+        <!-- Thuộc Tính Động -->
+        <h2>Thuộc Tính</h2>
+        <div id="attributes-content">
+            <p>Đang tải thuộc tính...</p>
         </div>
 
         <!-- Bản đồ và nhập tọa độ thủ công -->
-        <h2>Vị trí (@Model.AssetResponse.geometry.type)</h2>
+        <h2>Vị trí (@Model.AssetResponse.geometry?.type)</h2>
         <div id="map"></div>
         <div id="coordinatesInput" class="mt-3">
             <p id="instructionText"></p>
             <div id="manualCoordinates">
-                <div class="form-group">
-                    <label for="geometrySystem">Hệ thống tọa độ</label>
-                    <select id="geometrySystem" class="form-control" required>
+                <div class="form-group mb-3">
+                    <label for="geometrySystem" class="form-label">Hệ thống tọa độ</label>
+                    <select id="geometrySystem" name="GeometrySystem" class="form-control" required>
+                        <option value="">Chọn hệ tọa độ</option>
                         <option value="wgs84">WGS84</option>
                         <option value="vn2000">VN2000</option>
                     </select>
                 </div>
-                <div class="form-group" id="pointInputs">
-                    <label for="manualLat">Vĩ độ (Latitude):</label>
+                <div class="form-group mb-3" id="pointInputs">
+                    <label for="manualLat" class="form-label">Vĩ độ (Latitude):</label>
                     <input type="number" step="any" id="manualLat" class="form-control" placeholder="Nhập vĩ độ" />
                 </div>
-                <div class="form-group" id="pointInputsLng">
-                    <label for="manualLng">Kinh độ (Longitude):</label>
+                <div class="form-group mb-3" id="pointInputsLng">
+                    <label for="manualLng" class="form-label">Kinh độ (Longitude):</label>
                     <input type="number" step="any" id="manualLng" class="form-control" placeholder="Nhập kinh độ" />
                 </div>
-                <div class="form-group" id="multiCoordsGroup" style="display: none;">
-                    <label for="manualCoords">Tọa độ (dạng JSON):</label>
+                <div class="form-group mb-3" id="multiCoordsGroup" style="display: none;">
+                    <label for="manualCoords" class="form-label">Tọa độ (dạng JSON):</label>
                     <textarea id="manualCoords" class="form-control" rows="3" placeholder='Ví dụ: [[x1, y1], [x2, y2]]'></textarea>
                 </div>
             </div>
         </div>
-        <input type="hidden" id="geometryType" asp-for="AssetRequest.geometry.type" />
-        <input type="hidden" id="geometryCoordinates" asp-for="AssetRequest.geometry.coordinates" />
-        <input type="hidden" id="geometrySystemHidden" name="GeometrySystem" />
+        <input type="hidden" id="geometryHidden" name="AssetRequest.geometry" />
+        <input type="hidden" id="customAttributesHidden" asp-for="AssetRequest.custom_attributes" />
 
         <div class="mt-3">
             <button type="button" id="resetButton" class="btn btn-secondary">Reset về tọa độ gốc</button>
@@ -123,58 +154,53 @@ else
 @section Scripts {
     @if (Model.AssetResponse != null)
     {
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
         <partial name="_ValidationScriptsPartial" />
         <script>
-            var originalGeometryVN2000 = @Html.Raw(Json.Serialize(Model.AssetResponse.geometry)); // Tọa độ gốc từ backend (VN2000)
-            var originalGeometryWGS84 = @Html.Raw(Json.Serialize(CoordinateConverter.ConvertGeometryToWGS84(Model.AssetResponse.geometry))); // Tọa độ WGS84
+            let map, currentLayer, coordinates = [];
+            let selectedCategoryId = @Model.AssetResponse.category_id;
+            let currentCenter = [21.0285, 105.8542];
+            let currentZoom = 13;
+            let currentGeoType = '@Model.AssetResponse.geometry.type'.toLowerCase();
+            let assetId = @Model.AssetId;
+
+            // Dữ liệu tọa độ gốc
+            var originalGeometryVN2000 = @Html.Raw(JsonSerializer.Serialize(Model.AssetResponse.geometry)); // VN2000
+            var originalGeometryWGS84 = @Html.Raw(JsonSerializer.Serialize(CoordinateConverter.ConvertGeometryToWGS84(Model.AssetResponse.geometry))); // WGS84
             var currentGeometryWGS84 = JSON.parse(JSON.stringify(originalGeometryWGS84));
             var currentCoordinates = JSON.parse(JSON.stringify(originalGeometryWGS84.coordinates));
-            var map = L.map('map').setView(getInitialCenter(), 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-            var layer;
-            var selectedCoordinates = [];
 
-            // Khởi tạo dựa trên loại hình học
-            initializeForm();
+            // Khởi tạo bản đồ
+            document.addEventListener('DOMContentLoaded', function () {
+                try {
+                    map = L.map('map', {
+                        center: getInitialCenter(),
+                        zoom: currentZoom,
+                        zoomControl: true
+                    });
 
-            function initializeForm() {
-                var geoType = currentGeometryWGS84.type.toLowerCase();
-                var instructionText = document.getElementById('instructionText');
-                var pointInputs = document.getElementById('pointInputs');
-                var pointInputsLng = document.getElementById('pointInputsLng');
-                var multiCoordsGroup = document.getElementById('multiCoordsGroup');
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
 
-                map.off('click').off('dblclick');
-                selectedCoordinates = [];
+                    const geocoder = L.Control.Geocoder.nominatim();
+                    L.Control.geocoder({ geocoder: geocoder }).addTo(map);
 
-                if (geoType === 'point') {
-                    instructionText.textContent = 'Click trên bản đồ để chọn một điểm hoặc nhập tọa độ thủ công bên dưới.';
-                    pointInputs.style.display = 'block';
-                    pointInputsLng.style.display = 'block';
-                    multiCoordsGroup.style.display = 'none';
-                    map.on('click', onMapClickPoint);
-                } else if (geoType === 'linestring') {
-                    instructionText.textContent = 'Click trên bản đồ để thêm điểm vào đường (double-click để kết thúc) hoặc nhập tọa độ thủ công bên dưới.';
-                    pointInputs.style.display = 'none';
-                    pointInputsLng.style.display = 'none';
-                    multiCoordsGroup.style.display = 'block';
-                    map.on('click', onMapClickLine);
-                    map.on('dblclick', finishLineString);
-                } else if (geoType === 'polygon') {
-                    instructionText.textContent = 'Click trên bản đồ để thêm điểm vào đa giác (double-click để kết thúc) hoặc nhập tọa độ thủ công bên dưới.';
-                    pointInputs.style.display = 'none';
-                    pointInputsLng.style.display = 'none';
-                    multiCoordsGroup.style.display = 'block';
-                    map.on('click', onMapClickPolygon);
-                    map.on('dblclick', finishPolygon);
+                    map.on('moveend zoomend', function () {
+                        currentCenter = map.getCenter();
+                        currentZoom = map.getZoom();
+                    });
+
+                    // Khởi tạo form và layer
+                    initializeForm();
+                    loadAttributes(selectedCategoryId);
+                } catch (error) {
+                    console.error('Error initializing map:', error);
                 }
-
-                initializeLayer();
-                updateInputs();
-            }
+            });
 
             function getInitialCenter() {
                 if (currentGeometryWGS84.type === 'Point') {
@@ -186,137 +212,268 @@ else
                 }
             }
 
+            function initializeForm() {
+                var instructionText = document.getElementById('instructionText');
+                var pointInputs = document.getElementById('pointInputs');
+                var pointInputsLng = document.getElementById('pointInputsLng');
+                var multiCoordsGroup = document.getElementById('multiCoordsGroup');
+
+                map.off('click').off('dblclick');
+                coordinates = [];
+
+                if (currentGeoType === 'point') {
+                    instructionText.textContent = 'Click trên bản đồ để chọn một điểm hoặc nhập tọa độ thủ công bên dưới.';
+                    pointInputs.style.display = 'block';
+                    pointInputsLng.style.display = 'block';
+                    multiCoordsGroup.style.display = 'none';
+                    map.on('click', onMapClickPoint);
+                    document.getElementById('manualLat').value = currentGeometryWGS84.coordinates[1];
+                    document.getElementById('manualLng').value = currentGeometryWGS84.coordinates[0];
+                } else if (currentGeoType === 'linestring') {
+                    instructionText.textContent = 'Click trên bản đồ để thêm điểm vào đường (double-click để kết thúc) hoặc nhập tọa độ thủ công bên dưới.';
+                    pointInputs.style.display = 'none';
+                    pointInputsLng.style.display = 'none';
+                    multiCoordsGroup.style.display = 'block';
+                    map.on('click', onMapClickLine);
+                    map.on('dblclick', finishLineString);
+                    document.getElementById('manualCoords').value = JSON.stringify(currentGeometryWGS84.coordinates);
+                } else if (currentGeoType === 'polygon') {
+                    instructionText.textContent = 'Click trên bản đồ để thêm điểm vào đa giác (double-click để kết thúc) hoặc nhập tọa độ thủ công bên dưới.';
+                    pointInputs.style.display = 'none';
+                    pointInputsLng.style.display = 'none';
+                    multiCoordsGroup.style.display = 'block';
+                    map.on('click', onMapClickPolygon);
+                    map.on('dblclick', finishPolygon);
+                    document.getElementById('manualCoords').value = JSON.stringify(currentGeometryWGS84.coordinates[0]);
+                }
+
+                initializeLayer();
+                document.getElementById('geometrySystem').value = 'wgs84';
+            }
+
             function initializeLayer() {
-                if (layer) map.removeLayer(layer);
-                if (currentGeometryWGS84.type === 'Point') {
-                    layer = L.marker([currentGeometryWGS84.coordinates[1], currentGeometryWGS84.coordinates[0]]).addTo(map);
-                } else if (currentGeometryWGS84.type === 'LineString') {
-                    layer = L.polyline(currentGeometryWGS84.coordinates.map(c => [c[1], c[0]]), { color: 'blue' }).addTo(map);
-                } else if (currentGeometryWGS84.type === 'Polygon') {
-                    layer = L.polygon(currentGeometryWGS84.coordinates[0].map(c => [c[1], c[0]]), { color: 'blue' }).addTo(map);
+                if (currentLayer) map.removeLayer(currentLayer);
+                if (currentGeoType === 'point') {
+                    currentLayer = L.marker([currentGeometryWGS84.coordinates[1], currentGeometryWGS84.coordinates[0]]).addTo(map);
+                    // Không đặt isPointSelected = true ở đây
+                } else if (currentGeoType === 'linestring') {
+                    currentLayer = L.polyline(currentGeometryWGS84.coordinates.map(c => [c[1], c[0]]), { color: 'blue' }).addTo(map);
+                } else if (currentGeoType === 'polygon') {
+                    currentLayer = L.polygon(currentGeometryWGS84.coordinates[0].map(c => [c[1], c[0]]), { color: 'blue' }).addTo(map);
                 }
-                updateHiddenInputs();
+                updateGeometry(currentGeometryWGS84.type, currentGeometryWGS84.coordinates);
             }
 
-            function updateLayer() {
-                if (layer) map.removeLayer(layer);
-                if (currentGeometryWGS84.type === 'Point') {
-                    layer = L.marker([currentGeometryWGS84.coordinates[1], currentGeometryWGS84.coordinates[0]]).addTo(map);
-                } else if (currentGeometryWGS84.type === 'LineString') {
-                    layer = L.polyline(selectedCoordinates.length > 0 ? selectedCoordinates.map(c => [c[1], c[0]]) : currentGeometryWGS84.coordinates.map(c => [c[1], c[0]]), { color: 'blue' }).addTo(map);
-                } else if (currentGeometryWGS84.type === 'Polygon') {
-                    layer = L.polygon(selectedCoordinates.length > 0 ? [selectedCoordinates.map(c => [c[1], c[0]])] : currentGeometryWGS84.coordinates[0].map(c => [c[1], c[0]]), { color: 'blue' }).addTo(map);
-                }
-                updateHiddenInputs();
+            function selectCategory(id) {
+                selectedCategoryId = id;
+                $.ajax({
+                    url: '/Assets/AssetUpdate?handler=GetCategorySchema',
+                    data: { id: id, assetId: assetId },
+                    method: 'GET',
+                    success: function (response) {
+                        let geoType = response.geometryType || 'Point';
+                        if (geoType.toLowerCase() === 'line') geoType = 'LineString';
+                        currentGeoType = geoType.toLowerCase();
+                        $('#geoType').val(currentGeoType);
+                        $('#geoTypeDisplay').show();
+                        initializeForm();
+                        loadAttributes(id);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('AJAX error:', error);
+                        currentGeoType = 'point';
+                        $('#geoType').val(currentGeoType);
+                        $('#geoTypeDisplay').show();
+                        initializeForm();
+                        loadAttributes(id);
+                    }
+                });
             }
 
-            function updateInputs() {
-                var system = document.getElementById('geometrySystem').value;
-                var geoType = currentGeometryWGS84.type.toLowerCase();
-                if (geoType === 'point') {
-                    var coords = system === 'wgs84' ? currentGeometryWGS84.coordinates : originalGeometryVN2000.coordinates;
-                    document.getElementById('manualLat').value = coords[1];
-                    document.getElementById('manualLng').value = coords[0];
-                } else {
-                    var coords = system === 'wgs84' ? currentGeometryWGS84.coordinates : originalGeometryVN2000.coordinates;
-                    document.getElementById('manualCoords').value = JSON.stringify(coords);
-                }
+            function loadAttributes(id) {
+                $.ajax({
+                    url: '/Assets/AssetUpdate?handler=GetCategorySchema',
+                    data: { id: id, assetId: assetId },
+                    method: 'GET',
+                    success: function (data) {
+                        $('#attributes-content').html(data.html);
+                        $('#attributes-content .attribute-input').on('change', updateAttributes);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('AJAX error loading attributes:', error);
+                        $('#attributes-content').html('<p>Đã xảy ra lỗi khi tải thuộc tính.</p>');
+                    }
+                });
             }
 
-            function updateHiddenInputs() {
-                var system = document.getElementById('geometrySystem').value;
-                document.getElementById('geometryType').value = currentGeometryWGS84.type;
-                document.getElementById('geometryCoordinates').value = JSON.stringify(currentCoordinates);
-                document.getElementById('geometrySystemHidden').value = system;
+            function updateAttributes() {
+                const attributes = {};
+                $('#attributes-content .attribute-input').each(function () {
+                    attributes[$(this).attr('id')] = $(this).val() || '';
+                });
+                $('#customAttributesHidden').val(JSON.stringify(attributes));
             }
 
             function onMapClickPoint(e) {
-                currentGeometryWGS84 = { type: 'Point', coordinates: [e.latlng.lng, e.latlng.lat] };
-                currentCoordinates = currentGeometryWGS84.coordinates;
-                updateLayer();
-                updateInputs();
+                if (!e || !e.latlng) {
+                    console.error('Invalid click event or latlng:', e);
+                    return;
+                }
+
+                if (currentLayer) {
+                    map.removeLayer(currentLayer);
+                }
+                coordinates = [e.latlng.lng, e.latlng.lat];
+                currentLayer = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+                document.getElementById('manualLat').value = e.latlng.lat;
+                document.getElementById('manualLng').value = e.latlng.lng;
+                document.getElementById('geometrySystem').value = 'wgs84';
+                updateGeometry('Point', coordinates);
+
+                const geocoder = L.Control.Geocoder.nominatim();
+                geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), function (results) {
+                    if (results.length > 0) {
+                        $('#AssetRequest_address').val(results[0].name);
+                        updateAttributes();
+                    }
+                });
             }
 
             function onMapClickLine(e) {
-                selectedCoordinates.push([e.latlng.lng, e.latlng.lat]);
-                updateLayer();
+                if (!e || !e.latlng) {
+                    console.error('Invalid click event or latlng:', e);
+                    return;
+                }
+
+                coordinates.push([e.latlng.lng, e.latlng.lat]);
+                if (currentLayer) {
+                    map.removeLayer(currentLayer);
+                }
+                currentLayer = L.polyline(coordinates.map(coord => [coord[1], c[0]]), { color: 'blue' }).addTo(map);
+                document.getElementById('manualCoords').value = JSON.stringify(coordinates);
+                document.getElementById('geometrySystem').value = 'wgs84';
+                updateGeometry('LineString', coordinates);
             }
 
             function finishLineString() {
-                if (selectedCoordinates.length < 2) {
-                    alert('LineString cần ít nhất 2 điểm.');
+                if (coordinates.length < 2) {
+                    alert('A LineString requires at least 2 points.');
                     return;
                 }
-                currentGeometryWGS84 = { type: 'LineString', coordinates: selectedCoordinates };
-                currentCoordinates = currentGeometryWGS84.coordinates;
-                selectedCoordinates = [];
-                updateLayer();
-                updateInputs();
+                if (currentLayer) {
+                    map.removeLayer(currentLayer);
+                }
+                currentLayer = L.polyline(coordinates.map(coord => [coord[1], c[0]]), { color: 'blue' }).addTo(map);
+                document.getElementById('manualCoords').value = JSON.stringify(coordinates);
+                updateGeometry('LineString', coordinates);
                 map.off('click').off('dblclick');
             }
 
             function onMapClickPolygon(e) {
-                selectedCoordinates.push([e.latlng.lng, e.latlng.lat]);
-                updateLayer();
+                if (!e || !e.latlng) {
+                    console.error('Invalid click event or latlng:', e);
+                    return;
+                }
+
+                coordinates.push([e.latlng.lng, e.latlng.lat]);
+                if (currentLayer) {
+                    map.removeLayer(currentLayer);
+                }
+                currentLayer = L.polygon(coordinates.map(coord => [coord[1], c[0]]), { color: 'blue' }).addTo(map);
+                document.getElementById('manualCoords').value = JSON.stringify(coordinates);
+                document.getElementById('geometrySystem').value = 'wgs84';
+                updateGeometry('Polygon', [coordinates]);
             }
 
             function finishPolygon() {
-                if (selectedCoordinates.length < 3) {
-                    alert('Polygon cần ít nhất 3 điểm.');
+                if (coordinates.length < 3) {
+                    alert('A Polygon requires at least 3 points.');
                     return;
                 }
-                selectedCoordinates.push(selectedCoordinates[0]); // Đóng vòng
-                currentGeometryWGS84 = { type: 'Polygon', coordinates: [selectedCoordinates] };
-                currentCoordinates = currentGeometryWGS84.coordinates;
-                selectedCoordinates = [];
-                updateLayer();
-                updateInputs();
+                coordinates.push(coordinates[0]);
+                if (currentLayer) {
+                    map.removeLayer(currentLayer);
+                }
+                currentLayer = L.polygon(coordinates.map(coord => [coord[1], c[0]]), { color: 'blue' }).addTo(map);
+                document.getElementById('manualCoords').value = JSON.stringify(coordinates);
+                updateGeometry('Polygon', [coordinates]);
                 map.off('click').off('dblclick');
             }
 
-            document.getElementById('geometrySystem').addEventListener('change', function () {
-                updateInputs();
-            });
+            function updateGeometry(type, coords) {
+                const geometryHiddenField = document.getElementById('geometryHidden');
+                if (geometryHiddenField) {
+                    const geometryObj = { type: type, coordinates: coords };
+                    geometryHiddenField.value = JSON.stringify(geometryObj);
+                    console.log('Geometry updated:', geometryObj);
+                } else {
+                    console.error('Geometry field not found');
+                }
+            }
 
             document.getElementById('manualLat').addEventListener('input', onManualInputChange);
             document.getElementById('manualLng').addEventListener('input', onManualInputChange);
             document.getElementById('manualCoords').addEventListener('input', onManualInputChange);
 
             function onManualInputChange() {
-                var geoType = currentGeometryWGS84.type.toLowerCase();
-                var system = document.getElementById('geometrySystem').value;
-
-                if (geoType === 'point') {
+                if (currentGeoType === 'point') {
                     var lat = parseFloat(document.getElementById('manualLat').value);
                     var lng = parseFloat(document.getElementById('manualLng').value);
                     if (!isNaN(lat) && !isNaN(lng)) {
-                        currentCoordinates = [lng, lat];
-                        if (system === 'wgs84') {
-                            currentGeometryWGS84 = { type: 'Point', coordinates: currentCoordinates };
-                        }
-                        updateLayer();
-                        updateInputs();
+                        coordinates = [lng, lat];
+                        updateGeometry('Point', coordinates);
+                        updateMapFromManualInput();
                     }
                 } else {
                     try {
-                        var coords = JSON.parse(document.getElementById('manualCoords').value);
-                        currentCoordinates = coords;
-                        if (system === 'wgs84') {
-                            currentGeometryWGS84 = { type: geoType === 'linestring' ? 'LineString' : 'Polygon', coordinates: coords };
-                        }
-                        updateLayer();
-                        updateInputs();
+                        coordinates = JSON.parse(document.getElementById('manualCoords').value);
+                        updateGeometry(currentGeoType === 'linestring' ? 'LineString' : 'Polygon',
+                            currentGeoType === 'polygon' ? [coordinates] : coordinates);
+                        updateMapFromManualInput();
                     } catch (e) {
                         console.error('Invalid coordinates JSON:', e);
                     }
                 }
             }
 
+            function updateMapFromManualInput() {
+                if (currentLayer) {
+                    map.removeLayer(currentLayer);
+                }
+
+                if (currentGeoType === 'point' && coordinates.length === 2) {
+                    const [lng, lat] = coordinates;
+                    currentLayer = L.marker([lat, lng]).addTo(map);
+                    map.setView([lat, lng], currentZoom);
+                } else if (currentGeoType === 'linestring' && coordinates.length >= 1) {
+                    currentLayer = L.polyline(coordinates.map(coord => [coord[1], c[0]]), { color: 'blue' }).addTo(map);
+                    map.fitBounds(currentLayer.getBounds());
+                } else if (currentGeoType === 'polygon' && coordinates[0].length >= 3) {
+                    currentLayer = L.polygon(coordinates[0].map(coord => [coord[1], c[0]]), { color: 'blue' }).addTo(map);
+                    map.fitBounds(currentLayer.getBounds());
+                }
+            }
+
             document.getElementById('resetButton').addEventListener('click', function () {
                 currentGeometryWGS84 = JSON.parse(JSON.stringify(originalGeometryWGS84));
                 currentCoordinates = JSON.parse(JSON.stringify(originalGeometryWGS84.coordinates));
-                selectedCoordinates = [];
+                coordinates = [];
                 initializeForm();
+            });
+
+            // Intercept form submission to ensure geometry is sent as raw JSON
+            $('#assetForm').on('submit', function (e) {
+                const geometryHiddenField = document.getElementById('geometryHidden');
+                if (geometryHiddenField && geometryHiddenField.value) {
+                    try {
+                        const geometryObj = JSON.parse(geometryHiddenField.value);
+                        geometryHiddenField.value = JSON.stringify(geometryObj, null, 0);
+                    } catch (error) {
+                        console.error('Error parsing geometry JSON:', error);
+                        alert('Định dạng hình học không hợp lệ.');
+                        e.preventDefault();
+                    }
+                }
             });
         </script>
     }

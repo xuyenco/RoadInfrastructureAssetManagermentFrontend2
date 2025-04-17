@@ -1,0 +1,159 @@
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = RoadInfrastructureAssetManagementFrontend2
+build_property.RootNamespace = RoadInfrastructureAssetManagementFrontend2
+build_property.ProjectDir = C:\Users\Lenovo\source\repos\RoadInfrastructureAssetManagementFrontend2\RoadInfrastructureAssetManagementFrontend2\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 8.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\Lenovo\source\repos\RoadInfrastructureAssetManagementFrontend2\RoadInfrastructureAssetManagementFrontend2
+build_property._RazorSourceGeneratorDebug = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/AssetCagetories/AssetCagetoryCreate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXNzZXRDYWdldG9yaWVzXEFzc2V0Q2FnZXRvcnlDcmVhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/AssetCagetories/AssetCagetoryUpdate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXNzZXRDYWdldG9yaWVzXEFzc2V0Q2FnZXRvcnlVcGRhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/AssetCagetories/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXNzZXRDYWdldG9yaWVzXEluZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Assets/AssetCreate2.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXNzZXRzXEFzc2V0Q3JlYXRlMi5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Assets/AssetImport.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXNzZXRzXEFzc2V0SW1wb3J0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Assets/AssetUpdate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXNzZXRzXEFzc2V0VXBkYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Assets/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXNzZXRzXEluZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Budgets/BudgetsCreate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQnVkZ2V0c1xCdWRnZXRzQ3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Budgets/BudgetUpdate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQnVkZ2V0c1xCdWRnZXRVcGRhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Budgets/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQnVkZ2V0c1xJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Costs/CostCreate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29zdHNcQ29zdENyZWF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Costs/CostUpdate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29zdHNcQ29zdFVwZGF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Costs/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29zdHNcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXJyb3IuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Incidents/IncidentCreate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5jaWRlbnRzXEluY2lkZW50Q3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Incidents/IncidentDetail.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5jaWRlbnRzXEluY2lkZW50RGV0YWlsLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Incidents/IncidentUpdate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5jaWRlbnRzXEluY2lkZW50VXBkYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Incidents/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5jaWRlbnRzXEluZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Privacy.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJpdmFjeS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Report/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUmVwb3J0XEluZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Shared/_ValidationScriptsPartial.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Tasks/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGFza3NcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Tasks/TaskCreate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGFza3NcVGFza0NyZWF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Tasks/TaskDetail.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGFza3NcVGFza0RldGFpbC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Tasks/TaskUpdate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGFza3NcVGFza1VwZGF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Users/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Users/Login.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcTG9naW4uY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Users/Logout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcTG9nb3V0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Users/UserCreate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcVXNlckNyZWF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Users/UserImport.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcVXNlckltcG9ydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Users/UserUpdate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcVXNlclVwZGF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/_ViewStart.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX1ZpZXdTdGFydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Shared/_Layout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2hhcmVkXF9MYXlvdXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = b-s0ga1z4p6m

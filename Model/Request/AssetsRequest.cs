@@ -1,16 +1,29 @@
-﻿using Road_Infrastructure_Asset_Management.Model.Geometry;
+﻿using Newtonsoft.Json.Linq;
+using Road_Infrastructure_Asset_Management.Model.Geometry;
+using System.ComponentModel.DataAnnotations;
 
 namespace Road_Infrastructure_Asset_Management.Model.Response
 {
     public class AssetsRequest
     {
-        public int cagetory_id { get; set; }
-        public GeoJsonGeometry geometry { get; set; } = new GeoJsonGeometry();
-        public Dictionary<string, object> attributes { get; set; } = new();
-        public string lifecycle_stage { get; set; } = string.Empty;
-        public DateTime? installation_date { get; set; }
-        public int expected_lifetime { get; set; }
-        public string condition { get; set; } = string.Empty;
-        public DateTime? last_inspection_date { get; set; }
+        [Required]
+        public int category_id { get; set; }
+        public string asset_name { get; set; }
+        public string asset_code { get; set; }
+        public string address { get; set; }
+        [Required]
+        public string geometry { get; set; }
+        public DateTime? construction_year { get; set; }
+        public DateTime? operation_year { get; set; }
+        public double? land_area { get; set; }
+        public double? floor_area { get; set; }
+        public double? original_value { get; set; }
+        public double? remaining_value { get; set; }
+        public string asset_status { get; set; }
+        public string installation_unit { get; set; }
+        public string management_unit { get; set; }
+        [Required]
+        public string custom_attributes { get; set; }
+        public IFormFile image { get; set; }
     }
 }

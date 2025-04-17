@@ -5,6 +5,7 @@ using Road_Infrastructure_Asset_Management.Model.Geometry;
 using Road_Infrastructure_Asset_Management.Model.Request;
 using Road_Infrastructure_Asset_Management.Model.Response;
 using RoadInfrastructureAssetManagementFrontend.Interface;
+using RoadInfrastructureAssetManagementFrontend.Model.Request;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -13,10 +14,12 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
     public class IncidentUpdateModel : PageModel
     {
         private readonly IIncidentsService _incidentsService;
+        private readonly IIncidentImageService _incidentImageService;
 
-        public IncidentUpdateModel(IIncidentsService incidentsService)
+        public IncidentUpdateModel(IIncidentsService incidentsService, IIncidentImageService incidentImageService)
         {
             _incidentsService = incidentsService;
+            _incidentImageService = incidentImageService;
         }
 
         [BindProperty]
@@ -26,91 +29,123 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
         public int Id { get; set; }
 
         [BindProperty]
-        public string GeometrySystem { get; set; } // Nhận giá trị từ geometrySystemHidden
+        public IFormFile[] Images { get; set; }
+
+        [BindProperty]
+        public string GeometrySystem { get; set; }
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
             Id = id;
             var incidentResponse = await _incidentsService.GetIncidentByIdAsync(id);
-            Incident = new IncidentsRequest
+            if (incidentResponse == null)
             {
-                asset_id = incidentResponse.asset_id,
-                reported_by = incidentResponse.reported_by,
-                incident_type = incidentResponse.incident_type,
-                description = incidentResponse.description,
-                location = incidentResponse.location, // Giữ nguyên VN2000
-                priority = incidentResponse.priority,
-                resolved_at = incidentResponse.resolved_at,
-                status = incidentResponse.status,
-                notes = incidentResponse.notes,
-            };
-            if (Incident == null)
-            {
+                TempData["Error"] = "Không tìm thấy Incident.";
                 return NotFound();
             }
+
+            Incident = new IncidentsRequest
+            {
+                address = incidentResponse.address,
+                geometry = incidentResponse.geometry,
+                route = incidentResponse.route,
+                severity_level = incidentResponse.severity_level,
+                damage_level = incidentResponse.damage_level,
+                processing_status = incidentResponse.processing_status,
+                task_id = incidentResponse.task_id
+            };
+
             return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (Incident.location == null) Incident.location = new GeoJsonGeometry();
+            if (Incident.geometry == null) Incident.geometry = new GeoJsonGeometry();
 
-            // Xử lý location.type
-            var geometryType = Request.Form["Incident.location.type"];
+            var geometryType = Request.Form["Incident.geometry.type"];
             if (!string.IsNullOrEmpty(geometryType))
             {
-                Incident.location.type = geometryType;
-                ModelState["Incident.location.type"].Errors.Clear();
-                ModelState["Incident.location.type"].ValidationState = ModelValidationState.Valid;
+                Incident.geometry.type = geometryType;
+                ModelState["Incident.geometry.type"].Errors.Clear();
+                ModelState["Incident.geometry.type"].ValidationState = ModelValidationState.Valid;
             }
             else
             {
-                ModelState.AddModelError("Incident.location.type", "Loại hình học là bắt buộc.");
+                ModelState.AddModelError("Incident.geometry.type", "Loại hình học là bắt buộc.");
             }
 
-            // Xử lý location.coordinates
-            var coordinatesJson = Request.Form["Incident.location.coordinates"];
+            var coordinatesJson = Request.Form["Incident.geometry.coordinates"];
             if (!string.IsNullOrEmpty(coordinatesJson))
             {
                 try
                 {
-                    Incident.location.coordinates = JsonSerializer.Deserialize<object>(coordinatesJson);
-                    Console.WriteLine($"Raw coordinates: {JsonSerializer.Serialize(Incident.location.coordinates)}");
+                    Incident.geometry.coordinates = JsonSerializer.Deserialize<object>(coordinatesJson);
+                    Console.WriteLine($"Raw coordinates: {JsonSerializer.Serialize(Incident.geometry.coordinates)}");
 
-                    // Chuyển đổi tọa độ dựa trên GeometrySystem
+                    // Uncomment if VN2000 conversion is needed
                     if (GeometrySystem == "wgs84")
                     {
-                        Incident.location = CoordinateConverter.ConvertGeometryToVN2000(Incident.location);
-                        Console.WriteLine($"Converted to VN2000: {JsonSerializer.Serialize(Incident.location.coordinates)}");
+                        Incident.geometry = CoordinateConverter.ConvertGeometryToVN2000(Incident.geometry);
+                        Console.WriteLine($"Converted to VN2000: {JsonSerializer.Serialize(Incident.geometry.coordinates)}");
                     }
-                    // Nếu GeometrySystem là "vn2000", giữ nguyên tọa độ
-
-                    ModelState["Incident.location.coordinates"].Errors.Clear();
-                    ModelState["Incident.location.coordinates"].ValidationState = ModelValidationState.Valid;
                 }
                 catch (Exception ex)
                 {
-                    ModelState.AddModelError("Incident.location.coordinates", $"Định dạng tọa độ không hợp lệ: {ex.Message}");
+                    ModelState.AddModelError("Incident.geometry.coordinates", $"Định dạng tọa độ không hợp lệ: {ex.Message}");
                 }
             }
             else
             {
-                ModelState.AddModelError("Incident.location.coordinates", "Tọa độ là bắt buộc.");
+                ModelState.AddModelError("Incident.geometry.coordinates", "Tọa độ là bắt buộc.");
             }
 
-            if (!ModelState.IsValid)
+            //if (!ModelState.IsValid)
+            //{
+            //    return Page();
+            //}
+
+            Console.WriteLine($"Data update:{JsonSerializer.Serialize(Incident.geometry)}");
+
+            try
             {
+                Console.WriteLine($"Updating incident: {JsonSerializer.Serialize(Incident)}");
+                var updatedIncident = await _incidentsService.UpdateIncidentAsync(Id, Incident);
+                if (updatedIncident == null)
+                {
+                    TempData["Error"] = "Cập nhật thất bại.";
+                    return Page();
+                }
+
+                if (Images != null && Images.Length > 0)
+                {
+                    foreach (var image in Images)
+                    {
+                        if (image != null && image.Length > 0)
+                        {
+                            var imageRequest = new IncidentImageRequest
+                            {
+                                incident_id = updatedIncident.incident_id,
+                                image = image
+                            };
+                            var createdImage = await _incidentImageService.CreateIncidentImageAsync(imageRequest);
+                            if (createdImage == null)
+                            {
+                                Console.WriteLine($"Failed to create image for incident ID {updatedIncident.incident_id}");
+                                TempData["Warning"] = "Incident đã được cập nhật, nhưng một số ảnh không thể thêm.";
+                            }
+                        }
+                    }
+                }
+
+                TempData["Success"] = "Incident và ảnh (nếu có) đã được cập nhật thành công!";
+                return RedirectToPage("/Incidents/Index");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating incident: {ex.Message}, StackTrace: {ex.StackTrace}");
+                TempData["Error"] = $"Đã xảy ra lỗi khi cập nhật Incident: {ex.Message}";
                 return Page();
             }
-
-            var updatedIncident = await _incidentsService.UpdateIncidentAsync(Id, Incident);
-            if (updatedIncident == null)
-            {
-                ModelState.AddModelError("", "Cập nhật thất bại.");
-                return Page();
-            }
-
-            return RedirectToPage("/Incidents/Index");
         }
     }
 }

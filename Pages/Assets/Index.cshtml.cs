@@ -17,7 +17,6 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Assets
 
         public async Task OnGetAsync()
         {
-            // Chỉ lấy danh sách danh mục, không cần lấy asset nữa
             AssetCategories = await _assetCagetoriesService.GetAllAssetCagetoriesAsync() ?? new List<AssetCagetoriesResponse>();
         }
     }

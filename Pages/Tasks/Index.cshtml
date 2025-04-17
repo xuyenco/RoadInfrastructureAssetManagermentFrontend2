@@ -2,181 +2,186 @@
 @model RoadInfrastructureAssetManagementFrontend.Pages.Tasks.IndexModel
 @{
     Layout = "_Layout";
+    ViewData["Title"] = "Danh sách Nhiệm vụ";
 }
 
 <!DOCTYPE html>
 <html>
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         .container {
-            margin-top: 20px;
+            margin-top: 40px;
+            max-width: 1400px;
         }
 
-        .h1, .h3 {
-            color: #343a40;
-            font-weight: bold;
+        h1 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-align: center;
         }
 
-        .table-container {
-            background-color: #fff;
+        #map {
+            height: 600px;
+            width: 100%;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
         }
 
         .btn-primary {
-            transition: background-color 0.3s;
+            background-color: #3498db;
+            border-color: #3498db;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
         }
 
-            .btn-primary:hover {
-                background-color: #0056b3;
-            }
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
 
-        .thead-light th {
-            background-color: #e9ecef;
-            color: #495057;
+        .btn i {
+            margin-right: 8px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Danh sách Nhiệm vụ</h1>
+
         @if (TempData["Error"] != null)
         {
             <div class="alert alert-danger" role="alert">
                 @TempData["Error"]
             </div>
         }
-    </div>
 
-    <div class="text-center table-container">
-        <p class="h3 p-3">Danh sách Nhiệm vụ</p>
-        <div class="row mb-3">
-            <div class="col-md-4 d-flex">
-                <input type="text" class="form-control" placeholder="Tìm kiếm..." id="searchInput">
-                <select class="form-select ms-2" id="searchField" style="width: 150px;">
-                    <option value="5">Trạng thái</option>
-                    <option value="0">Mã Tài sản</option>
-                    <option value="1">Người được giao</option>
-                    <option value="2">Loại Nhiệm vụ</option>
-                    <option value="3">Mô tả</option>
-                    <option value="4">Ưu tiên</option>
-                    <option value="6">Ngày đến hạn</option>
-                </select>
-            </div>
-        </div>
-        <div>
-            <a class="btn btn-primary btn-sm mb-3" asp-page="/Tasks/TaskCreate">
+        <div class="mb-3 text-center">
+            <a class="btn btn-primary" asp-page="/Tasks/TaskCreate">
                 <i class="fas fa-plus"></i> Tạo Nhiệm vụ mới
             </a>
-            <button class="btn btn-success btn-sm mb-3" onclick="exportTasksReport()">
-                <i class="fas fa-file-export"></i> Xuất báo cáo
-            </button>
-            <div class="table-responsive">
-                <table class="table table-bordered table-sm table-striped">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>Mã nhiệm vụ</th>
-                            <th>Mã Tài sản</th>
-                            <th>Người được giao</th>
-                            <th>Loại Nhiệm vụ</th>
-                            <th>Mô tả</th>
-                            <th>Ưu tiên</th>
-                            <th>Trạng thái</th>
-                            <th>Ngày đến hạn</th>
-                            <th>Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody id="taskTableBody">
-                        @foreach (var task in Model.Tasks)
-                        {
-                            <tr data-task-id="@task.asset_id">
-                                <td>@task.task_id</td>
-                                <td>@task.asset_id</td>
-                                <td>@task.assigned_to</td>
-                                <td>@task.task_type</td>
-                                <td>@task.description</td>
-                                <td>@task.priority</td>
-                                <td>@task.status</td>
-                                <td>@(task.due_date.HasValue ? task.due_date.Value.ToString("dd/MM/yyyy") : "Chưa có dữ liệu")</td>
-                                <td>
-                                    <a class="btn btn-info btn-sm" href="/Tasks/Detail?id=@task.asset_id" data-toggle="tooltip" title="Xem chi tiết">
-                                        <i class="fas fa-eye"></i> Chi tiết
-                                    </a>
-                                    <button class="btn btn-danger btn-sm delete-btn" data-id="@task.asset_id" data-toggle="tooltip" title="Xóa nhiệm vụ">
-                                        <i class="fas fa-trash-alt"></i> Xóa
-                                    </button>
-                                    <a class="btn btn-secondary btn-sm" asp-page="/Tasks/TaskUpdate" asp-route-id="@task.task_id" data-toggle="tooltip" title="Cập nhật nhiệm vụ">
-                                        <i class="fas fa-edit"></i> Cập nhật
-                                    </a>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
         </div>
+
+        <div id="map"></div>
     </div>
 
     @Html.AntiForgeryToken()
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script>
-         // Xử lý xuất báo cáo
-        function exportTasksReport() {
-            window.location.href = "/Tasks/Index?handler=ExportExcel";
-        }
-        $(document).ready(function () {
-            $('[data-toggle="tooltip"]').tooltip();
+        // Initialize map
+        var map = L.map('map').setView([21.0285, 105.8542], 13);
 
-            // Xử lý sự kiện xóa
-            $('.delete-btn').on('click', function () {
-                const taskId = $(this).data('id');
-                if (confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) {
-                    $.ajax({
-                        url: '/Tasks/Index?handler=Delete',
-                        type: 'POST',
-                        data: { id: taskId },
-                        headers: {
-                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
-                        },
-                        success: function (response) {
-                            if (response.success) {
-                                $(`tr[data-task-id="${taskId}"]`).remove();
-                                alert('Xóa nhiệm vụ thành công!');
-                            } else {
-                                alert('Xóa nhiệm vụ thất bại: ' + (response.message || 'Không rõ nguyên nhân'));
+        // Add OpenStreetMap base layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add GeoServer WMS layer (placeholder)
+        var wmsLayer = L.tileLayer.wms('http://localhost:8080/geoserver/wms', {
+            layers: 'road_incidents',
+            format: 'image/png',
+            transparent: true,
+            attribution: 'GeoServer'
+        }).addTo(map);
+
+        // Fetch tasks from GeoServer WFS
+        var wfsUrl = 'http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:tasks_layer_2&outputFormat=application/json';
+
+        var taskLayer = L.geoJSON(null, {
+            pointToLayer: function(feature, latlng) {
+                return L.marker(latlng);
+            },
+            style: function(feature) {
+                if (feature.geometry.type === 'LineString') {
+                    return { color: 'blue', weight: 3 };
+                }
+                return {};
+            },
+            onEachFeature: function(feature, layer) {
+                if (feature.properties) {
+                    var props = feature.properties;
+                    var popupContent = `
+                        <b>Mã Nhiệm vụ:</b> ${props.task_id || 'Chưa có'}<br>
+                        <b>Loại Nhiệm vụ:</b> ${props.task_type || 'Chưa có'}<br>
+                        <b>Trạng thái:</b> ${props.status || 'Chưa có'}<br>
+                        <b>Địa chỉ:</b> ${props.address || 'Chưa có'}<br>
+                        <b>Ngày bắt đầu:</b> ${props.start_date ? new Date(props.start_date).toLocaleDateString('vi-VN') : 'Chưa có'}<br>
+                        <button id="update-btn-${props.task_id}" class="btn btn-primary btn-sm mt-2">Cập nhật</button>
+                        <button id="detail-btn-${props.task_id}" class="btn btn-primary btn-sm mt-2">Chi tiết</button>
+                        <button id="delete-btn-${props.task_id}" class="btn btn-danger btn-sm mt-2">Xóa</button>
+                    `;
+                    layer.bindPopup(popupContent, { autoClose: false }).on('popupopen', function() {
+                        // Update button
+                        document.getElementById('update-btn-' + props.task_id).addEventListener('click', function() {
+                            window.location.href = '/Tasks/TaskUpdate/' + props.task_id;
+                        });
+                        // Detail button
+                        document.getElementById('detail-btn-' + props.task_id).addEventListener('click', function() {
+                            window.location.href = '/Tasks/TaskDetail/' + props.task_id;
+                        });
+                        // Delete button
+                        document.getElementById('delete-btn-' + props.task_id).addEventListener('click', function() {
+                            if (confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) {
+                                $.ajax({
+                                    url: '/Tasks/Index?handler=Delete',
+                                    type: 'POST',
+                                    data: { id: props.task_id },
+                                    headers: {
+                                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                                    },
+                                    success: function(response) {
+                                        if (response.success) {
+                                            map.removeLayer(layer);
+                                            alert('Xóa nhiệm vụ thành công!');
+                                        } else {
+                                            alert('Xóa nhiệm vụ thất bại: ' + (response.message || 'Không rõ nguyên nhân'));
+                                        }
+                                    },
+                                    error: function(xhr) {
+                                        let errorMsg = xhr.responseJSON?.message || 'Đã xảy ra lỗi khi xóa nhiệm vụ.';
+                                        alert(errorMsg);
+                                    }
+                                });
                             }
-                        },
-                        error: function (xhr) {
-                            let errorMsg = xhr.responseJSON?.message || 'Đã xảy ra lỗi khi xóa nhiệm vụ.';
-                            alert(errorMsg);
-                        }
+                        });
                     });
                 }
-            });
-
-            // Xử lý tìm kiếm
-            $('#searchInput').on('keyup', function () {
-                let filter = this.value.toLowerCase();
-                let searchFieldIndex = parseInt($('#searchField').val());
-                let rows = $('#taskTableBody tr');
-
-                rows.each(function () {
-                    let cellValue = $(this).find(`td:eq(${searchFieldIndex})`).text().toLowerCase();
-                    $(this).toggle(cellValue.includes(filter));
-                });
-            });
-
-            $('#searchField').on('change', function () {
-                $('#searchInput').trigger('keyup');
-            });
-
-
+            }
         });
+
+        fetch(wfsUrl)
+            .then(response => response.json())
+            .then(data => {
+                taskLayer.addData(data);
+                taskLayer.addTo(map);
+
+                // Fit map to task bounds
+                if (taskLayer.getLayers().length > 0) {
+                    map.fitBounds(taskLayer.getBounds());
+                }
+            })
+            .catch(error => {
+                console.error('Error loading GeoServer data:', error);
+                alert('Không thể tải dữ liệu từ GeoServer.');
+            });
     </script>
 </body>
+</html>

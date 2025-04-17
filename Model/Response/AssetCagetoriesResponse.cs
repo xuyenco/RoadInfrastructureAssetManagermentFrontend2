@@ -3,12 +3,12 @@ namespace Road_Infrastructure_Asset_Management.Model.Request
 {
     public class AssetCagetoriesResponse
     {
-        public int cagetory_id { get; set; }
-        public string cagetory_name { get; set; }
+        public int category_id { get; set; }
+        public string category_name { get; set; }
         public string geometry_type { get; set; }
-        public Dictionary<string, object> attributes_schema { get; set; } // JSON object
-        public List<string> lifecycle_stages { get; set; }   // JSON array
+        public Dictionary<string, object> attribute_schema { get; set; } // JSON object
         public DateTime? created_at { get; set; }
-        public string marker_url { get; set; }
+        public string sample_image { get; set; }
+        public string icon_url { get; set; }
     }
 }

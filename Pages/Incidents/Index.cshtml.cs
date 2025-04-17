@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using OfficeOpenXml;
-using Road_Infrastructure_Asset_Management.Model.Request;
 using RoadInfrastructureAssetManagementFrontend.Interface;
-using RoadInfrastructureAssetManagementFrontend.Service;
 using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
@@ -12,9 +10,15 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
     {
         private readonly IIncidentsService _incidentsService;
 
-        //public IEnumerable<IncidentsResponse> Incidents { get; private set; } = new List<IncidentsResponse>();
-        //public int IncidentCount => Incidents.Count();
+        public IndexModel(IIncidentsService incidentsService)
+        {
+            _incidentsService = incidentsService;
+        }
 
+        public async Task OnGetAsync()
+        {
+            // No changes needed here as it's commented out
+        }
 
         public async Task<IActionResult> OnGetExportExcelAsync()
         {
@@ -23,19 +27,22 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
                 // Lấy dữ liệu incidents
                 var incidents = await _incidentsService.GetAllIncidentsAsync();
 
-                ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
                 using (var package = new ExcelPackage())
                 {
                     var worksheet = package.Workbook.Worksheets.Add("Incidents Report");
 
                     // Thêm header
-                    string[] headers = new[] {
+                    string[] headers = new[]
+                    {
                         "Mã Sự cố",
-                        "Loại Sự cố",
-                        "Mô tả",
-                        "Ưu tiên",
-                        "Trạng thái",
+                        "Địa chỉ",
+                        "Tuyến đường",
+                        "Mức độ nghiêm trọng",
+                        "Mức độ hư hỏng",
+                        "Trạng thái xử lý",
+                        "Mã nhiệm vụ",
                         "Latitude",
                         "Longitude",
                         "Ngày tạo"
@@ -54,59 +61,43 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
                     foreach (var incident in incidents)
                     {
                         worksheet.Cells[row, 1].Value = incident.incident_id;
-                        worksheet.Cells[row, 2].Value = incident.incident_type;
-                        worksheet.Cells[row, 3].Value = incident.description;
-                        worksheet.Cells[row, 4].Value = incident.priority;
-                        worksheet.Cells[row, 5].Value = incident.status;
+                        worksheet.Cells[row, 2].Value = incident.address;
+                        worksheet.Cells[row, 3].Value = incident.route;
+                        worksheet.Cells[row, 4].Value = incident.severity_level;
+                        worksheet.Cells[row, 5].Value = incident.damage_level;
+                        worksheet.Cells[row, 6].Value = incident.processing_status;
+                        worksheet.Cells[row, 7].Value = incident.task_id;
 
-                        // Tách tọa độ latitude và longitude từ location.coordinates
+                        // Tách tọa độ latitude và longitude từ geometry.coordinates
                         double? latitude = null;
                         double? longitude = null;
-                        if (incident.location?.coordinates != null && incident.location.type == "Point")
+                        if (incident.geometry?.coordinates != null && incident.geometry.type == "Point")
                         {
-                            // Ghi log chi tiết
-                            Console.WriteLine($"Incident {incident.incident_id} - Coordinates Type: {incident.location.coordinates.GetType().Name}");
-                            if (incident.location.coordinates is JsonElement jsonElement)
+                            if (incident.geometry.coordinates is JsonElement jsonElement)
                             {
-                                Console.WriteLine($"Incident {incident.incident_id} - Coordinates Raw Value: {jsonElement.ToString()}");
-                                Console.WriteLine($"Incident {incident.incident_id} - ValueKind: {jsonElement.ValueKind}");
-
                                 if (jsonElement.ValueKind == JsonValueKind.Array)
                                 {
                                     var coords = jsonElement.EnumerateArray().ToArray();
-                                    Console.WriteLine($"Incident {incident.incident_id} - Array Length: {coords.Length}");
                                     if (coords.Length >= 2)
                                     {
                                         longitude = coords[0].GetDouble();
                                         latitude = coords[1].GetDouble();
-                                        Console.WriteLine($"Incident {incident.incident_id} - Longitude: {longitude}, Latitude: {latitude}");
                                     }
-                                    else
-                                    {
-                                        Console.WriteLine($"Incident {incident.incident_id} - Coordinates array too short: {coords.Length} elements");
-                                    }
-                                }
-                                else
-                                {
-                                    Console.WriteLine($"Incident {incident.incident_id} - Coordinates is not an array: {jsonElement.ValueKind}");
                                 }
                             }
-                            else
+                            else if (incident.geometry.coordinates is double[] coords && coords.Length >= 2)
                             {
-                                Console.WriteLine($"Incident {incident.incident_id} - Coordinates is not JsonElement");
+                                longitude = coords[0];
+                                latitude = coords[1];
                             }
                         }
-                        else
-                        {
-                            Console.WriteLine($"Incident {incident.incident_id} - No coordinates or not a Point");
-                        }
 
-                        worksheet.Cells[row, 6].Value = latitude;
-                        worksheet.Cells[row, 6].Style.Numberformat.Format = "0.######";
-                        worksheet.Cells[row, 7].Value = longitude;
-                        worksheet.Cells[row, 7].Style.Numberformat.Format = "0.######";
+                        worksheet.Cells[row, 8].Value = latitude;
+                        worksheet.Cells[row, 8].Style.Numberformat.Format = "0.######";
+                        worksheet.Cells[row, 9].Value = longitude;
+                        worksheet.Cells[row, 9].Style.Numberformat.Format = "0.######";
+                        worksheet.Cells[row, 10].Value = incident.created_at?.ToString("dd/MM/yyyy HH:mm");
 
-                        //worksheet.Cells[row, 8].Value = incident.created_at?.ToString("dd/MM/yyyy HH:mm");
                         row++;
                     }
 
@@ -125,15 +116,6 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
                 Console.WriteLine($"Error exporting incidents: {ex.Message}");
                 return RedirectToPage();
             }
-        }
-        public IndexModel(IIncidentsService incidentsService)
-        {
-            _incidentsService = incidentsService;
-        }
-
-        public async Task OnGetAsync()
-        {
-            //Incidents = await _incidentsService.GetAllIncidentsAsync();
         }
     }
 }
