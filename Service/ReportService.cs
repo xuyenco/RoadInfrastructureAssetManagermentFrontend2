@@ -1,9 +1,9 @@
-﻿using Road_Infrastructure_Asset_Management.Model.Request;
-using RoadInfrastructureAssetManagementFrontend.Interface;
-using RoadInfrastructureAssetManagementFrontend.Model.Report;
+﻿using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Report;
 using System.Text.Json;
 
-namespace RoadInfrastructureAssetManagementFrontend.Service
+namespace RoadInfrastructureAssetManagementFrontend2.Service
 {
     public class ReportService :BaseService,IReportService
     {

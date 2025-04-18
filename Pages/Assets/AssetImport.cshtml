@@ -1,5 +1,5 @@
-﻿@* @page
-@model RoadInfrastructureAssetManagementFrontend.Pages.Assets.AssetImportModel
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend2.Pages.Assets.AssetImportModel
 @{
 }
 
@@ -31,13 +31,18 @@
             }
         </select>
     </div>
-    <button type="button" class="btn btn-secondary" onclick="downloadExcelTemplate()">Tải file mẫu</button>
+    <button type="button" class="btn btn-secondary mb-3" onclick="downloadExcelTemplate()">Tải file mẫu</button>
 
-    <!-- Upload file -->
-    <form method="post" enctype="multipart/form-data" asp-page-handler="ImportExcel">
+    <!-- Upload file Excel và ảnh -->
+    <form method="post" enctype="multipart/form-data" id="excelUploadForm" asp-page-handler="ImportExcel">
         <div class="mb-3">
             <label for="excelFile">Chọn file Excel để nhập:</label>
-            <input type="file" id="excelFile" name="excelFile" class="form-control" accept=".xlsx, .xls" />
+            <input type="file" id="excelFile" name="excelFile" class="form-control" accept=".xlsx, .xls" required />
+        </div>
+        <div class="mb-3">
+            <label for="imageFiles" class="form-label">Chọn các ảnh tài sản:</label>
+            <input type="file" id="imageFiles" name="imageFiles" class="form-control" accept=".png,.jpg,.jpeg" multiple />
+            <small class="form-text text-muted">Tải lên tất cả ảnh tương ứng với cột "image_path" trong Excel.</small>
         </div>
         <button type="submit" class="btn btn-primary">Upload</button>
     </form>
@@ -53,4 +58,4 @@
         var url = "/Assets/AssetImport?handler=DownloadExcelTemplate&categoryId=" + categoryId;
         window.location.href = url;
     }
-</script> *@
+</script>

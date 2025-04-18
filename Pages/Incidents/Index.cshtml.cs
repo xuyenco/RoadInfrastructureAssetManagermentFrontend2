@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using OfficeOpenXml;
-using RoadInfrastructureAssetManagementFrontend.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
 
-namespace RoadInfrastructureAssetManagementFrontend.Pages.Incidents
+namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 {
     public class IndexModel : PageModel
     {

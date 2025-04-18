@@ -1,4 +1,4 @@
-﻿namespace Road_Infrastructure_Asset_Management.Model.Geometry
+﻿namespace RoadInfrastructureAssetManagementFrontend2.Model.Geometry
 {
     public class GeoJsonGeometry
     {

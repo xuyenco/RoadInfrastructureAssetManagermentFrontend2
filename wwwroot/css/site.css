@@ -1,22 +1,52 @@
-html {
-  font-size: 14px;
+﻿/* Đặt lại margin và padding mặc định */
+html:not([style]), body:not([style]) {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+* {
+    box-sizing: inherit;
 }
 
 body {
-  margin-bottom: 60px;
+    margin-bottom: 0 !important;
+    background-color: #f4f6f9;
+    flex-grow: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Khôi phục căn giữa cho .container */
+.container {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+    width: 100% !important;
+}
+
+.container-fluid {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+    width: 100% !important;
+}
+
+main {
+    flex-grow: 1 !important;
+    position: relative !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}
+
+.footer {
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    line-height: 60px !important;
+    text-align: center !important;
+    z-index: 5 !important; /* Nằm trên #map */
 }

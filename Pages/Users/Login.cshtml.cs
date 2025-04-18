@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using RoadInfrastructureAssetManagementFrontend.Interface;
-using Road_Infrastructure_Asset_Management.Model.Request;
-using RoadInfrastructureAssetManagementFrontend.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 
-namespace RoadInfrastructureAssetManagementFrontend.Pages.Users
+namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 {
     public class LoginModel : PageModel
     {

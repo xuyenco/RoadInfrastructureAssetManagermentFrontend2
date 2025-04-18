@@ -1,5 +1,5 @@
-﻿using RoadInfrastructureAssetManagementFrontend.Interface;
-using RoadInfrastructureAssetManagementFrontend.Service;
+﻿using RoadInfrastructureAssetManagementFrontend2.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Service;
 using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +30,8 @@ builder.Services.AddScoped<IIncidentImageService, IncidentImageService>();
 builder.Services.AddScoped<ITasksService, TasksService>();
 builder.Services.AddScoped<IUsersService, UsersService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IMaintenanceHistoryService,MaintenanceHistoryService>();
+builder.Services.AddScoped<IMaintenanceDocumentService,MaintenanceDocumentService>();
 // Setting Session
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

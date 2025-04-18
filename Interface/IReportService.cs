@@ -1,6 +1,6 @@
-﻿using RoadInfrastructureAssetManagementFrontend.Model.Report;
+﻿using RoadInfrastructureAssetManagementFrontend2.Model.Report;
 
-namespace RoadInfrastructureAssetManagementFrontend.Interface
+namespace RoadInfrastructureAssetManagementFrontend2.Interface
 {
     public interface IReportService
     {

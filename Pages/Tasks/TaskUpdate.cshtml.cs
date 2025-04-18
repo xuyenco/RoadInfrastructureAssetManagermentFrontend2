@@ -1,16 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Road_Infrastructure_Asset_Management.Model.Geometry;
-using Road_Infrastructure_Asset_Management.Model.Request;
-using Road_Infrastructure_Asset_Management.Model.Response;
-using RoadInfrastructureAssetManagementFrontend.Interface;
-using RoadInfrastructureAssetManagementFrontend.Service;
+using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Service;
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
+namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 {
     public class TaskUpdateModel : PageModel
     {

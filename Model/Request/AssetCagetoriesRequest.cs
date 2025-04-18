@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Road_Infrastructure_Asset_Management.Model.Response
+namespace RoadInfrastructureAssetManagementFrontend2.Model.Response
 {
     public class AssetCagetoriesRequest
     {

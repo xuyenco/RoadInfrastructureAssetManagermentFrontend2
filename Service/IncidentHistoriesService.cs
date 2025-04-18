@@ -1,11 +1,11 @@
-﻿using Road_Infrastructure_Asset_Management.Model.Request;
-using Road_Infrastructure_Asset_Management.Model.Response;
-using RoadInfrastructureAssetManagementFrontend.Interface;
+﻿using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace RoadInfrastructureAssetManagementFrontend.Service
+namespace RoadInfrastructureAssetManagementFrontend2.Service
 {
     public class IncidentHistoriesService : BaseService,IIncidentHistoriesService
     {

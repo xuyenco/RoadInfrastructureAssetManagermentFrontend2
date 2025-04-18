@@ -1,13 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc;
+using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using OfficeOpenXml;
-using Road_Infrastructure_Asset_Management.Model.Geometry;
-using Road_Infrastructure_Asset_Management.Model.Response;
-using RoadInfrastructureAssetManagementFrontend.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using System.Net.NetworkInformation;
+using System.Reflection;
 using System.Text.Json;
 
-namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
+
+
+namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 {
     public class TaskCreateModel : PageModel
     {
@@ -31,24 +36,25 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
 
         public IActionResult OnGetDownloadExcelTemplate()
         {
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
             using (var package = new ExcelPackage())
             {
                 var worksheet = package.Workbook.Worksheets.Add("Template for Task Input");
                 var headers = new List<string>
                 {
-                "Task Type",
-                "Work Volume",
-                "Status ('pending', 'in-progress', 'completed', 'cancelled')",
-                "Address",
-                "Geometry Type ('Point', 'LineString')",
-                "Geometry Coordinates (JSON format)",
-                "Start Date (yyyy-MM-dd)",
-                "End Date (yyyy-MM-dd)",
-                "Execution Unit ID",
-                "Supervisor ID",
-                "Method Summary",
-                "Main Result"
+                    "Task Type",
+                    "Work Volume",
+                    "Status ('pending', 'in-progress', 'completed', 'cancelled')",
+                    "Address",
+                    "Geometry Type ('Point', 'LineString')",
+                    "Geometry Coordinates (JSON format)",
+                    "Geometry System ('WGS84', 'VN2000')",
+                    "Start Date (yyyy-MM-dd)",
+                    "End Date (yyyy-MM-dd)",
+                    "Execution Unit ID",
+                    "Supervisor ID",
+                    "Method Summary",
+                    "Main Result"
                 };
 
                 for (int i = 0; i < headers.Count; i++)
@@ -78,7 +84,7 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
                 {
                     await excelFile.CopyToAsync(stream);
                     stream.Position = 0;
-                    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                    ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
                     using (var package = new ExcelPackage(stream))
                     {
                         var worksheet = package.Workbook.Worksheets[0];
@@ -99,8 +105,10 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
 
                         for (int row = 2; row <= rowCount; row++)
                         {
-                            var task = new TasksRequest();
+                            var task = new TasksRequest { geometry = new GeoJsonGeometry() };
                             var rowData = new Dictionary<string, string>();
+                            string geometrySystem = null;
+
                             for (int col = 1; col <= colCount; col++)
                             {
                                 var header = headers[col - 1];
@@ -115,22 +123,25 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
                                     case "work volume":
                                         task.work_volume = value;
                                         break;
-                                    case "status":
+                                    case "status ('pending', 'in-progress', 'completed', 'cancelled')":
                                         task.status = value;
                                         break;
                                     case "address":
                                         task.address = value;
                                         break;
-                                    case "geometry type":
+                                    case "geometry type ('point', 'linestring')":
                                         task.geometry.type = value;
                                         break;
-                                    case "geometry coordinates":
+                                    case "geometry coordinates (json format)":
                                         task.geometry.coordinates = value;
                                         break;
-                                    case "start date":
+                                    case "geometry system ('wgs84', 'vn2000')":
+                                        geometrySystem = value;
+                                        break;
+                                    case "start date (yyyy-mm-dd)":
                                         task.start_date = DateTime.TryParse(value, out var startDate) ? startDate : null;
                                         break;
-                                    case "end date":
+                                    case "end date (yyyy-mm-dd)":
                                         task.end_date = DateTime.TryParse(value, out var endDate) ? endDate : null;
                                         break;
                                     case "execution unit id":
@@ -147,6 +158,42 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
                                         break;
                                 }
                             }
+
+                            // Xử lý geometry và chuyển đổi tọa độ
+                            if (!string.IsNullOrEmpty(task.geometry.type) && !string.IsNullOrEmpty(task.geometry.coordinates as string))
+                            {
+                                try
+                                {
+                                    task.geometry.coordinates = JsonSerializer.Deserialize<object>(task.geometry.coordinates as string);
+
+                                    // Chuyển đổi tọa độ nếu geometry_system là WGS84
+                                    if (geometrySystem?.ToUpper() == "WGS84")
+                                    {
+                                        task.geometry = CoordinateConverter.ConvertGeometryToVN2000(task.geometry, 48);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    errorRows.Add(new ExcelErrorRow
+                                    {
+                                        RowNumber = row,
+                                        OriginalData = JsonSerializer.Serialize(rowData),
+                                        ErrorMessage = $"Lỗi khi xử lý geometry: {ex.Message}"
+                                    });
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                errorRows.Add(new ExcelErrorRow
+                                {
+                                    RowNumber = row,
+                                    OriginalData = JsonSerializer.Serialize(rowData),
+                                    ErrorMessage = "Thiếu geometry type hoặc geometry coordinates."
+                                });
+                                continue;
+                            }
+
                             tasks.Add(task);
                         }
 
@@ -158,9 +205,9 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
 
                             // Validate required fields
                             if (string.IsNullOrWhiteSpace(task.task_type) ||
-                            string.IsNullOrWhiteSpace(task.status) ||
-                            string.IsNullOrWhiteSpace(task.geometry.type) ||
-                            task.geometry.coordinates == null)
+                                string.IsNullOrWhiteSpace(task.status) ||
+                                string.IsNullOrWhiteSpace(task.geometry.type) ||
+                                task.geometry.coordinates == null)
                             {
                                 errorRows.Add(new ExcelErrorRow
                                 {
@@ -191,25 +238,6 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
                                     RowNumber = rowNumber,
                                     OriginalData = JsonSerializer.Serialize(task),
                                     ErrorMessage = "Loại hình học không hợp lệ: phải là 'Point' hoặc 'LineString'."
-                                });
-                                continue;
-                            }
-
-                            // Validate JSON coordinates
-                            try
-                            {
-                                if (task.geometry.coordinates is string coordStr && !string.IsNullOrWhiteSpace(coordStr))
-                                {
-                                    task.geometry.coordinates = JsonSerializer.Deserialize<object>(coordStr);
-                                }
-                            }
-                            catch
-                            {
-                                errorRows.Add(new ExcelErrorRow
-                                {
-                                    RowNumber = rowNumber,
-                                    OriginalData = JsonSerializer.Serialize(task),
-                                    ErrorMessage = "Tọa độ không phải là JSON hợp lệ."
                                 });
                                 continue;
                             }
@@ -307,7 +335,7 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
 
                     if (GeometrySystem == "wgs84")
                     {
-                        Task.geometry = CoordinateConverter.ConvertGeometryToVN2000(Task.geometry);
+                        Task.geometry = CoordinateConverter.ConvertGeometryToVN2000(Task.geometry, 48);
                         Console.WriteLine($"Converted to VN2000: {JsonSerializer.Serialize(Task.geometry.coordinates)}");
                     }
                 }
@@ -321,11 +349,10 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
                 ModelState.AddModelError("Task.geometry.coordinates", "Tọa độ là bắt buộc.");
             }
 
-
-            //if (!ModelState.IsValid)
-            //{
-            //    return Page();
-            //}
+            if (!ModelState.IsValid)
+            {
+                return Page();
+            }
 
             try
             {
@@ -361,12 +388,5 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.Tasks
                 return Page();
             }
         }
-    }
-
-    public class ExcelErrorRow
-    {
-        public int RowNumber { get; set; }
-        public string OriginalData { get; set; } = string.Empty;
-        public string ErrorMessage { get; set; } = string.Empty;
     }
 }

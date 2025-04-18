@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
-using Road_Infrastructure_Asset_Management.Model.Geometry;
+using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
 
-namespace Road_Infrastructure_Asset_Management.Model.Request
+namespace RoadInfrastructureAssetManagementFrontend2.Model.Request
 {
     public class AssetsResponse
     {

@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc.RazorPages;
-using RoadInfrastructureAssetManagementFrontend.Interface;
-using RoadInfrastructureAssetManagementFrontend.Model.Report;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Report;
 
-namespace RoadInfrastructureAssetManagementFrontend.Pages.Report
+namespace RoadInfrastructureAssetManagementFrontend2.Pages.Report
 {
     public class IndexModel : PageModel
     {

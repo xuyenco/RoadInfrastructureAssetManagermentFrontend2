@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using RoadInfrastructureAssetManagementFrontend.Interface;
-using RoadInfrastructureAssetManagementFrontend.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 
-namespace RoadInfrastructureAssetManagementFrontend.Pages.Users
+namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 {
     [AuthorizeRole("admin")]
     public class UserCreateModel : PageModel

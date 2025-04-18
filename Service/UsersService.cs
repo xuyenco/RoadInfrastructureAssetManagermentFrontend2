@@ -1,13 +1,13 @@
-﻿using Road_Infrastructure_Asset_Management.Model.Request;
-using Road_Infrastructure_Asset_Management.Model.Response;
-using RoadInfrastructureAssetManagementFrontend.Interface;
-using RoadInfrastructureAssetManagementFrontend.Model.Request;
-using RoadInfrastructureAssetManagementFrontend.Model.Response;
+﻿using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace RoadInfrastructureAssetManagementFrontend.Service
+namespace RoadInfrastructureAssetManagementFrontend2.Service
 {
     public class UsersService : BaseService, IUsersService
     {

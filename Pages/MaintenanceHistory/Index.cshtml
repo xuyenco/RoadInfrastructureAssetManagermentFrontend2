@@ -1,0 +1,193 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory.IndexModel
+@{
+}
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            margin-top: 40px;
+            max-width: 1200px;
+        }
+
+        .table-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .table {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table th, .table td {
+            vertical-align: middle;
+            padding: 12px;
+        }
+
+        .table thead {
+            background-color: #3498db;
+            color: #ffffff;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            border-color: #3498db;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+            .btn-primary:hover {
+                background-color: #2980b9;
+                transform: translateY(-2px);
+            }
+
+        .btn-warning, .btn-danger {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+            .btn-warning:hover, .btn-danger:hover {
+                transform: translateY(-2px);
+            }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .alert {
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .document-links a {
+            color: #3498db;
+            text-decoration: none;
+            margin-right: 10px;
+        }
+
+            .document-links a:hover {
+                text-decoration: underline;
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Danh sách Lịch sử Bảo trì</h1>
+
+        <div class="table-container">
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger" role="alert">
+                    @TempData["Error"]
+                </div>
+            }
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success" role="alert">
+                    @TempData["Success"]
+                </div>
+            }
+
+            <div class="mb-3">
+                <a asp-page="MaintenanceHistoryCreate" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Tạo Lịch sử Bảo trì Mới
+                </a>
+            </div>
+
+            @if (Model.MaintenanceHistories == null || !Model.MaintenanceHistories.Any())
+            {
+                <p class="text-muted">Không có Lịch sử Bảo trì nào để hiển thị.</p>
+            }
+            else
+            {
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Asset ID</th>
+                            <th>Task ID</th>
+                            <th>Tài liệu</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var history in Model.MaintenanceHistories)
+                        {
+                            <tr>
+                                <td>@history.maintenance_id</td>
+                                <td>@history.asset_id</td>
+                                <td>@history.task_id</td>
+                                <td>
+                                    @{
+                                        var documents = Model.MaintenanceDocuments
+                                            .Where(d => d.maintenance_id == history.maintenance_id)
+                                            .ToList();
+                                    }
+                                    @if (documents.Any())
+                                    {
+                                        <div class="document-links">
+                                            @foreach (var doc in documents)
+                                            {
+                                                <a href="@doc.file_url" target="_blank">@doc.file_url</a>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Không có tài liệu</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-page="MaintenanceHistoryUpdate" asp-route-id="@history.maintenance_id" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-edit"></i> Sửa
+                                    </a>
+                                    <form asp-page-handler="Delete" asp-route-id="@history.maintenance_id" method="post" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa Lịch sử Bảo trì này?');">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-trash"></i> Xóa
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>

@@ -1,29 +1,51 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Road_Infrastructure_Asset_Management.Model.Response;
-using RoadInfrastructureAssetManagementFrontend.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
 
-namespace RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories
+namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
 {
-    public class AssetCagetoryCreateModel : PageModel
+    public class AssetCagetoryUpdateModel : PageModel
     {
         private readonly IAssetCagetoriesService _assetCagetoriesService;
 
-        public AssetCagetoryCreateModel(IAssetCagetoriesService assetCagetoriesService)
+        public AssetCagetoryUpdateModel(IAssetCagetoriesService assetCagetoriesService)
         {
             _assetCagetoriesService = assetCagetoriesService;
         }
 
         [BindProperty]
+        public AssetCagetoriesResponse Category { get; set; }
+
+        [BindProperty]
         public AssetCagetoriesRequest AssetCategory { get; set; } = new();
 
-        public void OnGet()
+        public async Task<IActionResult> OnGetAsync(int id)
         {
+            Category = await _assetCagetoriesService.GetAssetCagetoriesByIdAsync(id);
+            if (Category == null)
+            {
+                return NotFound();
+            }
+
+            // Chuẩn bị dữ liệu cho form
+            AssetCategory.category_name = Category.category_name;
+            AssetCategory.geometry_type = Category.geometry_type;
+            AssetCategory.attribute_schema = JsonSerializer.Serialize(Category.attribute_schema);
+
+            return Page();
         }
 
-        public async Task<IActionResult> OnPostAsync()
+        public async Task<IActionResult> OnPostAsync(int id)
         {
+            // Xử lý dữ liệu cơ bản
+            AssetCategory.category_name = Request.Form["category_name"];
+            AssetCategory.geometry_type = Request.Form["geometry_type"];
+            AssetCategory.sample_image = Request.Form.Files["sample_image"];
+            AssetCategory.icon = Request.Form.Files["icon"];
+
             // Xử lý Attributes Schema
             var attributeNames = Request.Form.Keys.Where(k => k.StartsWith("attributes["));
             var tempAttributes = new List<AttributeDefinition>();
@@ -71,30 +93,26 @@ namespace RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories
                 properties = properties
             });
 
-            // Lấy file từ form
-            AssetCategory.sample_image = Request.Form.Files["sample_image"];
-            AssetCategory.icon = Request.Form.Files["icon"];
-
             // Kiểm tra ModelState
-            //if (!ModelState.IsValid)
-            //{
-            //    var errors = ModelState.ToDictionary(
-            //        kvp => kvp.Key,
-            //        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
-            //    );
-            //    Console.WriteLine($"Validation errors: {JsonSerializer.Serialize(errors)}");
-            //    return Page();
-            //}
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+                Console.WriteLine($"Validation errors: {JsonSerializer.Serialize(errors)}");
+                return Page();
+            }
 
-            // Gửi request lên service
+            // Gửi request cập nhật lên service
             try
             {
-                var result = await _assetCagetoriesService.CreateAssetCagetoriesAsync(AssetCategory);
+                var result = await _assetCagetoriesService.UpdateAssetCagetoriesAsync(id, AssetCategory);
                 if (result != null)
                 {
                     return RedirectToPage("/AssetCagetories/Index");
                 }
-                ModelState.AddModelError("", "Không thể tạo danh mục. Vui lòng thử lại.");
+                ModelState.AddModelError("", "Không thể cập nhật danh mục. Vui lòng thử lại.");
                 return Page();
             }
             catch (Exception ex)

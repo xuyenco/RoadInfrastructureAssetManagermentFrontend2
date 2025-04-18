@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Road_Infrastructure_Asset_Management.Model.Request;
-using RoadInfrastructureAssetManagementFrontend.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
 
-namespace RoadInfrastructureAssetManagementFrontend.Pages.AssetCagetories
+namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
 {
     public class IndexModel : PageModel
     {

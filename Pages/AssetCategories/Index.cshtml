@@ -1,0 +1,138 @@
+﻿@page
+@model RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories.IndexModel
+@{
+    ViewData["Title"] = "Danh Sách Danh Mục Tài Sản";
+    Layout = "_Layout";
+}
+
+<style>
+    .container-fluid {
+        display: flex;
+    }
+
+    .sidebar {
+        width: 280px;
+        background-color: #ffffff;
+        border-right: 1px solid #e0e4e8;
+        padding: 20px;
+        overflow-y: auto;
+        height: 100%;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .sidebar h3 {
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 1.5rem;
+        margin: 0;
+    }
+
+    .list-group-item {
+        border: none;
+        border-radius: 6px;
+        padding: 12px 15px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .list-group-item:hover {
+        background-color: #eef2f7;
+    }
+
+    .list-group-item.active {
+        background-color: #007bff;
+        color: #ffffff;
+    }
+
+    .content {
+        flex-grow: 1;
+        padding: 30px;
+        overflow-y: auto;
+    }
+
+    .content-container {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+        min-height: 80vh;
+    }
+
+    h1 {
+        color: #2c3e50;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+
+    .category-image {
+        max-width: 200px;
+        height: auto;
+        margin-top: 10px;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3>Danh mục tài sản</h3>
+            <a href="/AssetCategories/AssetCategoryCreate" class="btn btn-create btn-sm text-white" style="background-color: #28a745; border: none; padding: 8px 15px; font-size: 0.9rem;">
+                <i class="fas fa-plus"></i> Tạo mới
+            </a>
+        </div>
+        <div class="list-group">
+            @if (Model.Categories == null || !Model.Categories.Any())
+            {
+                <p class="text-muted">Không có danh mục nào.</p>
+            }
+            else
+            {
+                @foreach (var category in Model.Categories)
+                {
+                    <div class="list-group-item" data-id="@category.category_id" onclick="showDetail(@category.category_id)">
+                        @category.category_name
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <div class="content-container" id="detail-content">
+            <h1>Chi tiết danh mục tài sản</h1>
+            <p class="text-muted">Chọn một danh mục từ danh sách bên trái để xem chi tiết.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function showDetail(id) {
+            $('.list-group-item').removeClass('active');
+            $(`.list-group-item[data-id="${id}"]`).addClass('active');
+
+            $.ajax({
+                url: '/AssetCategories/Index?handler=GetDetail&id=' + id,
+                method: 'GET',
+                success: function (data) {
+                    $('#detail-content').html(data);
+                },
+                error: function (xhr, status, error) {
+                    console.error('AJAX Error:', status, error);
+                    $('#detail-content').html('<p class="text-danger">Đã xảy ra lỗi khi tải chi tiết: ' + error + '</p>');
+                }
+            });
+        }
+    </script>
+}

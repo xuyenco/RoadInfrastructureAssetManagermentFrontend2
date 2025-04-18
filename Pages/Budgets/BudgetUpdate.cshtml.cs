@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Road_Infrastructure_Asset_Management.Model.Request;
-using Road_Infrastructure_Asset_Management.Model.Response;
-using RoadInfrastructureAssetManagementFrontend.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System;
 using System.Threading.Tasks;
 
-namespace RoadInfrastructureAssetManagementFrontend.Pages.Budgets
+namespace RoadInfrastructureAssetManagementFrontend2.Pages.Budgets
 {
     public class BudgetUpdateModel : PageModel
     {

@@ -1,10 +1,10 @@
 ﻿@page
-@model RoadInfrastructureAssetManagementFrontend.Pages.Incidents.IncidentCreateModel
+@model RoadInfrastructureAssetManagementFrontend2.Pages.Incidents.IncidentCreateModel
 @{
     Layout = "_Layout";
 }
-
 <!DOCTYPE html>
+
 <html>
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -123,6 +123,16 @@
             {
                 <div class="alert alert-success" role="alert">
                     @TempData["Success"]
+                    @if (TempData["SuccessCount"] != null)
+                    {
+                        <p>Đã nhập thành công @TempData["SuccessCount"] incident.</p>
+                    }
+                    @if (TempData["ErrorFile"] != null)
+                    {
+                        <br />
+                        <a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,@TempData["ErrorFile"]"
+                           download="Incident_Error_Rows.xlsx" class="btn btn-danger btn-sm">Tải file lỗi</a>
+                    }
                 </div>
             }
             @if (!ViewData.ModelState.IsValid)
@@ -135,7 +145,8 @@
                 </div>
             }
 
-            <form method="post" enctype="multipart/form-data">
+            <!-- Form nhập thủ công -->
+            <form method="post" enctype="multipart/form-data" asp-page-handler="Create">
                 <div class="form-group">
                     <label for="address">Địa chỉ</label>
                     <input asp-for="Incident.address" class="form-control" />
@@ -243,237 +254,269 @@
                     </a>
                 </div>
             </form>
+
+            <!-- Form nhập từ Excel -->
+            <h3>Nhập từ Excel</h3>
+            <div class="mb-3">
+                <label>Click để tải file mẫu</label>
+            </div>
+            <button type="button" class="btn btn-secondary mb-3" onclick="downloadExcelTemplate()">Tải file mẫu</button>
+
+            <form method="post" enctype="multipart/form-data" asp-page-handler="ImportExcel">
+                <div class="mb-3">
+                    <label for="excelFile">Chọn file Excel để nhập:</label>
+                    <input type="file" id="excelFile" name="excelFile" class="form-control" accept=".xlsx, .xls" required />
+                </div>
+                <div class="mb-3">
+                    <label for="imageFiles" class="form-label">Chọn các ảnh Incident:</label>
+                    <input type="file" id="imageFiles" name="imageFiles" class="form-control" accept=".png,.jpg,.jpeg" multiple />
+                    <small class="form-text text-muted">Tải lên tất cả ảnh tương ứng với cột "image_paths" trong Excel (các tên file cách nhau bằng dấu phẩy).</small>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload Excel
+                    </button>
+                    <a href="/Incidents/Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+            </form>
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
-    <script>
-        var map;
-        var geometryType = document.getElementById('geometryType');
-        var coordinatesJsonInput = document.getElementById('coordinatesJson');
-        var instructionText = document.getElementById('instructionText');
-        var manualLat = document.getElementById('manualLat');
-        var manualLng = document.getElementById('manualLng');
-        var manualCoords = document.getElementById('manualCoords');
-        var pointCoordsGroup = document.getElementById('pointCoordsGroup');
-        var lineCoordsGroup = document.getElementById('lineCoordsGroup');
-        var marker;
-        var polyline;
-        var points = [];
-        var currentGeoType = '';
-        var allAssets = [];
-        var assetLayer;
-        var radius = 100;
-        var assetCategories = @Html.Raw(Json.Serialize(Model.AssetCategories));
-
-        function loadAllAssets() {
-            return fetch('http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:valid_road_assets_layer&outputFormat=application/json')
-                .then(response => {
-                    if (!response.ok) throw new Error('Failed to fetch assets');
-                    return response.json();
-                })
-                .then(data => {
-                    allAssets = data.features || [];
-                    console.log("All assets loaded:", allAssets);
-                    if (allAssets.length === 0) console.warn("No assets found from GeoServer");
-                })
-                .catch(error => console.error("Error loading assets:", error));
-        }
-
-        function findNearbyAssets(latlng) {
-            assetLayer.clearLayers();
-            var nearbyAssets = [];
-
-            allAssets.forEach(asset => {
-                var assetLatLng = getAssetLatLng(asset);
-                if (assetLatLng) {
-                    var distance = map.distance(latlng, assetLatLng);
-                    if (distance <= radius) {
-                        nearbyAssets.push(asset);
-                        var category = assetCategories.find(cat => cat.cagetory_id === asset.properties.category_id);
-                        var iconUrl = category ? category.marker_url : "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
-                        var marker = L.marker(assetLatLng, {
-                            icon: L.icon({
-                                iconUrl: iconUrl,
-                                iconSize: [25, 41],
-                                iconAnchor: [12, 41]
-                            })
-                        }).addTo(assetLayer);
-                        marker.bindPopup(`
-                                    <b>Asset ID:</b> ${asset.properties.asset_id}<br>
-                                    <b>Loại:</b> ${category ? category.cagetory_name : asset.properties.category_id}<br>
-                                    <button onclick="selectAsset(${asset.properties.asset_id})">Chọn</button>
-                                `);
-                    }
-                }
-            });
-
-            console.log("Nearby assets:", nearbyAssets);
-            return nearbyAssets;
-        }
-
-        function getAssetLatLng(asset) {
-            if (asset.geometry.type === "Point") {
-                return L.latLng(asset.geometry.coordinates[1], asset.geometry.coordinates[0]);
-            } else if (asset.geometry.type === "LineString") {
-                var coords = asset.geometry.coordinates;
-                var midIndex = Math.floor(coords.length / 2);
-                return L.latLng(coords[midIndex][1], coords[midIndex][0]);
+    @section Scripts {
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            function downloadExcelTemplate() {
+                window.location.href = "/Incidents/IncidentCreate?handler=DownloadExcelTemplate";
             }
-            return null;
-        }
 
-        function selectAsset(assetId) {
-            document.getElementById('Incident_asset_id').value = assetId;
-            console.log("Selected asset ID:", assetId);
-            assetLayer.eachLayer(layer => {
-                if (layer.getPopup().getContent().includes(`Asset ID: ${assetId}`)) {
-                    layer.openPopup();
-                } else {
-                    layer.closePopup();
-                }
-            });
-        }
+            // JavaScript code for map and coordinates (unchanged)
+            var map;
+            var geometryType = document.getElementById('geometryType');
+            var coordinatesJsonInput = document.getElementById('coordinatesJson');
+            var instructionText = document.getElementById('instructionText');
+            var manualLat = document.getElementById('manualLat');
+            var manualLng = document.getElementById('manualLng');
+            var manualCoords = document.getElementById('manualCoords');
+            var pointCoordsGroup = document.getElementById('pointCoordsGroup');
+            var lineCoordsGroup = document.getElementById('lineCoordsGroup');
+            var marker;
+            var polyline;
+            var points = [];
+            var currentGeoType = '';
+            var allAssets = [];
+            var assetLayer;
+            var radius = 100;
+            var assetCategories = @Html.Raw(Json.Serialize(Model.AssetCategories));
 
-        function onMapClickPoint(e) {
-            var lat = e.latlng.lat;
-            var lng = e.latlng.lng;
-            if (marker) {
-                marker.setLatLng(e.latlng);
-            } else {
-                marker = L.marker(e.latlng).addTo(map);
+            function loadAllAssets() {
+                return fetch('http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:valid_road_assets_layer&outputFormat=application/json')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Failed to fetch assets');
+                        return response.json();
+                    })
+                    .then(data => {
+                        allAssets = data.features || [];
+                        console.log("All assets loaded:", allAssets);
+                        if (allAssets.length === 0) console.warn("No assets found from GeoServer");
+                    })
+                    .catch(error => console.error("Error loading assets:", error));
             }
-            var coordinates = [lng, lat];
-            coordinatesJsonInput.value = JSON.stringify(coordinates);
-            document.getElementById('GeometrySystem').value = 'wgs84';
-            manualLat.value = lat;
-            manualLng.value = lng;
 
-            findNearbyAssets(e.latlng);
-        }
+            function findNearbyAssets(latlng) {
+                assetLayer.clearLayers();
+                var nearbyAssets = [];
 
-        function onMapClickLine(e) {
-            points.push([e.latlng.lat, e.latlng.lng]);
-            if (polyline) {
-                polyline.setLatLngs(points);
-            } else {
-                polyline = L.polyline(points, { color: 'blue' }).addTo(map);
-            }
-            var coordinates = points.map(p => [p[1], p[0]]);
-            coordinatesJsonInput.value = JSON.stringify(coordinates);
-            document.getElementById('GeometrySystem').value = 'wgs84';
-            manualCoords.value = JSON.stringify(coordinates);
-
-            var midIndex = Math.floor(points.length / 2);
-            var midLatLng = points[midIndex];
-            findNearbyAssets(L.latLng(midLatLng[0], midLatLng[1]));
-        }
-
-        function finishLineString() {
-            if (points.length < 2) {
-                alert('Đường cần ít nhất 2 điểm.');
-                return;
-            }
-            var coordinates = points.map(p => [p[1], p[0]]);
-            coordinatesJsonInput.value = JSON.stringify(coordinates);
-            manualCoords.value = JSON.stringify(coordinates);
-            map.off('click').off('dblclick');
-
-            var midIndex = Math.floor(points.length / 2);
-            var midLatLng = points[midIndex];
-            findNearbyAssets(L.latLng(midLatLng[0], midLatLng[1]));
-        }
-
-        manualLat.oninput = manualLng.oninput = function () {
-            if (currentGeoType === 'Point' && manualLat.value && manualLng.value) {
-                var lat = parseFloat(manualLat.value);
-                var lng = parseFloat(manualLng.value);
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    var coordinates = [lng, lat];
-                    coordinatesJsonInput.value = JSON.stringify(coordinates);
-                    if (marker) {
-                        marker.setLatLng([lat, lng]);
-                    } else {
-                        marker = L.marker([lat, lng]).addTo(map);
-                    }
-                    map.setView([lat, lng], 13);
-                    findNearbyAssets(L.latLng(lat, lng));
-                }
-            }
-        };
-
-        manualCoords.oninput = function () {
-            if (currentGeoType === 'LineString' && manualCoords.value) {
-                try {
-                    var coordinates = JSON.parse(manualCoords.value);
-                    coordinatesJsonInput.value = JSON.stringify(coordinates);
-                    if (polyline) {
-                        map.removeLayer(polyline);
-                    }
-                    points = coordinates.map(c => [c[1], c[0]]);
-                    polyline = L.polyline(points, { color: 'blue' }).addTo(map);
-                    map.fitBounds(polyline.getBounds());
-
-                    var midIndex = Math.floor(points.length / 2);
-                    var midLatLng = points[midIndex];
-                    findNearbyAssets(L.latLng(midLatLng[0], midLatLng[1]));
-                } catch (e) {
-                    console.error('Invalid LineString JSON:', e);
-                }
-            }
-        };
-
-        document.querySelector('form').addEventListener('submit', function (e) {
-            if (!coordinatesJsonInput.value) {
-                alert('Vui lòng chọn tọa độ trên bản đồ hoặc nhập thủ công!');
-                e.preventDefault();
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', function () {
-            map = L.map('map').setView([21.0285, 105.8542], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-            assetLayer = L.layerGroup().addTo(map);
-
-            loadAllAssets().then(() => {
-                geometryType.addEventListener('change', function () {
-                    var type = this.value;
-                    currentGeoType = type;
-                    points = [];
-                    if (marker) map.removeLayer(marker);
-                    if (polyline) map.removeLayer(polyline);
-                    manualLat.value = '';
-                    manualLng.value = '';
-                    manualCoords.value = '';
-                    coordinatesJsonInput.value = '';
-                    assetLayer.clearLayers();
-
-                    if (type === 'Point') {
-                        instructionText.textContent = 'Nhấp vào bản đồ để chọn điểm hoặc nhập tọa độ thủ công.';
-                        pointCoordsGroup.style.display = 'block';
-                        lineCoordsGroup.style.display = 'none';
-                        map.on('click', onMapClickPoint);
-                        map.off('dblclick');
-                    } else if (type === 'LineString') {
-                        instructionText.textContent = 'Nhấp để thêm điểm cho đường (nhấp đúp để hoàn thành) hoặc nhập tọa độ thủ công.';
-                        pointCoordsGroup.style.display = 'none';
-                        lineCoordsGroup.style.display = 'block';
-                        map.on('click', onMapClickLine);
-                        map.on('dblclick', finishLineString);
-                    } else {
-                        instructionText.textContent = 'Chọn loại hình học để bắt đầu.';
-                        pointCoordsGroup.style.display = 'none';
-                        lineCoordsGroup.style.display = 'none';
-                        map.off('click').off('dblclick');
+                allAssets.forEach(asset => {
+                    var assetLatLng = getAssetLatLng(asset);
+                    if (assetLatLng) {
+                        var distance = map.distance(latlng, assetLatLng);
+                        if (distance <= radius) {
+                            nearbyAssets.push(asset);
+                            var category = assetCategories.find(cat => cat.cagetory_id === asset.properties.category_id);
+                            var iconUrl = category ? category.marker_url : "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
+                            var marker = L.marker(assetLatLng, {
+                                icon: L.icon({
+                                    iconUrl: iconUrl,
+                                    iconSize: [25, 41],
+                                    iconAnchor: [12, 41]
+                                })
+                            }).addTo(assetLayer);
+                            marker.bindPopup(`
+                                                        <b>Asset ID:</b> ${asset.properties.asset_id}<br>
+                                                        <b>Loại:</b> ${category ? category.cagetory_name : asset.properties.category_id}<br>
+                                                        <button onclick="selectAsset(${asset.properties.asset_id})">Chọn</button>
+                                                    `);
+                        }
                     }
                 });
+
+                console.log("Nearby assets:", nearbyAssets);
+                return nearbyAssets;
+            }
+
+            function getAssetLatLng(asset) {
+                if (asset.geometry.type === "Point") {
+                    return L.latLng(asset.geometry.coordinates[1], asset.geometry.coordinates[0]);
+                } else if (asset.geometry.type === "LineString") {
+                    var coords = asset.geometry.coordinates;
+                    var midIndex = Math.floor(coords.length / 2);
+                    return L.latLng(coords[midIndex][1], coords[midIndex][0]);
+                }
+                return null;
+            }
+
+            function selectAsset(assetId) {
+                document.getElementById('Incident_asset_id').value = assetId;
+                console.log("Selected asset ID:", assetId);
+                assetLayer.eachLayer(layer => {
+                    if (layer.getPopup().getContent().includes(`Asset ID: ${assetId}`)) {
+                        layer.openPopup();
+                    } else {
+                        layer.closePopup();
+                    }
+                });
+            }
+
+            function onMapClickPoint(e) {
+                var lat = e.latlng.lat;
+                var lng = e.latlng.lng;
+                if (marker) {
+                    marker.setLatLng(e.latlng);
+                } else {
+                    marker = L.marker(e.latlng).addTo(map);
+                }
+                var coordinates = [lng, lat];
+                coordinatesJsonInput.value = JSON.stringify(coordinates);
+                document.getElementById('GeometrySystem').value = 'wgs84';
+                manualLat.value = lat;
+                manualLng.value = lng;
+
+                findNearbyAssets(e.latlng);
+            }
+
+            function onMapClickLine(e) {
+                points.push([e.latlng.lat, e.latlng.lng]);
+                if (polyline) {
+                    polyline.setLatLngs(points);
+                } else {
+                    polyline = L.polyline(points, { color: 'blue' }).addTo(map);
+                }
+                var coordinates = points.map(p => [p[1], p[0]]);
+                coordinatesJsonInput.value = JSON.stringify(coordinates);
+                document.getElementById('GeometrySystem').value = 'wgs84';
+                manualCoords.value = JSON.stringify(coordinates);
+
+                var midIndex = Math.floor(points.length / 2);
+                var midLatLng = points[midIndex];
+                findNearbyAssets(L.latLng(midLatLng[0], midLatLng[1]));
+            }
+
+            function finishLineString() {
+                if (points.length < 2) {
+                    alert('Đường cần ít nhất 2 điểm.');
+                    return;
+                }
+                var coordinates = points.map(p => [p[1], p[0]]);
+                coordinatesJsonInput.value = JSON.stringify(coordinates);
+                manualCoords.value = JSON.stringify(coordinates);
+                map.off('click').off('dblclick');
+
+                var midIndex = Math.floor(points.length / 2);
+                var midLatLng = points[midIndex];
+                findNearbyAssets(L.latLng(midLatLng[0], midLatLng[1]));
+            }
+
+            manualLat.oninput = manualLng.oninput = function () {
+                if (currentGeoType === 'Point' && manualLat.value && manualLng.value) {
+                    var lat = parseFloat(manualLat.value);
+                    var lng = parseFloat(manualLng.value);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        var coordinates = [lng, lat];
+                        coordinatesJsonInput.value = JSON.stringify(coordinates);
+                        if (marker) {
+                            marker.setLatLng([lat, lng]);
+                        } else {
+                            marker = L.marker([lat, lng]).addTo(map);
+                        }
+                        map.setView([lat, lng], 13);
+                        findNearbyAssets(L.latLng(lat, lng));
+                    }
+                }
+            };
+
+            manualCoords.oninput = function () {
+                if (currentGeoType === 'LineString' && manualCoords.value) {
+                    try {
+                        var coordinates = JSON.parse(manualCoords.value);
+                        coordinatesJsonInput.value = JSON.stringify(coordinates);
+                        if (polyline) {
+                            map.removeLayer(polyline);
+                        }
+                        points = coordinates.map(c => [c[1], c[0]]);
+                        polyline = L.polyline(points, { color: 'blue' }).addTo(map);
+                        map.fitBounds(polyline.getBounds());
+
+                        var midIndex = Math.floor(points.length / 2);
+                        var midLatLng = points[midIndex];
+                        findNearbyAssets(L.latLng(midLatLng[0], midLatLng[1]));
+                    } catch (e) {
+                        console.error('Invalid LineString JSON:', e);
+                    }
+                }
+            };
+
+            document.querySelector('form').addEventListener('submit', function (e) {
+                if (!coordinatesJsonInput.value) {
+                    alert('Vui lòng chọn tọa độ trên bản đồ hoặc nhập thủ công!');
+                    e.preventDefault();
+                }
             });
-        });
-    </script>
+
+            document.addEventListener('DOMContentLoaded', function () {
+                map = L.map('map').setView([21.0285, 105.8542], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+                assetLayer = L.layerGroup().addTo(map);
+
+                loadAllAssets().then(() => {
+                    geometryType.addEventListener('change', function () {
+                        var type = this.value;
+                        currentGeoType = type;
+                        points = [];
+                        if (marker) map.removeLayer(marker);
+                        if (polyline) map.removeLayer(polyline);
+                        manualLat.value = '';
+                        manualLng.value = '';
+                        manualCoords.value = '';
+                        coordinatesJsonInput.value = '';
+                        assetLayer.clearLayers();
+
+                        if (type === 'Point') {
+                            instructionText.textContent = 'Nhấp vào bản đồ để chọn điểm hoặc nhập tọa độ thủ công.';
+                            pointCoordsGroup.style.display = 'block';
+                            lineCoordsGroup.style.display = 'none';
+                            map.on('click', onMapClickPoint);
+                            map.off('dblclick');
+                        } else if (type === 'LineString') {
+                            instructionText.textContent = 'Nhấp để thêm điểm cho đường (nhấp đúp để hoàn thành) hoặc nhập tọa độ thủ công.';
+                            pointCoordsGroup.style.display = 'none';
+                            lineCoordsGroup.style.display = 'block';
+                            map.on('click', onMapClickLine);
+                            map.on('dblclick', finishLineString);
+                        } else {
+                            instructionText.textContent = 'Chọn loại hình học để bắt đầu.';
+                            pointCoordsGroup.style.display = 'none';
+                            lineCoordsGroup.style.display = 'none';
+                            map.off('click').off('dblclick');
+                        }
+                    });
+                });
+            });
+        </script>
+    }
 </body>
 </html>
+

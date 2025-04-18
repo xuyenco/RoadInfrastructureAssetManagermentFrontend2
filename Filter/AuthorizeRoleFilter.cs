@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using RoadInfrastructureAssetManagementFrontend.Filter;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 
-namespace RoadInfrastructureAssetManagementFrontend.Filter
+namespace RoadInfrastructureAssetManagementFrontend2.Filter
 {
     public class AuthorizeRoleFilter : IAsyncPageFilter
     {

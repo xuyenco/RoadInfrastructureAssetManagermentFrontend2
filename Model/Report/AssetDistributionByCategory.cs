@@ -1,4 +1,4 @@
-﻿namespace RoadInfrastructureAssetManagementFrontend.Model.Report
+﻿namespace RoadInfrastructureAssetManagementFrontend2.Model.Report
 {
     public class AssetDistributionByCategory
     {

@@ -1,11 +1,11 @@
-﻿using RoadInfrastructureAssetManagementFrontend.Model.Request;
-using RoadInfrastructureAssetManagementFrontend.Model.Response;
+﻿using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace RoadInfrastructureAssetManagementFrontend.Service
+namespace RoadInfrastructureAssetManagementFrontend2.Service
 {
     public abstract class BaseService
     {
