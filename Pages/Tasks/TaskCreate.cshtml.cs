@@ -1,26 +1,29 @@
-﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc;
-using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
-using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using OfficeOpenXml;
-using RoadInfrastructureAssetManagementFrontend2.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
-using System.Net.NetworkInformation;
-using System.Reflection;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
+using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
-
-
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 {
     public class TaskCreateModel : PageModel
     {
         private readonly ITasksService _tasksService;
+        private readonly ILogger<TaskCreateModel> _logger;
 
-        public TaskCreateModel(ITasksService tasksService)
+        public TaskCreateModel(ITasksService tasksService, ILogger<TaskCreateModel> logger)
         {
             _tasksService = tasksService;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -29,13 +32,22 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
         [BindProperty]
         public string GeometrySystem { get; set; }
 
-        public void OnGet()
+        public IActionResult OnGet()
         {
-            // Hiển thị form rỗng khi trang được tải
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is accessing the task creation page", username, role);
+            return Page();
         }
 
         public IActionResult OnGetDownloadExcelTemplate()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is downloading Excel template for task creation", username, role);
+
             ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
             using (var package = new ExcelPackage())
             {
@@ -64,14 +76,21 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                 }
                 worksheet.Cells.AutoFitColumns();
                 var stream = new MemoryStream(package.GetAsByteArray());
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully generated Excel template for task creation", username, role);
                 return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Task_Template.xlsx");
             }
         }
 
         public async Task<IActionResult> OnPostImportExcelAsync(IFormFile excelFile)
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is importing tasks from Excel file", username, role);
+
             if (excelFile == null || excelFile.Length == 0)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not upload an Excel file", username, role);
                 TempData["Error"] = "Vui lòng chọn file Excel.";
                 return RedirectToPage();
             }
@@ -93,6 +112,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 
                         if (rowCount < 2 || colCount < 1)
                         {
+                            _logger.LogWarning("User {Username} (Role: {Role}) uploaded an empty or invalid Excel file", username, role);
                             TempData["Error"] = "File Excel trống hoặc không hợp lệ.";
                             return RedirectToPage();
                         }
@@ -159,21 +179,27 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                 }
                             }
 
+                            _logger.LogDebug("User {Username} (Role: {Role}) parsed row {Row} data: {RowData}",username, role, row, JsonSerializer.Serialize(rowData));
+
                             // Xử lý geometry và chuyển đổi tọa độ
                             if (!string.IsNullOrEmpty(task.geometry.type) && !string.IsNullOrEmpty(task.geometry.coordinates as string))
                             {
                                 try
                                 {
                                     task.geometry.coordinates = JsonSerializer.Deserialize<object>(task.geometry.coordinates as string);
+                                    _logger.LogDebug("User {Username} (Role: {Role}) deserialized coordinates for row {Row}: {Coordinates}",username, role, row, JsonSerializer.Serialize(task.geometry.coordinates));
 
                                     // Chuyển đổi tọa độ nếu geometry_system là WGS84
                                     if (geometrySystem?.ToUpper() == "WGS84")
                                     {
                                         task.geometry = CoordinateConverter.ConvertGeometryToVN2000(task.geometry, 48);
+                                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000 for row {Row}: {Geometry}",
+                                            username, role, row, JsonSerializer.Serialize(task.geometry));
                                     }
                                 }
                                 catch (Exception ex)
                                 {
+                                    _logger.LogWarning("User {Username} (Role: {Role}) encountered geometry error in row {Row}: {Error}",username, role, row, ex.Message);
                                     errorRows.Add(new ExcelErrorRow
                                     {
                                         RowNumber = row,
@@ -185,6 +211,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                             }
                             else
                             {
+                                _logger.LogWarning("User {Username} (Role: {Role}) missing geometry type or coordinates in row {Row}",username, role, row);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = row,
@@ -209,6 +236,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                 string.IsNullOrWhiteSpace(task.geometry.type) ||
                                 task.geometry.coordinates == null)
                             {
+                                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid data in row {Row}: Missing task_type, status, geometry.type, or geometry.coordinates",username, role, rowNumber);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -221,6 +249,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                             // Validate status
                             if (!new[] { "pending", "in-progress", "completed", "cancelled" }.Contains(task.status.ToLower()))
                             {
+                                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid status in row {Row}: {Status}",username, role, rowNumber, task.status);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -233,6 +262,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                             // Validate geometry type
                             if (!new[] { "Point", "LineString" }.Contains(task.geometry.type))
                             {
+                                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid geometry type in row {Row}: {GeometryType}",username, role, rowNumber, task.geometry.type);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -244,9 +274,11 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 
                             try
                             {
+                                _logger.LogDebug("User {Username} (Role: {Role}) creating task for row {Row}: {TaskData}",username, role, rowNumber, JsonSerializer.Serialize(task));
                                 var createdTask = await _tasksService.CreateTaskAsync(task);
                                 if (createdTask == null)
                                 {
+                                    _logger.LogWarning("User {Username} (Role: {Role}) failed to create task for row {Row}: No result returned",username, role, rowNumber);
                                     errorRows.Add(new ExcelErrorRow
                                     {
                                         RowNumber = rowNumber,
@@ -257,10 +289,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                 else
                                 {
                                     successCount++;
+                                    _logger.LogInformation("User {Username} (Role: {Role}) successfully created task ID {TaskId} for row {Row}",username, role, createdTask.task_id, rowNumber);
                                 }
                             }
                             catch (Exception ex)
                             {
+                                _logger.LogWarning("User {Username} (Role: {Role}) encountered error creating task for row {Row}: {Error}",username, role, rowNumber, ex.Message);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -272,6 +306,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 
                         if (errorRows.Any())
                         {
+                            ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
                             using (var errorPackage = new ExcelPackage())
                             {
                                 var errorWorksheet = errorPackage.Workbook.Worksheets.Add("Error Rows");
@@ -292,17 +327,22 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                 var errorStream = new MemoryStream(errorPackage.GetAsByteArray());
                                 TempData["SuccessCount"] = successCount;
                                 TempData["ErrorFile"] = Convert.ToBase64String(errorStream.ToArray());
+                                _logger.LogInformation("User {Username} (Role: {Role}) imported {SuccessCount} tasks with {ErrorCount} errors",username, role, successCount, errorRows.Count);
                             }
                         }
                         else
                         {
                             TempData["SuccessCount"] = successCount;
+                            _logger.LogInformation("User {Username} (Role: {Role}) successfully imported {SuccessCount} tasks with no errors",username, role, successCount);
                         }
+
+                        TempData["Success"] = $"Đã nhập thành công {successCount} nhiệm vụ.";
                     }
                 }
             }
             catch (Exception ex)
             {
+                _logger.LogError("User {Username} (Role: {Role}) encountered error processing Excel file: {Error}",username, role, ex.Message);
                 TempData["Error"] = $"Lỗi khi xử lý file Excel: {ex.Message}";
             }
 
@@ -311,6 +351,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is submitting a new task", username, role);
+            _logger.LogDebug("User {Username} (Role: {Role}) submitted form data: {FormData}",username, role, JsonSerializer.Serialize(Request.Form));
+
             if (Task.geometry == null) Task.geometry = new GeoJsonGeometry();
 
             var geometryType = Request.Form["Task.geometry.type"];
@@ -322,6 +368,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
             }
             else
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid geometry type: {GeometryType}",username, role, geometryType);
                 ModelState.AddModelError("Task.geometry.type", "Loại hình học phải là 'Point' hoặc 'LineString'.");
             }
 
@@ -331,59 +378,90 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                 try
                 {
                     Task.geometry.coordinates = JsonSerializer.Deserialize<object>(coordinatesJson);
-                    Console.WriteLine($"Raw coordinates: {JsonSerializer.Serialize(Task.geometry.coordinates)}");
+                    _logger.LogDebug("User {Username} (Role: {Role}) deserialized coordinates: {Coordinates}",username, role, JsonSerializer.Serialize(Task.geometry.coordinates));
 
                     if (GeometrySystem == "wgs84")
                     {
                         Task.geometry = CoordinateConverter.ConvertGeometryToVN2000(Task.geometry, 48);
-                        Console.WriteLine($"Converted to VN2000: {JsonSerializer.Serialize(Task.geometry.coordinates)}");
+                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000: {Geometry}",username, role, JsonSerializer.Serialize(Task.geometry));
                     }
                 }
-                catch (Exception ex)
+                catch (JsonException ex)
                 {
+                    _logger.LogWarning("User {Username} (Role: {Role}) provided invalid coordinates: {Error}",username, role, ex.Message);
                     ModelState.AddModelError("Task.geometry.coordinates", $"Định dạng tọa độ không hợp lệ: {ex.Message}");
                 }
             }
             else
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide geometry coordinates", username, role);
                 ModelState.AddModelError("Task.geometry.coordinates", "Tọa độ là bắt buộc.");
             }
 
-            if (!ModelState.IsValid)
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(Task.task_type))
             {
-                return Page();
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide task_type", username, role);
+                ModelState.AddModelError("Task.task_type", "Loại nhiệm vụ là bắt buộc.");
             }
+
+            if (string.IsNullOrWhiteSpace(Task.status))
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide status", username, role);
+                ModelState.AddModelError("Task.status", "Trạng thái là bắt buộc.");
+            }
+            else if (!new[] { "pending", "in-progress", "completed", "cancelled" }.Contains(Task.status.ToLower()))
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid status: {Status}",username, role, Task.status);
+                ModelState.AddModelError("Task.status", "Trạng thái không hợp lệ: phải là 'pending', 'in-progress', 'completed', hoặc 'cancelled'.");
+            }
+
+            //if (!ModelState.IsValid)
+            //{
+            //    var errors = ModelState.ToDictionary(
+            //        kvp => kvp.Key,
+            //        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+            //    );
+            //    _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors: {Errors}",username, role, JsonSerializer.Serialize(errors));
+            //    return Page();
+            //}
 
             try
             {
-                Console.WriteLine($"Creating task: {JsonSerializer.Serialize(Task)}");
+                _logger.LogDebug("User {Username} (Role: {Role}) creating task: {TaskData}",username, role, JsonSerializer.Serialize(Task));
                 var createdTask = await _tasksService.CreateTaskAsync(Task);
                 if (createdTask == null)
                 {
+                    _logger.LogWarning("User {Username} (Role: {Role}) failed to create task: No result returned", username, role);
                     TempData["Error"] = "Không thể tạo nhiệm vụ. Dữ liệu trả về từ dịch vụ là null.";
                     return Page();
                 }
 
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully created task ID {TaskId}",username, role, createdTask.task_id);
                 TempData["Success"] = "Nhiệm vụ đã được tạo thành công!";
                 return RedirectToPage("/Tasks/Index");
             }
-            catch (JsonException)
+            catch (JsonException ex)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered JSON error: {Error}",username, role, ex.Message);
                 ModelState.AddModelError("Task.geometry.coordinates", "Tọa độ phải là JSON hợp lệ.");
                 return Page();
             }
             catch (ArgumentException ex)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error: {Error}",username, role, ex.Message);
                 TempData["Error"] = ex.Message;
                 return Page();
             }
             catch (InvalidOperationException ex)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error: {Error}",username, role, ex.Message);
                 TempData["Error"] = ex.Message;
                 return Page();
             }
             catch (Exception ex)
             {
+                _logger.LogError("User {Username} (Role: {Role}) encountered error creating task: {Error}",username, role, ex.Message);
                 TempData["Error"] = $"Đã xảy ra lỗi khi tạo nhiệm vụ: {ex.Message}";
                 return Page();
             }

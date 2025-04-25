@@ -1,18 +1,22 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
 {
     public class AssetCagetoryCreateModel : PageModel
     {
         private readonly IAssetCagetoriesService _assetCagetoriesService;
+        private readonly ILogger<AssetCagetoryCreateModel> _logger;
 
-        public AssetCagetoryCreateModel(IAssetCagetoriesService assetCagetoriesService)
+        public AssetCagetoryCreateModel(IAssetCagetoriesService assetCagetoriesService, ILogger<AssetCagetoryCreateModel> logger)
         {
             _assetCagetoriesService = assetCagetoriesService;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -20,10 +24,24 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
 
         public void OnGet()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+            _logger.LogInformation("User {Username} (Role: {Role}) is accessing the asset category creation page", username, role);
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is submitting a new asset category", username, role);
+
+            // Xử lý dữ liệu cơ bản
+            AssetCategory.category_name = Request.Form["category_name"];
+            AssetCategory.geometry_type = Request.Form["geometry_type"];
+            AssetCategory.sample_image = Request.Form.Files["sample_image"];
+            AssetCategory.icon = Request.Form.Files["icon"];
+
             // Xử lý Attributes Schema
             var attributeNames = Request.Form.Keys.Where(k => k.StartsWith("attributes["));
             var tempAttributes = new List<AttributeDefinition>();
@@ -71,10 +89,6 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
                 properties = properties
             });
 
-            // Lấy file từ form
-            AssetCategory.sample_image = Request.Form.Files["sample_image"];
-            AssetCategory.icon = Request.Form.Files["icon"];
-
             // Kiểm tra ModelState
             //if (!ModelState.IsValid)
             //{
@@ -82,23 +96,32 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
             //        kvp => kvp.Key,
             //        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
             //    );
-            //    Console.WriteLine($"Validation errors: {JsonSerializer.Serialize(errors)}");
+            //    _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors while creating asset category: {Errors}",
+            //        username, role, JsonSerializer.Serialize(errors));
             //    return Page();
             //}
 
             // Gửi request lên service
             try
             {
+                _logger.LogDebug("User {Username} (Role: {Role}) sending data for asset category creation: {Request}",
+                    username, role, JsonSerializer.Serialize(AssetCategory));
                 var result = await _assetCagetoriesService.CreateAssetCagetoriesAsync(AssetCategory);
                 if (result != null)
                 {
-                    return RedirectToPage("/AssetCagetories/Index");
+                    _logger.LogInformation("User {Username} (Role: {Role}) successfully created asset category with ID {CategoryId}",
+                        username, role, result.category_id);
+                    return RedirectToPage("/AssetCategories/Index");
                 }
+                _logger.LogWarning("User {Username} (Role: {Role}) failed to create asset category: No result returned",
+                    username, role);
                 ModelState.AddModelError("", "Không thể tạo danh mục. Vui lòng thử lại.");
                 return Page();
             }
             catch (Exception ex)
             {
+                _logger.LogError("User {Username} (Role: {Role}) encountered an error while creating asset category: {Error}",
+                    username, role, ex.Message);
                 ModelState.AddModelError("", $"Lỗi: {ex.Message}");
                 return Page();
             }

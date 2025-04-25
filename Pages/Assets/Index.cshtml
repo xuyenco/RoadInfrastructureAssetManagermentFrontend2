@@ -1,35 +1,98 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend2.Pages.Assets.IndexModel
 @{
-    ViewData["Title"] = "Assets";
+    ViewData["Title"] = "Danh sách Tài sản";
+    ViewData["Mapview"] = "Leaflet";
 }
 
+<!DOCTYPE html>
+<html>
 <head>
+    <title>Assets Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <style>
-        .container-fluid {
-            display: flex;
-        }
-
-        .sidebar {
-            width: 250px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            height: 600px;
-            overflow-y: auto;
-            border-right: 1px solid #dee2e6;
-        }
-
-        .main-content {
-            flex-grow: 1;
-            padding: 15px;
-        }
-
+        /* Map styling to fill the page */
         #map {
-            height: 600px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             width: 100%;
+            height: calc(100% - 60px); /* Subtract footer height */
+            z-index: 1;
         }
+
+        /* Container for overlay content */
+        .container {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            z-index: 10;
+            max-width: 300px;
+        }
+
+        /* Overlay content styling */
+        .content-overlay {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Title */
+        h1 {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        /* Button styling */
+        .btn-primary {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background-color: #3498db;
+            border-color: #3498db;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+            .btn-primary:hover {
+                background-color: #2980b9;
+                transform: translateY(-2px);
+            }
+
+        .btn i {
+            margin-right: 6px;
+        }
+
+        .mb-3 {
+            text-align: center;
+        }
+
+        /* Navbar filter styling */
+        .navbar-filter {
+            position: absolute;
+            top: 0;
+            left: -300px; /* Hidden by default */
+            width: 300px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            z-index: 1000;
+            transition: left 0.3s ease;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            visibility: hidden; /* Ensure hidden initially */
+        }
+
+            .navbar-filter.open {
+                left: 0; /* Show when open */
+                visibility: visible; /* Make visible when open */
+            }
 
         .filter-group {
             margin-bottom: 15px;
@@ -39,64 +102,178 @@
                 display: block;
                 margin-bottom: 5px;
                 font-weight: bold;
+                color: #2c3e50;
             }
+
+            .filter-group select,
+            .filter-group input {
+                width: 100%;
+                padding: 8px;
+                border-radius: 6px;
+                border: 1px solid #ced4da;
+            }
+
+        /* Toggle button */
+        .toggle-filter-btn {
+            position: absolute;
+            top: 60px; /* Moved down to avoid zoom controls */
+            left: 20px;
+            z-index: 10;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+            .toggle-filter-btn:hover {
+                background-color: #2980b9;
+            }
+
+        /* Close button for navbar */
+        .close-filter-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+            .close-filter-btn:hover {
+                color: #c0392b;
+            }
+
+        /* Search result message */
+        .search-message {
+            display: none;
+            position: absolute;
+            top: 120px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            color: #2c3e50;
+        }
     </style>
 </head>
-
 <body>
-    <div class="container-fluid">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <h4>Filters</h4>
-            <div class="filter-group">
-                <label>Asset Category</label>
-                <select id="categoryFilter" class="form-control">
-                    <option value="">All Categories</option>
-                    @foreach (var category in Model.AssetCategories)
-                    {
-                        <option value="@category.category_id">@category.category_name</option>
-                    }
-                </select>
-            </div>
-        </div>
+    <div id="map"></div>
 
-        <!-- Main content -->
-        <div class="main-content">
-            <h1>Assets</h1>
-            <div id="asset-create">
-                <a class="btn btn-primary btn-sm mb-3" asp-page="/Assets/AssetCreate2">
+    <!-- Toggle button for filter navbar -->
+    <button class="toggle-filter-btn" id="toggleFilterBtn">
+        <i class="fas fa-filter"></i> Filters
+    </button>
+
+    <!-- Filter navbar (hidden by default) -->
+    <div class="navbar-filter" id="filterNavbar">
+        <button class="close-filter-btn" id="closeFilterBtn">
+            <i class="fas fa-times"></i>
+        </button>
+        <h4 style="color: #2c3e50; margin-bottom: 20px;">Filters</h4>
+        <div class="filter-group">
+            <label>Tìm kiếm</label>
+            <input type="text" id="searchFilter" class="form-control" placeholder="Nhập tên hoặc mã tài sản">
+        </div>
+        <div class="filter-group">
+            <label>Asset Category</label>
+            <select id="categoryFilter" class="form-control">
+                <option value="">All Categories</option>
+                @foreach (var category in Model.AssetCategories)
+                {
+                        <option value="@category.category_id">@category.category_name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <!-- Overlay content for title and create button -->
+    <div class="container">
+        <div class="content-overlay">
+            <h1>Danh sách Tài sản</h1>
+            <div class="mb-3">
+                <a class="btn btn-primary btn-sm" asp-page="/Assets/AssetCreate2">
                     <i class="fas fa-plus"></i> Tạo Asset mới
                 </a>
             </div>
-            <div id="map"></div>
         </div>
     </div>
-</body>
 
-@section Scripts {
+    <!-- Search result message -->
+    <div class="search-message" id="searchMessage"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Define toggleFilterNavbar globally
+        function toggleFilterNavbar() {
+            const navbar = document.getElementById('filterNavbar');
+            if (navbar) {
+                console.log('Toggling filter navbar:', navbar.classList.contains('open') ? 'Closing' : 'Opening');
+                navbar.classList.toggle('open');
+            } else {
+                console.error('Filter navbar element not found');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
+            // Add event listeners for toggle and close buttons
+            const toggleBtn = document.getElementById('toggleFilterBtn');
+            const closeBtn = document.getElementById('closeFilterBtn');
+            const searchInput = document.getElementById('searchFilter');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const searchMessage = document.getElementById('searchMessage');
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function () {
+                    console.log('Toggle button clicked');
+                    toggleFilterNavbar();
+                });
+            } else {
+                console.error('Toggle button not found');
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function () {
+                    console.log('Close button clicked');
+                    toggleFilterNavbar();
+                });
+            } else {
+                console.error('Close button not found');
+            }
+
+            // Initialize Leaflet map
             if (typeof L === 'undefined') {
                 console.error('Leaflet library failed to load');
                 return;
             }
 
-            // Khởi tạo bản đồ với trung tâm và zoom mặc định
             const map = L.map('map').setView([10.8231, 106.6297], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // Truyền dữ liệu AssetCategories từ backend sang JavaScript
+            // Pass AssetCategories data from backend
             const assetCategories = @Html.Raw(Json.Serialize(Model.AssetCategories));
+            console.log('Asset Categories:', assetCategories);
             const defaultIconUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
 
-            // Tạo layerConfig từ assetCategories
+            // Create layerConfig from assetCategories
             const layerConfig = {};
             assetCategories.forEach(category => {
+                const iconUrl = category.icon_url && category.icon_url.trim() !== ''
+                    ? category.icon_url
+                    : defaultIconUrl;
+                console.log(`Category ${category.category_name}: iconUrl = ${iconUrl}`);
                 layerConfig[category.category_id] = {
                     name: category.category_name.toLowerCase().replace(/\s+/g, '_') + '_layer',
-                    iconUrl: category.marker_url || defaultIconUrl
+                    iconUrl: iconUrl
                 };
             });
 
@@ -107,7 +284,7 @@
                 const cached = localStorage.getItem(key);
                 if (cached) {
                     const { data, timestamp } = JSON.parse(cached);
-                    const age = (Date.now - timestamp) / 1000; //date.now lỗi để bỏ cache
+                    const age = (Date.now() - timestamp) / 1000;
                     if (age < maxAgeInSec) {
                         return data;
                     } else {
@@ -126,7 +303,6 @@
             }
 
             function createPopupContent(feature) {
-                // Xử lý các thuộc tính cố định từ feature.properties
                 const fixedProperties = {
                     'ID': feature.properties.asset_id,
                     'Tên tài sản': feature.properties.asset_name || 'N/A',
@@ -143,18 +319,16 @@
                     'Đơn vị quản lý': feature.properties.management_unit || 'N/A'
                 };
 
-                // Tạo HTML cho các thuộc tính cố định
                 let fixedPropertiesContent = '';
                 for (const [key, value] of Object.entries(fixedProperties)) {
                     fixedPropertiesContent += `
-                    <tr>
-                        <td style="padding: 5px; font-weight: bold; border-bottom: 1px solid #eee;">${key}:</td>
-                        <td style="padding: 5px; border-bottom: 1px solid #eee;">${value}</td>
-                    </tr>
-                `;
+                        <tr>
+                            <td style="padding: 5px; font-weight: bold; border-bottom: 1px solid #eee;">${key}:</td>
+                            <td style="padding: 5px; border-bottom: 1px solid #eee;">${value}</td>
+                        </tr>
+                    `;
                 }
 
-                // Tạo HTML cho các thuộc tính động từ attributes
                 let dynamicAttributesContent = '';
                 let attributes = JSON.parse(feature.properties.custom_attributes || '{}');
                 for (const [key, value] of Object.entries(attributes)) {
@@ -162,55 +336,55 @@
                         .replace(/_/g, ' ')
                         .replace(/\b\w/g, c => c.toUpperCase());
                     dynamicAttributesContent += `
-                    <tr>
-                        <td style="padding: 5px; font-weight: bold; border-bottom: 1px solid #eee;">${formattedKey}:</td>
-                        <td style="padding: 5px; border-bottom: 1px solid #eee;">${value || 'N/A'}</td>
-                    </tr>
-                `;
+                        <tr>
+                            <td style="padding: 5px; font-weight: bold; border-bottom: 1px solid #eee;">${formattedKey}:</td>
+                            <td style="padding: 5px; border-bottom: 1px solid #eee;">${value || 'N/A'}</td>
+                        </tr>
+                    `;
                 }
 
-                // Kết hợp tất cả thành popup hoàn chỉnh
                 return `
-                <div style="font-family: Arial, sans-serif; max-width: 300px;">
-                    <h3 style="margin: 0 0 10px; font-size: 16px; color: #2c3e50;">Thông tin tài sản</h3>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                        ${fixedPropertiesContent}
-                        ${dynamicAttributesContent}
-                    </table>
-                    <div style="text-align: center; margin-top: 10px;">
-                        <a id="update-btn-${feature.properties.asset_id}"
-                           class="btn btn-sm btn-primary"
-                           style="text-decoration: none; padding: 5px 10px;">
-                            Cập nhật
-                        </a>
-                        <a id="maintenance-btn-${feature.properties.asset_id}"
-                            class="btn btn-sm btn-primary"
-                            style="text-decoration: none; padding: 5px 10px;">
-                            Lịch sử bảo dưỡng
-                        </a>
+                    <div style="font-family: Arial, sans-serif; max-width: 300px;">
+                        <h3 style="margin: 0 0 10px; font-size: 16px; color: #2c3e50;">Thông tin tài sản</h3>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                            ${fixedPropertiesContent}
+                            ${dynamicAttributesContent}
+                        </table>
+                        <div style="text-align: center; margin-top: 10px;">
+                            <a id="update-btn-${feature.properties.asset_id}"
+                               class="btn btn-sm btn-primary"
+                               style="text-decoration: none; padding: 5px 10px;">
+                                Cập nhật
+                            </a>
+                            <a id="maintenance-btn-${feature.properties.asset_id}"
+                               class="btn btn-sm btn-primary"
+                               style="text-decoration: none; padding: 5px 10px;">
+                                Lịch sử bảo dưỡng
+                            </a>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
             }
 
-            // Hàm tải dữ liệu từ GeoServer cho từng category
-            function loadLayer(categoryId) {
+            function loadLayer(categoryId, searchKeyword = '') {
                 const config = layerConfig[categoryId];
                 if (!config) return Promise.resolve();
 
-                const cacheKey = `geoserver_layer_${categoryId}`;
-                const cachedData = getCachedData(cacheKey);
+                const cacheKey = `geoserver_layer_${categoryId}_${encodeURIComponent(searchKeyword)}`;
+                // const cachedData = getCachedData(cacheKey);
+                const cachedData = null; // Bỏ cache để debug
 
                 if (cachedData) {
-                    console.log("Get data from caching for category:", categoryId);
+                    console.log("Get data from caching for category:", categoryId, "with search:", searchKeyword);
                     layers[categoryId] = L.geoJSON(cachedData, {
                         pointToLayer: (feature, latlng) => {
-                            const iconUrl = config.iconUrl;
+                            console.log(`Marker for category ${categoryId}: iconUrl = ${config.iconUrl}`);
                             return L.marker(latlng, {
                                 icon: L.icon({
-                                    iconUrl: iconUrl,
+                                    iconUrl: config.iconUrl,
                                     iconSize: [25, 41],
-                                    iconAnchor: [12, 41]
+                                    iconAnchor: [12, 41],
+                                    iconErrorUrl: defaultIconUrl
                                 })
                             });
                         },
@@ -241,7 +415,17 @@
                     return Promise.resolve();
                 }
 
-                return fetch(`http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:assets_layer_2&outputFormat=application/json&cql_filter=category_id=${categoryId}`)
+                let cqlFilter = `category_id = '${categoryId}'`;
+                if (searchKeyword) {
+                    const safeKeyword = searchKeyword.trim().replace(/'/g, "''"); // Escape single quotes
+                    cqlFilter += ` AND (asset_name ILIKE '%${safeKeyword}%' OR asset_code ILIKE '%${safeKeyword}%')`;
+                }
+                console.log('CQL Filter:', cqlFilter);
+
+                const wfsUrl = `http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:assets_layer_2&outputFormat=application/json&srsName=EPSG:4326&cql_filter=${encodeURIComponent(cqlFilter)}`;
+                console.log('WFS URL:', wfsUrl);
+
+                return fetch(wfsUrl)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -254,12 +438,13 @@
                             setCachedData(cacheKey, data);
                             layers[categoryId] = L.geoJSON(data, {
                                 pointToLayer: (feature, latlng) => {
-                                    const iconUrl = config.iconUrl;
+                                    console.log(`Marker for category ${categoryId}: iconUrl = ${config.iconUrl}`);
                                     return L.marker(latlng, {
                                         icon: L.icon({
-                                            iconUrl: iconUrl,
+                                            iconUrl: config.iconUrl,
                                             iconSize: [25, 41],
-                                            iconAnchor: [12, 41]
+                                            iconAnchor: [12, 41],
+                                            iconErrorUrl: defaultIconUrl
                                         })
                                     });
                                 },
@@ -287,37 +472,57 @@
                                     });
                                 }
                             });
+                        } else {
+                            layers[categoryId] = null; // No data for this category
                         }
                     })
-                    .catch(error => console.error(`Error fetching layer for category ${categoryId}:`, error));
+                    .catch(error => {
+                        console.error(`Error fetching layer for category ${categoryId}:`, error);
+                        layers[categoryId] = null;
+                    });
             }
 
-            // Tải tất cả layer khi trang khởi tạo
-            function loadAllLayers() {
-                const loadPromises = Object.keys(layerConfig).map(categoryId => loadLayer(categoryId));
+            function loadAllLayers(searchKeyword = '') {
+                const loadPromises = Object.keys(layerConfig).map(categoryId => loadLayer(categoryId, searchKeyword));
                 Promise.all(loadPromises).then(() => {
                     updateMarkers();
+                }).catch(error => {
+                    console.error('Error loading layers:', error);
                 });
             }
 
-            // Hàm cập nhật bản đồ dựa trên filter
             function updateMarkers() {
                 markersLayer.clearLayers();
-                const category = document.getElementById('categoryFilter').value;
+                const category = categoryFilter.value;
+                const searchKeyword = searchInput.value.trim();
+                let totalFeatures = 0;
 
                 if (!category) {
                     Object.keys(layers).forEach(categoryId => {
                         if (layers[categoryId]) {
                             layers[categoryId].addTo(markersLayer);
+                            totalFeatures += layers[categoryId].getLayers().length;
                         }
                     });
                 } else {
                     if (layers[category]) {
                         layers[category].addTo(markersLayer);
+                        totalFeatures += layers[category].getLayers().length;
                     }
                 }
 
-                // Chỉ gọi fitBounds nếu có layer hợp lệ
+                // Update search message
+                if (searchKeyword) {
+                    searchMessage.style.display = 'block';
+                    if (totalFeatures > 0) {
+                        searchMessage.textContent = `Tìm thấy ${totalFeatures} tài sản khớp với "${searchKeyword}"`;
+                    } else {
+                        searchMessage.textContent = `Không tìm thấy tài sản nào khớp với "${searchKeyword}"`;
+                    }
+                } else {
+                    searchMessage.style.display = 'none';
+                }
+
                 if (markersLayer.getLayers().length > 0) {
                     const group = L.featureGroup(markersLayer.getLayers());
                     const bounds = group.getBounds();
@@ -333,9 +538,25 @@
                 }
             }
 
-            // Thêm sự kiện filter và tải dữ liệu ban đầu
-            document.getElementById('categoryFilter').addEventListener('change', updateMarkers);
+            // Add event listeners for filters with debounce
+            let debounceTimeout;
+            searchInput.addEventListener('input', function () {
+                clearTimeout(debounceTimeout);
+                debounceTimeout = setTimeout(() => {
+                    const searchKeyword = searchInput.value.trim();
+                    console.log('Search keyword:', searchKeyword);
+                    loadAllLayers(searchKeyword);
+                }, 500); // Wait 500ms after last input
+            });
+
+            categoryFilter.addEventListener('change', updateMarkers);
+
             loadAllLayers();
         });
     </script>
+</body>
+</html>
+
+@section Scripts {
+        <!-- Font Awesome for icons (already included in head) -->
 }

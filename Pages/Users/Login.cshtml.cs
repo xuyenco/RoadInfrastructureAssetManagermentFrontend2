@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
-using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 {

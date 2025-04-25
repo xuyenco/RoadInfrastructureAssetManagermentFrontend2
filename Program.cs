@@ -1,8 +1,21 @@
 ﻿using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Service;
+using Serilog;
 using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
+
+//Serilog setting for logging
+builder.Host.UseSerilog((context, configuration) =>
+{
+    configuration
+        .MinimumLevel.Information()
+        .WriteTo.Console()
+        .WriteTo.File(
+            "logs/frontend.log",
+            rollingInterval: RollingInterval.Day,
+            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}");
+});
 
 // Add services to the container.
 builder.Services.AddRazorPages().AddMvcOptions(options =>

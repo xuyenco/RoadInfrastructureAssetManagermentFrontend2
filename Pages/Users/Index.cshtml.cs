@@ -9,29 +9,48 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
     public class IndexModel : PageModel
     {
         private readonly IUsersService _usersService;
+        private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(IUsersService usersService)
+        public IndexModel(IUsersService usersService, ILogger<IndexModel> logger)
         {
             _usersService = usersService;
+            _logger = logger;
         }
 
         public List<UsersResponse> Users { get; set; } = new List<UsersResponse>();
 
         public async Task<IActionResult> OnGetAsync()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is accessing the users index page", username, role);
+
             try
             {
                 Users = await _usersService.GetAllUsersAsync();
+                if (Users == null)
+                {
+                    _logger.LogWarning("User {Username} (Role: {Role}) received null response when fetching users", username, role);
+                    TempData["Error"] = "Không thể tải danh sách người dùng.";
+                    Users = new List<UsersResponse>();
+                }
+                else
+                {
+                    _logger.LogInformation("User {Username} (Role: {Role}) retrieved {UserCount} users", username, role, Users.Count);
+                }
                 return Page();
             }
             catch (UnauthorizedAccessException)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered unauthorized access while fetching users", username, role);
                 HttpContext.Session.Clear();
                 return RedirectToPage("/Users/Login");
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"Error loading users: {ex.Message}";
+                _logger.LogError("User {Username} (Role: {Role}) encountered error loading users: {Error}", username, role, ex.Message);
+                TempData["Error"] = $"Lỗi khi tải danh sách người dùng: {ex.Message}";
                 Users = new List<UsersResponse>();
                 return Page();
             }
@@ -40,34 +59,59 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> OnPostDeleteAsync(int id)
         {
-            Console.WriteLine($"Received user id to delete: {id}");
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is attempting to delete user with ID {UserId}", username, role, id);
+
             try
             {
+                // Optional: Add check to prevent self-deletion
+                var currentUserId = HttpContext.Session.GetInt32("UserId");
+                if (currentUserId.HasValue && currentUserId.Value == id)
+                {
+                    _logger.LogWarning("User {Username} (Role: {Role}) attempted to delete their own account with ID {UserId}", username, role, id);
+                    return new JsonResult(new { success = false, message = "Không thể xóa tài khoản của chính bạn." });
+                }
+
                 var result = await _usersService.DeleteUserAsync(id);
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully deleted user with ID {UserId}", username, role, id);
                 return new JsonResult(new { success = true });
             }
             catch (ArgumentException ex)
             {
-                Console.WriteLine($"Argument error: {ex.Message}");
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error deleting user with ID {UserId}: {Error}",username, role, id, ex.Message);
                 return new JsonResult(new { success = false, message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                Console.WriteLine($"Invalid operation: {ex.Message}");
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error deleting user with ID {UserId}: {Error}",username, role, id, ex.Message);
                 return new JsonResult(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Unexpected error: {ex.Message}");
-                return new JsonResult(new { success = false, message = $"An error occurred: {ex.Message}" });
+                _logger.LogError("User {Username} (Role: {Role}) encountered error deleting user with ID {UserId}: {Error}",username, role, id, ex.Message);
+                return new JsonResult(new { success = false, message = $"Đã xảy ra lỗi: {ex.Message}" });
             }
         }
 
         public async Task<IActionResult> OnGetExportExcelAsync()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is exporting users to Excel", username, role);
+
             try
             {
                 var users = await _usersService.GetAllUsersAsync();
+                if (users == null)
+                {
+                    _logger.LogWarning("User {Username} (Role: {Role}) received null response when fetching users for export", username, role);
+                    TempData["Error"] = "Không thể tải danh sách người dùng để xuất Excel.";
+                    return RedirectToPage();
+                }
+                _logger.LogInformation("User {Username} (Role: {Role}) retrieved {UserCount} users for export", username, role, users.Count);
 
                 ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
 
@@ -75,7 +119,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                 {
                     var worksheet = package.Workbook.Worksheets.Add("Users Report");
 
-                    string[] headers = new[] {
+                    string[] headers = new[]
+                    {
                         "Mã Người dùng",
                         "Tên đăng nhập",
                         "Họ và Tên",
@@ -111,6 +156,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                     var stream = new MemoryStream(package.GetAsByteArray());
                     string fileName = $"Users_Report_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
 
+                    _logger.LogInformation("User {Username} (Role: {Role}) successfully exported {UserCount} users to Excel file {FileName}",username, role, users.Count, fileName);
                     return File(stream,
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         fileName);
@@ -118,6 +164,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
             }
             catch (Exception ex)
             {
+                _logger.LogError("User {Username} (Role: {Role}) encountered error exporting users to Excel: {Error}",username, role, ex.Message);
                 TempData["Error"] = $"Lỗi khi xuất báo cáo người dùng: {ex.Message}";
                 return RedirectToPage();
             }

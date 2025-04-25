@@ -72,10 +72,117 @@
     .mb-3 {
         text-align: center;
     }
+
+    /* Thanh tìm kiếm */
+    .navbar-filter {
+        position: absolute;
+        top: 0;
+        left: -300px; /* Ẩn mặc định */
+        width: 300px;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 20px;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        visibility: hidden;
+    }
+
+        .navbar-filter.open {
+            left: 0; /* Hiển thị khi mở */
+            visibility: visible;
+        }
+
+    .filter-group {
+        margin-bottom: 15px;
+    }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .filter-group input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+        }
+
+    /* Nút toggle thanh tìm kiếm */
+    .toggle-filter-btn {
+        position: absolute;
+        top: 60px;
+        left: 20px;
+        z-index: 10;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+        .toggle-filter-btn:hover {
+            background-color: #2980b9;
+        }
+
+    /* Nút đóng thanh tìm kiếm */
+    .close-filter-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: #2c3e50;
+        cursor: pointer;
+        transition: color 0.3s ease;
+    }
+
+        .close-filter-btn:hover {
+            color: #c0392b;
+        }
+
+    /* Thông báo kết quả tìm kiếm */
+    .search-message {
+        display: none;
+        position: absolute;
+        top: 120px;
+        left: 20px;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 6px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        color: #2c3e50;
+    }
 </style>
 
 <div id="map"></div>
 
+<!-- Nút toggle thanh tìm kiếm -->
+<button class="toggle-filter-btn" id="toggleFilterBtn">
+    <i class="fas fa-filter"></i> Tìm kiếm
+</button>
+
+<!-- Thanh tìm kiếm -->
+<div class="navbar-filter" id="filterNavbar">
+    <button class="close-filter-btn" id="closeFilterBtn">
+        <i class="fas fa-times"></i>
+    </button>
+    <h4 style="color: #2c3e50; margin-bottom: 20px;">Tìm kiếm Nhiệm vụ</h4>
+    <div class="filter-group">
+        <label>Tìm kiếm</label>
+        <input type="text" id="searchFilter" class="form-control" placeholder="Nhập loại nhiệm vụ hoặc địa chỉ">
+    </div>
+</div>
+
+<!-- Container cho tiêu đề và nút tạo mới -->
 <div class="container">
     <div class="content-overlay">
         <h1>Danh sách Nhiệm vụ</h1>
@@ -95,105 +202,227 @@
     </div>
 </div>
 
+<!-- Thông báo kết quả tìm kiếm -->
+<div class="search-message" id="searchMessage"></div>
+
 @Html.AntiForgeryToken()
 @section Scripts {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize map
-        var map = L.map('map').setView([21.0285, 105.8542], 13);
+        // Hàm toggle thanh tìm kiếm
+        function toggleFilterNavbar() {
+            const navbar = document.getElementById('filterNavbar');
+            if (navbar) {
+                console.log('Toggling filter navbar:', navbar.classList.contains('open') ? 'Closing' : 'Opening');
+                navbar.classList.toggle('open');
+            } else {
+                console.error('Filter navbar element not found');
+            }
+        }
 
-        // Add OpenStreetMap base layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+        document.addEventListener('DOMContentLoaded', function () {
+            // Khởi tạo bản đồ
+            const map = L.map('map').setView([21.0285, 105.8542], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
 
-        // Add GeoServer WMS layer (placeholder)
-        var wmsLayer = L.tileLayer.wms('http://localhost:8080/geoserver/wms', {
-            layers: 'road_incidents',
-            format: 'image/png',
-            transparent: true,
-            attribution: 'GeoServer'
-        }).addTo(map);
+            // Thêm layer WMS từ GeoServer
+            const wmsLayer = L.tileLayer.wms('http://localhost:8080/geoserver/wms', {
+                layers: 'road_incidents',
+                format: 'image/png',
+                transparent: true,
+                attribution: 'GeoServer'
+            }).addTo(map);
 
-        // Fetch tasks from GeoServer WFS
-        var wfsUrl = 'http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:tasks_layer_2&outputFormat=application/json';
-
-        var taskLayer = L.geoJSON(null, {
-            pointToLayer: function(feature, latlng) {
-                return L.marker(latlng);
-            },
-            style: function(feature) {
-                if (feature.geometry.type === 'LineString') {
-                    return { color: 'blue', weight: 3 };
-                }
-                return {};
-            },
-            onEachFeature: function(feature, layer) {
-                if (feature.properties) {
-                    var props = feature.properties;
-                    var popupContent = `
-                                <b>Mã Nhiệm vụ:</b> ${props.task_id || 'Chưa có'}<br>
-                                <b>Loại Nhiệm vụ:</b> ${props.task_type || 'Chưa có'}<br>
-                                <b>Trạng thái:</b> ${props.status || 'Chưa có'}<br>
-                                <b>Địa chỉ:</b> ${props.address || 'Chưa có'}<br>
-                                <b>Ngày bắt đầu:</b> ${props.start_date ? new Date(props.start_date).toLocaleDateString('vi-VN') : 'Chưa có'}<br>
-                                <button id="update-btn-${props.task_id}" class="btn btn-primary btn-sm mt-2">Cập nhật</button>
-                                <button id="detail-btn-${props.task_id}" class="btn btn-primary btn-sm mt-2">Chi tiết</button>
-                                <button id="delete-btn-${props.task_id}" class="btn btn-danger btn-sm mt-2">Xóa</button>
-                            `;
-                    layer.bindPopup(popupContent, { autoClose: false }).on('popupopen', function() {
-                        // Update button
-                        document.getElementById('update-btn-' + props.task_id).addEventListener('click', function() {
-                            window.location.href = '/Tasks/TaskUpdate/' + props.task_id;
-                        });
-                        // Detail button
-                        document.getElementById('detail-btn-' + props.task_id).addEventListener('click', function() {
-                            window.location.href = '/Tasks/TaskDetail/' + props.task_id;
-                        });
-                        // Delete button
-                        document.getElementById('delete-btn-' + props.task_id).addEventListener('click', function() {
-                            if (confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) {
-                                $.ajax({
-                                    url: '/Tasks/Index?handler=Delete',
-                                    type: 'POST',
-                                    data: { id: props.task_id },
-                                    headers: {
-                                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
-                                    },
-                                    success: function(response) {
-                                        if (response.success) {
-                                            map.removeLayer(layer);
-                                            alert('Xóa nhiệm vụ thành công!');
-                                        } else {
-                                            alert('Xóa nhiệm vụ thất bại: ' + (response.message || 'Không rõ nguyên nhân'));
+            // Layer để hiển thị marker nhiệm vụ
+            const taskLayer = L.geoJSON(null, {
+                pointToLayer: function (feature, latlng) {
+                    return L.marker(latlng);
+                },
+                style: function (feature) {
+                    if (feature.geometry.type === 'LineString') {
+                        return { color: 'blue', weight: 3 };
+                    }
+                    return {};
+                },
+                onEachFeature: function (feature, layer) {
+                    if (feature.properties) {
+                        const props = feature.properties;
+                        const popupContent = `
+                                    <b>Mã Nhiệm vụ:</b> ${props.task_id || 'Chưa có'}<br>
+                                    <b>Loại Nhiệm vụ:</b> ${props.task_type || 'Chưa có'}<br>
+                                    <b>Trạng thái:</b> ${props.status || 'Chưa có'}<br>
+                                    <b>Địa chỉ:</b> ${props.address || 'Chưa có'}<br>
+                                    <b>Ngày bắt đầu:</b> ${props.start_date ? new Date(props.start_date).toLocaleDateString('vi-VN') : 'Chưa có'}<br>
+                                    <button id="update-btn-${props.task_id}" class="btn btn-primary btn-sm mt-2">Cập nhật</button>
+                                    <button id="detail-btn-${props.task_id}" class="btn btn-primary btn-sm mt-2">Chi tiết</button>
+                                    <button id="delete-btn-${props.task_id}" class="btn btn-danger btn-sm mt-2">Xóa</button>
+                                `;
+                        layer.bindPopup(popupContent, { autoClose: false }).on('popupopen', function () {
+                            document.getElementById(`update-btn-${props.task_id}`).addEventListener('click', function () {
+                                window.location.href = `/Tasks/TaskUpdate/${props.task_id}`;
+                            });
+                            document.getElementById(`detail-btn-${props.task_id}`).addEventListener('click', function () {
+                                window.location.href = `/Tasks/TaskDetail/${props.task_id}`;
+                            });
+                            document.getElementById(`delete-btn-${props.task_id}`).addEventListener('click', function () {
+                                if (confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) {
+                                    $.ajax({
+                                        url: '/Tasks/Index?handler=Delete',
+                                        type: 'POST',
+                                        data: { id: props.task_id },
+                                        headers: {
+                                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                                        },
+                                        success: function (response) {
+                                            if (response.success) {
+                                                map.removeLayer(layer);
+                                                alert('Xóa nhiệm vụ thành công!');
+                                            } else {
+                                                alert('Xóa nhiệm vụ thất bại: ' + (response.message || 'Không rõ nguyên nhân'));
+                                            }
+                                        },
+                                        error: function (xhr) {
+                                            let errorMsg = xhr.responseJSON?.message || 'Đã xảy ra lỗi khi xóa nhiệm vụ.';
+                                            alert(errorMsg);
                                         }
-                                    },
-                                    error: function(xhr) {
-                                        let errorMsg = xhr.responseJSON?.message || 'Đã xảy ra lỗi khi xóa nhiệm vụ.';
-                                        alert(errorMsg);
-                                    }
-                                });
-                            }
+                                    });
+                                }
+                            });
                         });
+                    }
+                }
+            }).addTo(map);
+
+            // Hàm cache dữ liệu
+            function getCachedData(key, maxAgeInSec = 600) {
+                const cached = localStorage.getItem(key);
+                if (cached) {
+                    const { data, timestamp } = JSON.parse(cached);
+                    const age = (Date.now() - timestamp) / 1000;
+                    if (age < maxAgeInSec) {
+                        return data;
+                    } else {
+                        localStorage.removeItem(key);
+                    }
+                }
+                return null;
+            }
+
+            function setCachedData(key, data) {
+                const cacheEntry = {
+                    data,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(key, JSON.stringify(cacheEntry));
+            }
+
+            // Hàm tải dữ liệu nhiệm vụ từ GeoServer
+            function loadTasks(searchKeyword = '') {
+                const cacheKey = `geoserver_tasks_${encodeURIComponent(searchKeyword)}`;
+                const cachedData = null; // Bỏ cache để debug
+
+                if (cachedData) {
+                    console.log('Get data from cache for search:', searchKeyword);
+                    taskLayer.clearLayers();
+                    taskLayer.addData(cachedData);
+                    updateMap();
+                    return Promise.resolve();
+                }
+
+                let cqlFilter = '1=1';
+                if (searchKeyword) {
+                    const safeKeyword = searchKeyword.trim().replace(/'/g, "''");
+                    // Chỉ tìm kiếm theo task_type và address
+                    cqlFilter = `task_type ILIKE '%${safeKeyword}%' OR address ILIKE '%${safeKeyword}%'`;
+                }
+
+                const wfsUrl = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:tasks_layer_2&outputFormat=application/json&srsName=EPSG:4326&cql_filter=${encodeURIComponent(cqlFilter)}`;
+                console.log('WFS URL:', wfsUrl);
+
+                return fetch(wfsUrl)
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        return response.text().then(text => ({ response, text }));
+                    })
+                    .then(({ response, text }) => {
+                        console.log('Raw response:', text);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
+                        }
+                        return JSON.parse(text);
+                    })
+                    .then(data => {
+                        console.log('GeoServer response:', data);
+                        taskLayer.clearLayers();
+                        if (data.features && data.features.length > 0) {
+                            setCachedData(cacheKey, data);
+                            taskLayer.addData(data);
+                        }
+                        updateMap();
+                    })
+                    .catch(error => {
+                        console.error('Error loading GeoServer data:', error);
+                        alert('Không thể tải dữ liệu từ GeoServer: ' + error.message);
                     });
+            }
+
+            // Hàm cập nhật bản đồ và thông báo
+            function updateMap() {
+                const searchKeyword = document.getElementById('searchFilter').value.trim();
+                const searchMessage = document.getElementById('searchMessage');
+                const totalFeatures = taskLayer.getLayers().length;
+
+                if (searchKeyword) {
+                    searchMessage.style.display = 'block';
+                    if (totalFeatures > 0) {
+                        searchMessage.textContent = `Tìm thấy ${totalFeatures} nhiệm vụ khớp với "${searchKeyword}"`;
+                    } else {
+                        searchMessage.textContent = `Không tìm thấy nhiệm vụ nào khớp với "${searchKeyword}"`;
+                    }
+                } else {
+                    searchMessage.style.display = 'none';
+                }
+
+                if (totalFeatures > 0) {
+                    const bounds = taskLayer.getBounds();
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds, { padding: [50, 50] });
+                    } else {
+                        map.setView([21.0285, 105.8542], 13);
+                    }
+                } else {
+                    map.setView([21.0285, 105.8542], 13);
                 }
             }
+
+            // Gắn sự kiện cho các nút và tìm kiếm
+            const toggleBtn = document.getElementById('toggleFilterBtn');
+            const closeBtn = document.getElementById('closeFilterBtn');
+            const searchInput = document.getElementById('searchFilter');
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', toggleFilterNavbar);
+            }
+            if (closeBtn) {
+                closeBtn.addEventListener('click', toggleFilterNavbar);
+            }
+
+            if (searchInput) {
+                let debounceTimeout;
+                searchInput.addEventListener('input', function () {
+                    clearTimeout(debounceTimeout);
+                    debounceTimeout = setTimeout(() => {
+                        const searchKeyword = searchInput.value.trim();
+                        console.log('Search keyword:', searchKeyword);
+                        loadTasks(searchKeyword);
+                    }, 500);
+                });
+            }
+
+            // Tải dữ liệu ban đầu
+            loadTasks();
         });
-
-        fetch(wfsUrl)
-            .then(response => response.json())
-            .then(data => {
-                taskLayer.addData(data);
-                taskLayer.addTo(map);
-
-                // Fit map to task bounds
-                if (taskLayer.getLayers().length > 0) {
-                    map.fitBounds(taskLayer.getBounds());
-                }
-            })
-            .catch(error => {
-                console.error('Error loading GeoServer data:', error);
-                alert('Không thể tải dữ liệu từ GeoServer.');
-            });
     </script>
 }

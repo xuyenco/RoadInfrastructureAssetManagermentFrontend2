@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using OfficeOpenXml;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
-using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 {
@@ -14,29 +14,48 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
     {
         private readonly IAssetsService _assetsService;
         private readonly IAssetCagetoriesService _assetCagetoriesService;
+        private readonly ILogger<AssetImportModel> _logger;
 
-        public AssetImportModel(IAssetsService assetsService, IAssetCagetoriesService assetCagetoriesService)
+        public AssetImportModel(IAssetsService assetsService, IAssetCagetoriesService assetCagetoriesService, ILogger<AssetImportModel> logger)
         {
             _assetsService = assetsService;
             _assetCagetoriesService = assetCagetoriesService;
+            _logger = logger;
         }
 
         public List<AssetCagetoriesResponse> Categories { get; set; }
 
         public async Task OnGetAsync()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is accessing the asset import page", username, role);
             Categories = await _assetCagetoriesService.GetAllAssetCagetoriesAsync();
+            _logger.LogInformation("User {Username} (Role: {Role}) retrieved {CategoryCount} categories for import",
+                username, role, Categories.Count);
         }
 
         public async Task<IActionResult> OnGetDownloadExcelTemplateAsync(int categoryId)
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is downloading Excel template for category ID {CategoryId}",
+                username, role, categoryId);
+
             if (categoryId == 0)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not select a category for template download",
+                    username, role);
                 return BadRequest("Vui lòng chọn danh mục");
             }
+
             var category = await _assetCagetoriesService.GetAssetCagetoriesByIdAsync(categoryId);
             if (category == null)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) found no category with ID {CategoryId}",
+                    username, role, categoryId);
                 return NotFound("Category không tồn tại");
             }
 
@@ -73,6 +92,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                 worksheet.Cells.AutoFitColumns();
 
                 var stream = new MemoryStream(package.GetAsByteArray());
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully generated Excel template for category ID {CategoryId}",
+                    username, role, categoryId);
                 return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     $"Asset_Template_Category_{categoryId}.xlsx");
             }
@@ -80,9 +101,14 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 
         public async Task<IActionResult> OnPostImportExcelAsync(IFormFile excelFile, IFormFileCollection imageFiles)
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is importing assets from Excel file", username, role);
+
             if (excelFile == null || excelFile.Length == 0)
             {
-                Console.WriteLine("No file uploaded.");
+                _logger.LogWarning("User {Username} (Role: {Role}) did not upload an Excel file", username, role);
                 return BadRequest("Vui lòng chọn file Excel.");
             }
 
@@ -104,7 +130,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 
                         if (rowCount < 2 || colCount < 1)
                         {
-                            Console.WriteLine("File Excel is empty or invalid.");
+                            _logger.LogWarning("User {Username} (Role: {Role}) uploaded an empty or invalid Excel file", username, role);
                             return BadRequest("File Excel trống hoặc không hợp lệ.");
                         }
 
@@ -168,6 +194,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                                         if (!string.IsNullOrEmpty(value) && imageFileMap.ContainsKey(Path.GetFileName(value)))
                                         {
                                             asset.image = imageFileMap[Path.GetFileName(value)];
+                                            _logger.LogDebug("User {Username} (Role: {Role}) matched image '{ImagePath}' for row {Row}",
+                                                username, role, value, row);
                                         }
                                         break;
                                     default:
@@ -196,10 +224,14 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                                         var geoJsonGeometry = JsonSerializer.Deserialize<GeoJsonGeometry>(asset.geometry);
                                         var vn2000Geometry = CoordinateConverter.ConvertGeometryToVN2000(geoJsonGeometry, 48);
                                         asset.geometry = JsonSerializer.Serialize(vn2000Geometry);
+                                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000 for row {Row}: {Geometry}",
+                                            username, role, row, asset.geometry);
                                     }
                                 }
                                 catch (Exception ex)
                                 {
+                                    _logger.LogWarning("User {Username} (Role: {Role}) encountered geometry error in row {Row}: {Error}",
+                                        username, role, row, ex.Message);
                                     errorRows.Add(new ExcelErrorRow
                                     {
                                         RowNumber = row,
@@ -211,6 +243,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                             }
                             else
                             {
+                                _logger.LogWarning("User {Username} (Role: {Role}) missing geometry_type or geometry_coordinates in row {Row}",
+                                    username, role, row);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = row,
@@ -223,6 +257,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                             // Kiểm tra ảnh
                             if (!string.IsNullOrEmpty(imagePath) && !imageFileMap.ContainsKey(Path.GetFileName(imagePath)))
                             {
+                                _logger.LogWarning("User {Username} (Role: {Role}) did not find image '{ImagePath}' for row {Row}",
+                                    username, role, imagePath, row);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = row,
@@ -243,6 +279,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 
                             if (asset.category_id == 0 || string.IsNullOrEmpty(asset.asset_name) || string.IsNullOrEmpty(asset.geometry) || string.IsNullOrEmpty(asset.custom_attributes))
                             {
+                                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid data in row {Row}: Missing category_id, asset_name, geometry, or custom_attributes",
+                                    username, role, rowNumber);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -254,9 +292,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 
                             try
                             {
+                                _logger.LogDebug("User {Username} (Role: {Role}) creating asset for row {Row}: {AssetData}",
+                                    username, role, rowNumber, JsonSerializer.Serialize(asset));
                                 var createdAsset = await _assetsService.CreateAssetAsync(asset);
                                 if (createdAsset == null)
                                 {
+                                    _logger.LogWarning("User {Username} (Role: {Role}) failed to create asset for row {Row}: No result returned",
+                                        username, role, rowNumber);
                                     errorRows.Add(new ExcelErrorRow
                                     {
                                         RowNumber = rowNumber,
@@ -267,10 +309,14 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                                 else
                                 {
                                     successCount++;
+                                    _logger.LogInformation("User {Username} (Role: {Role}) successfully created asset for row {Row} with ID {AssetId}",
+                                        username, role, rowNumber, createdAsset.asset_id);
                                 }
                             }
                             catch (Exception ex)
                             {
+                                _logger.LogWarning("User {Username} (Role: {Role}) encountered error creating asset for row {Row}: {Error}",
+                                    username, role, rowNumber, ex.Message);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -303,11 +349,15 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                                 var errorStream = new MemoryStream(errorPackage.GetAsByteArray());
                                 TempData["SuccessCount"] = successCount;
                                 TempData["ErrorFile"] = Convert.ToBase64String(errorStream.ToArray());
+                                _logger.LogInformation("User {Username} (Role: {Role}) imported {SuccessCount} assets with {ErrorCount} errors",
+                                    username, role, successCount, errorRows.Count);
                             }
                         }
                         else
                         {
                             TempData["SuccessCount"] = successCount;
+                            _logger.LogInformation("User {Username} (Role: {Role}) successfully imported {SuccessCount} assets with no errors",
+                                username, role, successCount);
                         }
 
                         return RedirectToPage();
@@ -316,7 +366,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing Excel file: {ex.Message}");
+                _logger.LogError("User {Username} (Role: {Role}) encountered error processing Excel file: {Error}",
+                    username, role, ex.Message);
                 return BadRequest($"Lỗi khi xử lý file Excel: {ex.Message}");
             }
         }

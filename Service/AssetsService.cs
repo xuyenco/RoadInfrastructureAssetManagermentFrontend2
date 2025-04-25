@@ -1,4 +1,5 @@
-﻿using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+﻿using Microsoft.Extensions.Logging;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Net;
@@ -10,43 +11,66 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
 {
     public class AssetsService : BaseService, IAssetsService
     {
-        public AssetsService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
-            : base(httpClientFactory, httpContextAccessor)
+        private readonly ILogger<AssetsService> _logger;
+
+        public AssetsService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, ILogger<AssetsService> logger)
+            : base(httpClientFactory, httpContextAccessor, logger)
         {
+            _logger = logger;
         }
 
         public async Task<List<AssetsResponse>> GetAllAssetsAsync()
         {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is retrieving all assets", username, role);
             var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync("api/assets"));
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve assets: {StatusCode} - {Error}", username, role, response.StatusCode, errorContent);
                 throw new HttpRequestException($"Failed to retrieve assets: {response.StatusCode} - {errorContent}");
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<AssetsResponse>>(content);
+            var result = JsonSerializer.Deserialize<List<AssetsResponse>>(content);
+            _logger.LogInformation("User {Username} (Role: {Role}) retrieved {Count} assets successfully", username, role, result?.Count ?? 0);
+            return result;
         }
 
         public async Task<AssetsResponse?> GetAssetByIdAsync(int id)
         {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is retrieving asset with ID {AssetId}", username, role, id);
             var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync($"api/assets/{id}"));
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) found no asset with ID {AssetId}", username, role, id);
                 return null;
             }
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve asset with ID {AssetId}: {StatusCode} - {Error}", username, role, id, response.StatusCode, errorContent);
                 throw new HttpRequestException($"Failed to retrieve asset with ID {id}: {response.StatusCode} - {errorContent}");
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<AssetsResponse>(content);
+            var result = JsonSerializer.Deserialize<AssetsResponse>(content);
+            _logger.LogInformation("User {Username} (Role: {Role}) retrieved asset with ID {AssetId} successfully", username, role, id);
+            return result;
         }
 
         public async Task<AssetsResponse?> CreateAssetAsync(AssetsRequest request)
         {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is creating asset with name {AssetName} and category ID {CategoryId}",
+                username, role, request.asset_name, request.category_id);
             var formData = new MultipartFormDataContent();
 
             // Thêm các trường cơ bản
@@ -79,8 +103,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.image.ContentType);
                 formData.Add(fileContent, "image", request.image.FileName);
             }
+            else
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) provided no image for asset creation with name {AssetName}",
+                    username, role, request.asset_name);
+            }
 
-            // Log dữ liệu gửi lên để debug
+            // Log dữ liệu gửi lên (thay Console.WriteLine)
             foreach (var item in formData)
             {
                 var value = item switch
@@ -89,27 +118,40 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
                     StreamContent => "[File]",
                     _ => item.ToString()
                 };
-                Console.WriteLine($"{item.Headers.ContentDisposition.Name}: {value}");
+                _logger.LogDebug("User {Username} (Role: {Role}) sending form data for asset creation: {Key} = {Value}",
+                    username, role, item.Headers.ContentDisposition.Name, value);
             }
 
             var response = await ExecuteWithRefreshAsync(() => _httpClient.PostAsync("api/assets", formData));
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("User {Username} (Role: {Role}) failed to create asset with name {AssetName}: Invalid request - {Error}",
+                    username, role, request.asset_name, errorContent);
                 throw new ArgumentException($"Invalid request: {errorContent}");
             }
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to create asset with name {AssetName}: {StatusCode} - {Error}",
+                    username, role, request.asset_name, response.StatusCode, errorContent);
                 throw new HttpRequestException($"Failed to create asset: {response.StatusCode} - {errorContent}");
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<AssetsResponse>(content);
+            var result = JsonSerializer.Deserialize<AssetsResponse>(content);
+            _logger.LogInformation("User {Username} (Role: {Role}) created asset with ID {AssetId} successfully",
+                username, role, result?.asset_id);
+            return result;
         }
 
         public async Task<AssetsResponse?> UpdateAssetAsync(int id, AssetsRequest request)
         {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is updating asset with ID {AssetId} and name {AssetName}",
+                username, role, id, request.asset_name);
             var formData = new MultipartFormDataContent();
 
             // Thêm các trường cơ bản
@@ -142,8 +184,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.image.ContentType);
                 formData.Add(fileContent, "image", request.image.FileName);
             }
+            else
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) provided no image for asset update with ID {AssetId}",
+                    username, role, id);
+            }
 
-            // Log dữ liệu gửi lên để debug
+            // Log dữ liệu gửi lên (thay Console.WriteLine)
             foreach (var item in formData)
             {
                 var value = item switch
@@ -152,46 +199,63 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
                     StreamContent => "[File]",
                     _ => item.ToString()
                 };
-                Console.WriteLine($"{item.Headers.ContentDisposition.Name}: {value}");
+                _logger.LogDebug("User {Username} (Role: {Role}) sending form data for asset update: {Key} = {Value}",
+                    username, role, item.Headers.ContentDisposition.Name, value);
             }
 
             var response = await ExecuteWithRefreshAsync(() => _httpClient.PatchAsync($"api/assets/{id}", formData));
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) found no asset with ID {AssetId} for update", username, role, id);
                 return null;
             }
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("User {Username} (Role: {Role}) failed to update asset with ID {AssetId}: Invalid request - {Error}",
+                    username, role, id, errorContent);
                 throw new ArgumentException($"Invalid request: {errorContent}");
             }
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to update asset with ID {AssetId}: {StatusCode} - {Error}",
+                    username, role, id, response.StatusCode, errorContent);
                 throw new HttpRequestException($"Failed to update asset with ID {id}: {response.StatusCode} - {errorContent}");
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<AssetsResponse>(content);
+            var result = JsonSerializer.Deserialize<AssetsResponse>(content);
+            _logger.LogInformation("User {Username} (Role: {Role}) updated asset with ID {AssetId} successfully", username, role, id);
+            return result;
         }
 
         public async Task<bool> DeleteAssetAsync(int id)
         {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is deleting asset with ID {AssetId}", username, role, id);
             var response = await ExecuteWithRefreshAsync(() => _httpClient.DeleteAsync($"api/assets/{id}"));
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) found no asset with ID {AssetId} for deletion", username, role, id);
                 return false;
             }
             if (response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to delete asset with ID {AssetId}: {Error}", username, role, id, errorContent);
                 throw new InvalidOperationException($"Failed to delete asset with ID {id}: {errorContent}");
             }
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to delete asset with ID {AssetId}: {StatusCode} - {Error}", username, role, id, response.StatusCode, errorContent);
                 throw new HttpRequestException($"Failed to delete asset with ID {id}: {response.StatusCode} - {errorContent}");
             }
+
+            _logger.LogInformation("User {Username} (Role: {Role}) deleted asset with ID {AssetId} successfully", username, role, id);
             return true;
         }
     }

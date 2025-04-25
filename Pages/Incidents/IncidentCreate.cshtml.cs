@@ -6,6 +6,7 @@ using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using System.Text.Json;
 using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
+using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 {
@@ -14,19 +15,22 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
         private readonly IIncidentsService _incidentsService;
         private readonly IIncidentImageService _incidentImageService;
         private readonly IAssetCagetoriesService _assetCagetoriesService;
+        private readonly ILogger<IncidentCreateModel> _logger;
 
         public IncidentCreateModel(
             IIncidentsService incidentsService,
             IIncidentImageService incidentImageService,
-            IAssetCagetoriesService assetCagetoriesService)
+            IAssetCagetoriesService assetCagetoriesService,
+            ILogger<IncidentCreateModel> logger)
         {
             _incidentsService = incidentsService;
             _incidentImageService = incidentImageService;
             _assetCagetoriesService = assetCagetoriesService;
+            _logger = logger;
         }
 
         [BindProperty]
-        public IncidentsRequest Incident { get; set; } = new IncidentsRequest();
+        public IncidentsRequest Incident { get; set; } = new IncidentsRequest { geometry = new GeoJsonGeometry() };
 
         [BindProperty]
         public IFormFile[] Images { get; set; }
@@ -38,12 +42,22 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 
         public async Task<IActionResult> OnGetAsync()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is accessing the incident creation page", username, role);
             AssetCategories = await _assetCagetoriesService.GetAllAssetCagetoriesAsync() ?? new List<AssetCagetoriesResponse>();
+            _logger.LogInformation("User {Username} (Role: {Role}) retrieved {CategoryCount} asset categories for incident creation",username, role, AssetCategories.Count);
             return Page();
         }
 
         public IActionResult OnGetDownloadExcelTemplate()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is downloading Excel template for incident creation", username, role);
+
             ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
             using var package = new ExcelPackage();
             var worksheet = package.Workbook.Worksheets.Add("Template for Incident Input");
@@ -69,14 +83,20 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 
             worksheet.Cells.AutoFitColumns();
             var stream = new MemoryStream(package.GetAsByteArray());
+            _logger.LogInformation("User {Username} (Role: {Role}) successfully generated Excel template for incident creation",username, role);
             return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Incident_Template.xlsx");
         }
 
         public async Task<IActionResult> OnPostImportExcelAsync(IFormFile excelFile, IFormFileCollection imageFiles)
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is importing incidents from Excel file", username, role);
+
             if (excelFile == null || excelFile.Length == 0)
             {
-                Console.WriteLine("No Excel file uploaded.");
+                _logger.LogWarning("User {Username} (Role: {Role}) did not upload an Excel file", username, role);
                 TempData["Error"] = "Vui lòng chọn file Excel.";
                 return RedirectToPage();
             }
@@ -97,7 +117,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 
                 if (rowCount < 2 || colCount < 1)
                 {
-                    Console.WriteLine("Excel file is empty or invalid.");
+                    _logger.LogWarning("User {Username} (Role: {Role}) uploaded an empty or invalid Excel file", username, role);
                     TempData["Error"] = "File Excel trống hoặc không hợp lệ.";
                     return RedirectToPage();
                 }
@@ -158,8 +178,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                         }
                     }
 
-                    // Log dữ liệu gốc để debug
-                    Console.WriteLine($"Row {row} data: {JsonSerializer.Serialize(rowData)}");
+                    _logger.LogDebug("User {Username} (Role: {Role}) parsed row {Row} data: {RowData}",username, role, row, JsonSerializer.Serialize(rowData));
 
                     // Xử lý geometry
                     if (!string.IsNullOrEmpty(geometryType) && !string.IsNullOrEmpty(geometryCoordinates))
@@ -172,10 +191,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                             if (geometrySystem?.ToUpper() == "WGS84")
                             {
                                 incident.geometry = CoordinateConverter.ConvertGeometryToVN2000(incident.geometry, 48);
+                                _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000 for row {Row}: {Geometry}",username, role, row, JsonSerializer.Serialize(incident.geometry));
                             }
                         }
                         catch (Exception ex)
                         {
+                            _logger.LogWarning("User {Username} (Role: {Role}) encountered geometry error in row {Row}: {Error}",username, role, row, ex.Message);
                             errorRows.Add(new ExcelErrorRow
                             {
                                 RowNumber = row,
@@ -187,6 +208,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                     }
                     else
                     {
+                        _logger.LogWarning("User {Username} (Role: {Role}) missing geometry type or coordinates in row {Row}",username, role, row);
                         errorRows.Add(new ExcelErrorRow
                         {
                             RowNumber = row,
@@ -202,6 +224,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                     {
                         if (!imageFileMap.ContainsKey(Path.GetFileName(imagePath)))
                         {
+                            _logger.LogWarning("User {Username} (Role: {Role}) did not find image '{ImagePath}' for row {Row}",username, role, imagePath, row);
                             errorRows.Add(new ExcelErrorRow
                             {
                                 RowNumber = row,
@@ -226,6 +249,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                         string.IsNullOrEmpty(incident.damage_level) ||
                         string.IsNullOrEmpty(incident.processing_status))
                     {
+                        _logger.LogWarning("User {Username} (Role: {Role}) provided invalid data in row {Row}: Missing severity_level, damage_level, or processing_status",username, role, rowNumber);
                         errorRows.Add(new ExcelErrorRow
                         {
                             RowNumber = rowNumber,
@@ -238,6 +262,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                     // Validate enum values
                     if (!new[] { "low", "medium", "high", "critical" }.Contains(incident.severity_level.ToLower()))
                     {
+                        _logger.LogWarning("User {Username} (Role: {Role}) provided invalid severity_level in row {Row}: {SeverityLevel}",username, role, rowNumber, incident.severity_level);
                         errorRows.Add(new ExcelErrorRow
                         {
                             RowNumber = rowNumber,
@@ -249,6 +274,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 
                     if (!new[] { "minor", "moderate", "severe" }.Contains(incident.damage_level.ToLower()))
                     {
+                        _logger.LogWarning("User {Username} (Role: {Role}) provided invalid damage_level in row {Row}: {DamageLevel}",username, role, rowNumber, incident.damage_level);
                         errorRows.Add(new ExcelErrorRow
                         {
                             RowNumber = rowNumber,
@@ -260,6 +286,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 
                     if (!new[] { "reported", "under review", "resolved", "closed" }.Contains(incident.processing_status.ToLower()))
                     {
+                        _logger.LogWarning("User {Username} (Role: {Role}) provided invalid processing_status in row {Row}: {ProcessingStatus}",username, role, rowNumber, incident.processing_status);
                         errorRows.Add(new ExcelErrorRow
                         {
                             RowNumber = rowNumber,
@@ -271,9 +298,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 
                     try
                     {
+                        _logger.LogDebug("User {Username} (Role: {Role}) creating incident for row {Row}: {IncidentData}",username, role, rowNumber, JsonSerializer.Serialize(incident));
                         var createdIncident = await _incidentsService.CreateIncidentAsync(incident);
                         if (createdIncident == null)
                         {
+                            _logger.LogWarning("User {Username} (Role: {Role}) failed to create incident for row {Row}: No result returned",
+                                username, role, rowNumber);
                             errorRows.Add(new ExcelErrorRow
                             {
                                 RowNumber = rowNumber,
@@ -293,9 +323,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                                     incident_id = createdIncident.incident_id,
                                     image = imageFile
                                 };
+                                _logger.LogDebug("User {Username} (Role: {Role}) uploading image for incident ID {IncidentId} in row {Row}: filename={FileName}, size={Size}",
+                                    username, role, createdIncident.incident_id, rowNumber, imageFile.FileName, imageFile.Length);
                                 var createdImage = await _incidentImageService.CreateIncidentImageAsync(imageRequest);
                                 if (createdImage == null)
                                 {
+                                    _logger.LogWarning("User {Username} (Role: {Role}) failed to upload image for incident ID {IncidentId} in row {Row}: filename={FileName}",
+                                        username, role, createdIncident.incident_id, rowNumber, imageFile.FileName);
                                     errorRows.Add(new ExcelErrorRow
                                     {
                                         RowNumber = rowNumber,
@@ -307,9 +341,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                         }
 
                         successCount++;
+                        _logger.LogInformation("User {Username} (Role: {Role}) successfully created incident ID {IncidentId} for row {Row} with {ImageCount} images",username, role, createdIncident.incident_id, rowNumber, imagePathList.Length);
                     }
                     catch (Exception ex)
                     {
+                        _logger.LogWarning("User {Username} (Role: {Role}) encountered error creating incident for row {Row}: {Error}",
+                            username, role, rowNumber, ex.Message);
                         errorRows.Add(new ExcelErrorRow
                         {
                             RowNumber = rowNumber,
@@ -341,10 +378,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                     var errorStream = new MemoryStream(errorPackage.GetAsByteArray());
                     TempData["SuccessCount"] = successCount;
                     TempData["ErrorFile"] = Convert.ToBase64String(errorStream.ToArray());
+                    _logger.LogInformation("User {Username} (Role: {Role}) imported {SuccessCount} incidents with {ErrorCount} errors",username, role, successCount, errorRows.Count);
                 }
                 else
                 {
                     TempData["SuccessCount"] = successCount;
+                    _logger.LogInformation("User {Username} (Role: {Role}) successfully imported {SuccessCount} incidents with no errors",username, role, successCount);
                 }
 
                 TempData["Success"] = $"Đã nhập thành công {successCount} incident.";
@@ -352,7 +391,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing Excel file: {ex.Message}");
+                _logger.LogError("User {Username} (Role: {Role}) encountered error processing Excel file: {Error}",username, role, ex.Message);
                 TempData["Error"] = $"Lỗi khi xử lý file Excel: {ex.Message}";
                 return RedirectToPage();
             }
@@ -360,12 +399,19 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is submitting a new incident", username, role);
+            _logger.LogDebug("User {Username} (Role: {Role}) submitted form data: {FormData}",username, role, JsonSerializer.Serialize(Request.Form));
+
             var geometryType = Request.Form["Incident.geometry.type"].ToString();
             var coordinatesJson = Request.Form["Incident.geometry.coordinates"].ToString();
             var geometrySystem = Request.Form["GeometrySystem"].ToString();
 
             if (string.IsNullOrEmpty(geometryType))
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide geometry type", username, role);
                 ModelState.AddModelError("Incident.geometry.type", "Loại hình học là bắt buộc.");
             }
             else
@@ -375,6 +421,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 
             if (string.IsNullOrEmpty(coordinatesJson))
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide geometry coordinates", username, role);
                 ModelState.AddModelError("Incident.geometry.coordinates", "Tọa độ là bắt buộc.");
             }
             else
@@ -382,17 +429,18 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                 try
                 {
                     Incident.geometry.coordinates = JsonSerializer.Deserialize<object>(coordinatesJson);
-                    Console.WriteLine($"Deserialized coordinates: {JsonSerializer.Serialize(Incident.geometry.coordinates)}");
+                    _logger.LogDebug("User {Username} (Role: {Role}) deserialized coordinates: {Coordinates}",username, role, JsonSerializer.Serialize(Incident.geometry.coordinates));
                 }
                 catch (JsonException ex)
                 {
-                    Console.WriteLine($"JSON parsing error: {ex.Message}");
+                    _logger.LogWarning("User {Username} (Role: {Role}) provided invalid coordinates: {Error}",username, role, ex.Message);
                     ModelState.AddModelError("Incident.geometry.coordinates", $"Định dạng tọa độ không hợp lệ: {ex.Message}");
                 }
             }
 
             if (string.IsNullOrEmpty(geometrySystem))
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide geometry system", username, role);
                 ModelState.AddModelError("GeometrySystem", "Hệ tọa độ là bắt buộc.");
             }
             else
@@ -400,29 +448,73 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                 GeometrySystem = geometrySystem;
                 if (geometrySystem == "wgs84")
                 {
-                    var vn2000Geometry = CoordinateConverter.ConvertGeometryToVN2000(Incident.geometry, 48);
-                    Incident.geometry = vn2000Geometry;
+                    try
+                    {
+                        var vn2000Geometry = CoordinateConverter.ConvertGeometryToVN2000(Incident.geometry, 48);
+                        Incident.geometry = vn2000Geometry;
+                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000: {Geometry}",username, role, JsonSerializer.Serialize(Incident.geometry));
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("User {Username} (Role: {Role}) failed to convert geometry to VN2000: {Error}",username, role, ex.Message);
+                        ModelState.AddModelError("Incident.geometry", $"Lỗi chuyển đổi tọa độ: {ex.Message}");
+                    }
                 }
             }
 
-            if (!ModelState.IsValid)
+            // Validate required fields and enum values
+            if (string.IsNullOrEmpty(Incident.severity_level))
             {
-                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    Console.WriteLine($"Validation error: {error.ErrorMessage}");
-                }
-                AssetCategories = await _assetCagetoriesService.GetAllAssetCagetoriesAsync() ?? new List<AssetCagetoriesResponse>();
-                return Page();
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide severity_level", username, role);
+                ModelState.AddModelError("Incident.severity_level", "Mức độ nghiêm trọng là bắt buộc.");
             }
+            else if (!new[] { "low", "medium", "high", "critical" }.Contains(Incident.severity_level.ToLower()))
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid severity_level: {SeverityLevel}",username, role, Incident.severity_level);
+                ModelState.AddModelError("Incident.severity_level", "Mức độ nghiêm trọng không hợp lệ: phải là 'low', 'medium', 'high', hoặc 'critical'.");
+            }
+
+            if (string.IsNullOrEmpty(Incident.damage_level))
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide damage_level", username, role);
+                ModelState.AddModelError("Incident.damage_level", "Mức độ hư hỏng là bắt buộc.");
+            }
+            else if (!new[] { "minor", "moderate", "severe" }.Contains(Incident.damage_level.ToLower()))
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid damage_level: {DamageLevel}",username, role, Incident.damage_level);
+                ModelState.AddModelError("Incident.damage_level", "Mức độ hư hỏng không hợp lệ: phải là 'minor', 'moderate', hoặc 'severe'.");
+            }
+
+            if (string.IsNullOrEmpty(Incident.processing_status))
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide processing_status", username, role);
+                ModelState.AddModelError("Incident.processing_status", "Trạng thái xử lý là bắt buộc.");
+            }
+            else if (!new[] { "reported", "under review", "resolved", "closed" }.Contains(Incident.processing_status.ToLower()))
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid processing_status: {ProcessingStatus}",username, role, Incident.processing_status);
+                ModelState.AddModelError("Incident.processing_status", "Trạng thái xử lý không hợp lệ: phải là 'reported', 'under review', 'resolved', hoặc 'closed'.");
+            }
+
+            //if (!ModelState.IsValid)
+            //{
+            //    var errors = ModelState.ToDictionary(
+            //        kvp => kvp.Key,
+            //        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+            //    );
+            //    _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors: {Errors}",username, role, JsonSerializer.Serialize(errors));
+            //    AssetCategories = await _assetCagetoriesService.GetAllAssetCagetoriesAsync() ?? new List<AssetCagetoriesResponse>();
+            //    return Page();
+            //}
 
             try
             {
-                Console.WriteLine($"Creating incident: {JsonSerializer.Serialize(Incident)}");
+                _logger.LogDebug("User {Username} (Role: {Role}) creating incident: {IncidentData}",username, role, JsonSerializer.Serialize(Incident));
                 var createdIncident = await _incidentsService.CreateIncidentAsync(Incident);
                 if (createdIncident == null)
                 {
+                    _logger.LogWarning("User {Username} (Role: {Role}) failed to create incident: No result returned",username, role);
                     TempData["Error"] = "Không thể tạo Incident. Dữ liệu trả về từ dịch vụ là null.";
-                    Console.WriteLine("Incident creation failed: null response from service.");
                     AssetCategories = await _assetCagetoriesService.GetAllAssetCagetoriesAsync() ?? new List<AssetCagetoriesResponse>();
                     return Page();
                 }
@@ -438,22 +530,24 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                                 incident_id = createdIncident.incident_id,
                                 image = image
                             };
+                            _logger.LogDebug("User {Username} (Role: {Role}) uploading image for incident ID {IncidentId}: filename={FileName}, size={Size}",username, role, createdIncident.incident_id, image.FileName, image.Length);
                             var createdImage = await _incidentImageService.CreateIncidentImageAsync(imageRequest);
                             if (createdImage == null)
                             {
-                                Console.WriteLine($"Failed to create image for incident ID {createdIncident.incident_id}");
+                                _logger.LogWarning("User {Username} (Role: {Role}) failed to upload image for incident ID {IncidentId}: filename={FileName}",username, role, createdIncident.incident_id, image.FileName);
                                 TempData["Warning"] = "Incident đã được tạo, nhưng một số ảnh không thể thêm.";
                             }
                         }
                     }
                 }
 
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully created incident ID {IncidentId} with {ImageCount} images",username, role, createdIncident.incident_id, Images?.Length ?? 0);
                 TempData["Success"] = "Incident và ảnh (nếu có) đã được tạo thành công!";
                 return RedirectToPage("/Incidents/Index");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Unexpected error: {ex.Message}, StackTrace: {ex.StackTrace}");
+                _logger.LogError("User {Username} (Role: {Role}) encountered error creating incident: {Error}",username, role, ex.Message);
                 TempData["Error"] = $"Đã xảy ra lỗi khi tạo Incident: {ex.Message}";
                 AssetCategories = await _assetCagetoriesService.GetAllAssetCagetoriesAsync() ?? new List<AssetCagetoriesResponse>();
                 return Page();

@@ -1,19 +1,24 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
-using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using System;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 {
     public class TaskDetailModel : PageModel
     {
         private readonly ITasksService _tasksService;
+        private readonly ILogger<TaskDetailModel> _logger;
 
-        public TaskDetailModel(ITasksService tasksService)
+        public TaskDetailModel(ITasksService tasksService, ILogger<TaskDetailModel> logger)
         {
             _tasksService = tasksService;
+            _logger = logger;
         }
 
         public TasksResponse Task { get; set; }
@@ -22,35 +27,49 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is accessing details for task with ID {TaskId}",username, role, id);
+
             try
             {
                 Task = await _tasksService.GetTaskByIdAsync(id);
                 if (Task == null)
                 {
+                    _logger.LogWarning("User {Username} (Role: {Role}) found no task with ID {TaskId}",username, role, id);
                     TempData["Error"] = "Không tìm thấy Nhiệm vụ với ID này.";
                     return RedirectToPage("/Tasks/Index");
                 }
+
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully retrieved task with ID {TaskId}",username, role, id);
 
                 if (Task.geometry != null && Task.geometry.coordinates != null)
                 {
                     // VN2000 coordinates for display
                     LocationDisplay = ParseCoordinates(Task.geometry.type, Task.geometry.coordinates);
+                    _logger.LogDebug("User {Username} (Role: {Role}) parsed VN2000 coordinates for task ID {TaskId}: {LocationDisplay}",username, role, id, LocationDisplay);
 
                     // Convert to WGS84 for map display
                     Wgs84Geometry = CoordinateConverter.ConvertGeometryToWGS84(Task.geometry);
+                    _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to WGS84 for task ID {TaskId}: {Wgs84Geometry}",username, role, id, JsonSerializer.Serialize(Wgs84Geometry));
+                }
+                else
+                {
+                    _logger.LogDebug("User {Username} (Role: {Role}) found no geometry data for task ID {TaskId}",username, role, id);
                 }
 
                 return Page();
             }
             catch (UnauthorizedAccessException ex)
             {
-                Console.WriteLine($"Unauthorized access: {ex.Message}");
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered unauthorized access for task ID {TaskId}: {Error}",username, role, id, ex.Message);
                 TempData["Error"] = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
                 return RedirectToPage("/Login");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading task details: {ex.Message}, StackTrace: {ex.StackTrace}");
+                _logger.LogError("User {Username} (Role: {Role}) encountered error loading task details for task ID {TaskId}: {Error}",username, role, id, ex.Message);
                 TempData["Error"] = $"Đã xảy ra lỗi khi tải thông tin Nhiệm vụ: {ex.Message}";
                 return RedirectToPage("/Tasks/Index");
             }
@@ -58,6 +77,11 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 
         private string ParseCoordinates(string geometryType, object coordinates)
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogDebug("User {Username} (Role: {Role}) is parsing coordinates for geometry type {GeometryType}: {Coordinates}",username, role, geometryType, JsonSerializer.Serialize(coordinates));
+
             try
             {
                 if (coordinates is JsonElement jsonElement)
@@ -100,11 +124,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                     return $"[{string.Join(", ", points)}]";
                 }
 
-                return $"Không xác định (Type: {geometryType}, Coordinates: {coordinates?.ToString()})";
+                _logger.LogWarning("User {Username} (Role: {Role}) could not parse coordinates for geometry type {GeometryType}: {Coordinates}",username, role, geometryType, JsonSerializer.Serialize(coordinates));
+                return $"Không xác định (Type: {geometryType}, Coordinates: {JsonSerializer.Serialize(coordinates)})";
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error parsing coordinates: {ex.Message}");
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered error parsing coordinates for geometry type {GeometryType}: {Error}",username, role, geometryType, ex.Message);
                 return $"Lỗi xử lý tọa độ: {ex.Message}";
             }
         }

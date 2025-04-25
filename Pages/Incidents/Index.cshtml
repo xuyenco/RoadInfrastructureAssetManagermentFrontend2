@@ -1,6 +1,9 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend2.Pages.Incidents.IndexModel
 @{
+    Layout = "_Layout";
+    ViewData["Title"] = "Danh sách Sự cố";
+    ViewData["Mapview"] = "Leaflet";
 }
 
 <!DOCTYPE html>
@@ -8,30 +11,100 @@
 <head>
     <title>Incidents Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <style>
+        /* Map styling to fill the page */
         #map {
-            height: 600px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             width: 100%;
+            height: calc(100% - 60px); /* Subtract footer height */
+            z-index: 1;
         }
 
-        .container-fluid {
-            display: flex;
+        /* Container for overlay content */
+        .container {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            z-index: 10;
+            max-width: 300px;
         }
 
-        .sidebar {
-            width: 250px;
+        /* Overlay content styling */
+        .content-overlay {
+            background: rgba(255, 255, 255, 0.9);
             padding: 15px;
-            background-color: #f8f9fa;
-            height: 600px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Title */
+        h1 {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        /* Button styling */
+        .btn-primary, .btn-success {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+
+            .btn-primary:hover {
+                background-color: #2980b9;
+                transform: translateY(-2px);
+            }
+
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+
+            .btn-success:hover {
+                background-color: #218838;
+                transform: translateY(-2px);
+            }
+
+        .btn i {
+            margin-right: 6px;
+        }
+
+        .mb-3 {
+            text-align: center;
+        }
+
+        /* Navbar filter styling */
+        .navbar-filter {
+            position: absolute;
+            top: 0;
+            left: -300px; /* Hidden by default */
+            width: 300px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            z-index: 1000;
+            transition: left 0.3s ease;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
-            border-right: 1px solid #dee2e6;
         }
 
-        .main-content {
-            flex-grow: 1;
-            padding: 15px;
-            position: relative;
-        }
+            .navbar-filter.open {
+                left: 0; /* Show when open */
+            }
 
         .filter-group {
             margin-bottom: 15px;
@@ -41,76 +114,215 @@
                 display: block;
                 margin-bottom: 5px;
                 font-weight: bold;
+                color: #2c3e50;
+            }
+
+            .filter-group select, .filter-group input {
+                width: 100%;
+                padding: 8px;
+                border-radius: 6px;
+                border: 1px solid #ced4da;
             }
 
         .incident-count {
             margin-top: 20px;
-            padding: 5px 10px;
-            background: white;
-            border-radius: 3px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* Toggle button */
+        .toggle-filter-btn {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            z-index: 10;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+            .toggle-filter-btn:hover {
+                background-color: #2980b9;
+            }
+
+        /* Close button for navbar */
+        .close-filter-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+            .close-filter-btn:hover {
+                color: #c0392b;
+            }
+
+        /* Search message */
+        .search-message {
+            display: none;
+            position: absolute;
+            top: 120px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            color: #2c3e50;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="sidebar">
-            <h4>Filters</h4>
-            <div class="filter-group">
-                <label>Severity Level</label>
-                <select id="severityFilter" class="form-control">
-                    <option value="">All Severity Levels</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                </select>
-            </div>
+    <div id="map"></div>
 
-            <div class="filter-group">
-                <label>Processing Status</label>
-                <select id="statusFilter" class="form-control">
-                    <option value="">All Statuses</option>
-                    <option value="reported">Reported</option>
-                    <option value="under review">Under Review</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
-                </select>
-            </div>
+    <!-- Toggle button for filter navbar -->
+    <button class="toggle-filter-btn" id="toggleFilterBtn">
+        <i class="fas fa-filter"></i> Filters
+    </button>
 
-            <div class="incident-count">
-                Total Incidents: <span id="incidentCount">0</span>
-            </div>
+    <!-- Filter navbar (hidden by default) -->
+    <div class="navbar-filter" id="filterNavbar">
+        <button class="close-filter-btn" id="closeFilterBtn">
+            <i class="fas fa-times"></i>
+        </button>
+        <h4 style="color: #2c3e50; margin-bottom: 20px;">Filters</h4>
+        <div class="filter-group">
+            <label>Search</label>
+            <input type="text" id="searchFilter" class="form-control" placeholder="Enter address or route">
         </div>
-
-        <div class="main-content">
-            <h2>Road Incidents Map</h2>
-            <button class="btn btn-success btn-sm mb-3" onclick="exportIncidentsReport()">
-                <i class="fas fa-file-export"></i> Xuất báo cáo
-            </button>
-            <div id="map"></div>
+        <div class="filter-group">
+            <label>Severity Level</label>
+            <select id="severityFilter" class="form-control">
+                <option value="">All Severity Levels</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Processing Status</label>
+            <select id="statusFilter" class="form-control">
+                <option value="">All Statuses</option>
+                <option value="reported">Reported</option>
+                <option value="under review">Under Review</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+            </select>
+        </div>
+        <div class="incident-count">
+            Total Incidents: <span id="incidentCount">0</span>
         </div>
     </div>
+
+    <!-- Overlay content for title and export button -->
+    <div class="container">
+        <div class="content-overlay">
+            <h1>Road Incidents Map</h1>
+            <div class="mb-3">
+                <button class="btn btn-success btn-sm" onclick="exportIncidentsReport()">
+                    <i class="fas fa-file-export"></i> Xuất báo cáo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search message -->
+    <div class="search-message" id="searchMessage"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="text/javascript">
         var map = L.map('map').setView([21.0285, 105.8542], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap"> contributors'
         }).addTo(map);
 
-        var allIncidents = []; // Lưu trữ tất cả incident từ GeoServer
+        var allIncidents = [];
         var markersLayer = L.layerGroup().addTo(map);
 
-        // Tải dữ liệu từ GeoServer layer cite:incidents_layer
-        function loadIncidentsFromGeoServer() {
-            const url = 'http://localhost:8080/geoserver/wfs?service=WFS&request=GetFeature&typeName=cite:incidents_layer_2&outputFormat=application/json';
+        // Cache functions
+        function getCachedData(key, maxAgeInSec = 600) {
+            const cached = localStorage.getItem(key);
+            if (cached) {
+                const { data, timestamp } = JSON.parse(cached);
+                const age = (Date.now() - timestamp) / 1000;
+                if (age < maxAgeInSec) {
+                    return data;
+                } else {
+                    localStorage.removeItem(key);
+                }
+            }
+            return null;
+        }
+
+        function setCachedData(key, data) {
+            const cacheEntry = {
+                data,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(key, JSON.stringify(cacheEntry));
+        }
+
+        // Load data from GeoServer
+        function loadIncidentsFromGeoServer(searchKeyword = '') {
+            const cacheKey = `geoserver_incidents_${encodeURIComponent(searchKeyword)}`;
+            const cachedData = null; // Disable cache for debugging
+
+            if (cachedData) {
+                console.log('Get data from cache for search:', searchKeyword);
+                allIncidents = cachedData.features.map(feature => ({
+                    incident_id: feature.properties.incident_id,
+                    address: feature.properties.address,
+                    geometry: {
+                        type: feature.geometry.type,
+                        coordinates: feature.geometry.coordinates
+                    },
+                    route: feature.properties.route,
+                    severity_level: feature.properties.severity_level,
+                    damage_level: feature.properties.damage_level,
+                    processing_status: feature.properties.processing_status,
+                    task_id: feature.properties.task_id,
+                    created_at: feature.properties.created_at
+                }));
+                filterIncidents();
+                return Promise.resolve();
+            }
+
+            let cqlFilter = '1=1';
+            if (searchKeyword) {
+                const safeKeyword = searchKeyword.trim().replace(/'/g, "''");
+                cqlFilter = `address ILIKE '%${safeKeyword}%' OR route ILIKE '%${safeKeyword}%'`;
+            }
+
+            const url = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:incidents_layer_2&outputFormat=application/json&srsName=EPSG:4326&cql_filter=${encodeURIComponent(cqlFilter)}`;
+            console.log('WFS URL:', url);
+
             return fetch(url)
                 .then(response => {
-                    if (!response.ok) throw new Error('Failed to fetch incidents from GeoServer');
-                    return response.json();
+                    console.log('Response status:', response.status);
+                    return response.text().then(text => ({ response, text }));
+                })
+                .then(({ response, text }) => {
+                    console.log('Raw response:', text);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
+                    }
+                    return JSON.parse(text);
                 })
                 .then(data => {
+                    console.log('GeoServer response:', data);
                     allIncidents = data.features.map(feature => ({
                         incident_id: feature.properties.incident_id,
                         address: feature.properties.address,
@@ -125,10 +337,13 @@
                         task_id: feature.properties.task_id,
                         created_at: feature.properties.created_at
                     }));
-                    console.log("Incidents loaded from GeoServer:", allIncidents);
-                    updateMarkers(allIncidents);
+                    setCachedData(cacheKey, data);
+                    filterIncidents();
                 })
-                .catch(error => console.error("Error loading incidents:", error));
+                .catch(error => {
+                    console.error('Error loading GeoServer data:', error);
+                    alert('Không thể tải dữ liệu từ GeoServer: ' + error.message);
+                });
         }
 
         function updateMarkers(incidents) {
@@ -138,7 +353,7 @@
             incidents.forEach(function (incident) {
                 if (incident.geometry && incident.geometry.coordinates && incident.geometry.type === "Point") {
                     var coords = incident.geometry.coordinates;
-                    var marker = L.marker([coords[1], coords[0]]); // Giả sử tọa độ là [lng, lat]
+                    var marker = L.marker([coords[1], coords[0]]);
 
                     marker.bindPopup(
                         "<b>Incident ID: " + incident.incident_id + "</b><br>" +
@@ -172,9 +387,25 @@
 
             if (markers.length > 0) {
                 var group = new L.featureGroup(markers);
-                map.fitBounds(group.getBounds());
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            } else {
+                map.setView([21.0285, 105.8542], 13);
             }
             document.getElementById('incidentCount').textContent = incidents.length;
+
+            // Update search message
+            const searchKeyword = document.getElementById('searchFilter').value.trim();
+            const searchMessage = document.getElementById('searchMessage');
+            if (searchKeyword) {
+                searchMessage.style.display = 'block';
+                if (incidents.length > 0) {
+                    searchMessage.textContent = `Tìm thấy ${incidents.length} sự cố khớp với "${searchKeyword}"`;
+                } else {
+                    searchMessage.textContent = `Không tìm thấy sự cố nào khớp với "${searchKeyword}"`;
+                }
+            } else {
+                searchMessage.style.display = 'none';
+            }
         }
 
         function filterIncidents() {
@@ -189,11 +420,46 @@
             updateMarkers(filteredIncidents);
         }
 
-        document.getElementById('severityFilter').addEventListener('change', filterIncidents);
-        document.getElementById('statusFilter').addEventListener('change', filterIncidents);
+        // Toggle filter navbar
+        function toggleFilterNavbar() {
+            var navbar = document.getElementById('filterNavbar');
+            console.log('Toggling filter navbar:', navbar.classList.contains('open') ? 'Closing' : 'Opening');
+            navbar.classList.toggle('open');
+        }
 
-        // Tải dữ liệu khi trang khởi tạo
+        // Event listeners
         document.addEventListener('DOMContentLoaded', function () {
+            const toggleBtn = document.getElementById('toggleFilterBtn');
+            const closeBtn = document.getElementById('closeFilterBtn');
+            const severityFilter = document.getElementById('severityFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const searchInput = document.getElementById('searchFilter');
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', toggleFilterNavbar);
+            }
+            if (closeBtn) {
+                closeBtn.addEventListener('click', toggleFilterNavbar);
+            }
+            if (severityFilter) {
+                severityFilter.addEventListener('change', filterIncidents);
+            }
+            if (statusFilter) {
+                statusFilter.addEventListener('change', filterIncidents);
+            }
+            if (searchInput) {
+                let debounceTimeout;
+                searchInput.addEventListener('input', function () {
+                    clearTimeout(debounceTimeout);
+                    debounceTimeout = setTimeout(() => {
+                        const searchKeyword = searchInput.value.trim();
+                        console.log('Search keyword:', searchKeyword);
+                        loadIncidentsFromGeoServer(searchKeyword);
+                    }, 500);
+                });
+            }
+
+            // Load initial data
             loadIncidentsFromGeoServer();
         });
 

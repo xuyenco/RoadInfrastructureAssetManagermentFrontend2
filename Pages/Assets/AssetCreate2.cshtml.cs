@@ -6,6 +6,7 @@ using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 {
@@ -13,11 +14,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
     {
         private readonly IAssetsService _assetsService;
         private readonly IAssetCagetoriesService _assetCagetoriesService;
+        private readonly ILogger<AssetCreate2Model> _logger;
 
-        public AssetCreate2Model(IAssetsService assetsService, IAssetCagetoriesService assetCagetoriesService)
+        public AssetCreate2Model(IAssetsService assetsService, IAssetCagetoriesService assetCagetoriesService, ILogger<AssetCreate2Model> logger)
         {
             _assetsService = assetsService;
             _assetCagetoriesService = assetCagetoriesService;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -30,14 +33,25 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 
         public async Task OnGetAsync()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is accessing the asset creation page", username, role);
             Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
+            _logger.LogInformation("User {Username} (Role: {Role}) retrieved {CategoryCount} categories for asset creation",username, role, Categories.Count);
         }
 
         public async Task<IActionResult> OnGetGetCategorySchemaAsync(int id)
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is retrieving category schema for category ID {CategoryId}",username, role, id);
+
             var selectedCategories = await _assetCagetoriesService.GetAssetCagetoriesByIdAsync(id);
             if (selectedCategories == null)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) found no category with ID {CategoryId}", username, role, id);
                 return new JsonResult(new { html = "<p>Không tìm thấy danh mục.</p>" });
             }
 
@@ -93,6 +107,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                 }
             }
 
+            _logger.LogInformation("User {Username} (Role: {Role}) successfully retrieved category schema for category ID {CategoryId}",username, role, id);
             return new JsonResult(new
             {
                 html,
@@ -102,8 +117,11 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 
         public async Task<IActionResult> OnPostAsync()
         {
-            Console.WriteLine("Post method start - Request received");
-            Console.WriteLine($"Form data: {JsonSerializer.Serialize(Request.Form)}");
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is submitting a new asset", username, role);
+            _logger.LogDebug("User {Username} (Role: {Role}) submitted form data: {FormData}",username, role, JsonSerializer.Serialize(Request.Form));
 
             // Xử lý geometry (chuỗi JSON)
             var geometryJson = Request.Form["NewAsset.geometry"];
@@ -111,7 +129,6 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
             {
                 try
                 {
-                    // Gán trực tiếp chuỗi JSON vào NewAsset.geometry
                     NewAsset.geometry = geometryJson;
                     if (ModelState.ContainsKey("NewAsset.geometry"))
                     {
@@ -121,11 +138,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                 }
                 catch (Exception ex)
                 {
+                    _logger.LogWarning("User {Username} (Role: {Role}) provided invalid GeoJSON: {Error}",username, role, ex.Message);
                     ModelState.AddModelError("NewAsset.geometry", $"Định dạng GeoJSON không hợp lệ: {ex.Message}");
                 }
             }
             else
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide geometry", username, role);
                 ModelState.AddModelError("NewAsset.geometry", "Hình học là bắt buộc.");
             }
 
@@ -137,20 +156,21 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                 {
                     try
                     {
-                        // Parse tạm geometry để chuyển đổi tọa độ
                         var geoJsonGeometry = JsonSerializer.Deserialize<GeoJsonGeometry>(NewAsset.geometry);
                         var vn2000Geometry = CoordinateConverter.ConvertGeometryToVN2000(geoJsonGeometry, 48);
-                        // Gán lại chuỗi JSON sau khi chuyển đổi
                         NewAsset.geometry = JsonSerializer.Serialize(vn2000Geometry);
+                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000: {Geometry}",username, role, NewAsset.geometry);
                     }
                     catch (Exception ex)
                     {
+                        _logger.LogWarning("User {Username} (Role: {Role}) failed to convert geometry to VN2000: {Error}",username, role, ex.Message);
                         ModelState.AddModelError("NewAsset.geometry", $"Lỗi chuyển đổi tọa độ: {ex.Message}");
                     }
                 }
             }
             else
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not select a geometry system", username, role);
                 ModelState.AddModelError("GeometrySystem", "Phải chọn loại hệ thống địa lý");
             }
 
@@ -167,6 +187,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
             }
             else
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide custom attributes", username, role);
                 ModelState.AddModelError("NewAsset.custom_attributes", "Thuộc tính tùy chỉnh là bắt buộc.");
             }
 
@@ -177,35 +198,36 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                     kvp => kvp.Key,
                     kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
                 );
-                Console.WriteLine($"Validation errors: {JsonSerializer.Serialize(errors)}");
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors: {Errors}",username, role, JsonSerializer.Serialize(errors));
                 Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
                 return Page();
             }
 
             try
             {
+                _logger.LogDebug("User {Username} (Role: {Role}) sending asset creation data: {AssetData}",username, role, JsonSerializer.Serialize(NewAsset));
                 var createdAsset = await _assetsService.CreateAssetAsync(NewAsset);
                 if (createdAsset == null)
                 {
+                    _logger.LogWarning("User {Username} (Role: {Role}) failed to create asset: No result returned",username, role);
                     ModelState.AddModelError("", "Không thể tạo tài sản.");
-                    Console.WriteLine("Asset creation returned null");
                     Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
                     return Page();
                 }
-                Console.WriteLine("Asset created successfully");
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully created asset with ID {AssetId}",username, role, createdAsset.asset_id);
                 return RedirectToPage("/Assets/Index");
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) received BadRequest from API: {Error}",username, role, ex.Message);
                 ModelState.AddModelError("", $"Lỗi từ API: {ex.Message}");
-                Console.WriteLine($"BadRequest from API: {ex.Message}");
                 Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
                 return Page();
             }
             catch (Exception ex)
             {
+                _logger.LogError("User {Username} (Role: {Role}) encountered error creating asset: {Error}",username, role, ex.Message);
                 ModelState.AddModelError("", $"Lỗi khi tạo tài sản: {ex.Message}");
-                Console.WriteLine($"Error creating asset: {ex.Message}");
                 Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
                 return Page();
             }

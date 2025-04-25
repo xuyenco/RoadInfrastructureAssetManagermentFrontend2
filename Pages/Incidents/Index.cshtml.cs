@@ -3,31 +3,43 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using OfficeOpenXml;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 {
     public class IndexModel : PageModel
     {
         private readonly IIncidentsService _incidentsService;
+        private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(IIncidentsService incidentsService)
+        public IndexModel(IIncidentsService incidentsService, ILogger<IndexModel> logger)
         {
             _incidentsService = incidentsService;
+            _logger = logger;
         }
 
         public async Task OnGetAsync()
         {
-            // No changes needed here as it's commented out
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is accessing the incidents index page", username, role);
         }
 
         public async Task<IActionResult> OnGetExportExcelAsync()
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is exporting incidents to Excel", username, role);
+
             try
             {
                 // Lấy dữ liệu incidents
                 var incidents = await _incidentsService.GetAllIncidentsAsync();
+                _logger.LogInformation("User {Username} (Role: {Role}) retrieved {IncidentCount} incidents for export",username, role, incidents.Count);
 
-                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
 
                 using (var package = new ExcelPackage())
                 {
@@ -106,14 +118,14 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                     var stream = new MemoryStream(package.GetAsByteArray());
                     string fileName = $"Incidents_Report_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
 
-                    return File(stream,
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        fileName);
+                    _logger.LogInformation("User {Username} (Role: {Role}) successfully exported {IncidentCount} incidents to Excel file {FileName}",username, role, incidents.Count, fileName);
+
+                    return File(stream,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",fileName);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error exporting incidents: {ex.Message}");
+                _logger.LogError("User {Username} (Role: {Role}) encountered error exporting incidents: {Error}",username, role, ex.Message);
                 return RedirectToPage();
             }
         }

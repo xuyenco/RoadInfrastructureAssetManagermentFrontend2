@@ -4,8 +4,8 @@ using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using System.Text.Json;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
-using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
+using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 {
@@ -13,11 +13,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
     {
         private readonly IIncidentsService _incidentsService;
         private readonly IIncidentImageService _incidentImageService;
+        private readonly ILogger<IncidentDetailModel> _logger;
 
-        public IncidentDetailModel(IIncidentsService incidentsService, IIncidentImageService incidentImageService)
+        public IncidentDetailModel(IIncidentsService incidentsService, IIncidentImageService incidentImageService, ILogger<IncidentDetailModel> logger)
         {
             _incidentsService = incidentsService;
             _incidentImageService = incidentImageService;
+            _logger = logger;
         }
 
         public IncidentsResponse Incident { get; set; }
@@ -27,11 +29,17 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is retrieving details for incident with ID {IncidentId}",username, role, id);
+
             try
             {
                 Incident = await _incidentsService.GetIncidentByIdAsync(id);
                 if (Incident == null)
                 {
+                    _logger.LogWarning("User {Username} (Role: {Role}) found no incident with ID {IncidentId}",username, role, id);
                     TempData["Error"] = "Không tìm thấy Incident với ID này.";
                     return RedirectToPage("/Incidents/Index");
                 }
@@ -40,30 +48,36 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                 {
                     // VN2000 coordinates for display
                     LocationDisplay = ParseCoordinates(Incident.geometry.type, Incident.geometry.coordinates);
+                    _logger.LogDebug("User {Username} (Role: {Role}) parsed VN2000 coordinates for incident with ID {IncidentId}: {LocationDisplay}",username, role, id, LocationDisplay);
 
                     // Convert to WGS84 for map display
                     Wgs84Geometry = CoordinateConverter.ConvertGeometryToWGS84(Incident.geometry);
+                    _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to WGS84 for incident with ID {IncidentId}: {Wgs84Geometry}",username, role, id, JsonSerializer.Serialize(Wgs84Geometry));
                 }
-
-                Console.WriteLine($"Dữ liệu tọa độ cho bản đồ. \n Location Display : {LocationDisplay} \n Wgs84Geometry = {Wgs84Geometry}");
 
                 IncidentImages = await _incidentImageService.GetAllIncidentImagesByIncidentId(Incident.incident_id);
                 if (IncidentImages == null)
                 {
+                    _logger.LogInformation("User {Username} (Role: {Role}) found no images for incident with ID {IncidentId}",username, role, id);
                     IncidentImages = new List<IncidentImageResponse>();
                 }
+                else
+                {
+                    _logger.LogInformation("User {Username} (Role: {Role}) retrieved {ImageCount} images for incident with ID {IncidentId}",username, role, id, IncidentImages.Count);
+                }
 
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully loaded details for incident with ID {IncidentId}",username, role, id);
                 return Page();
             }
             catch (UnauthorizedAccessException ex)
             {
-                Console.WriteLine($"Unauthorized access: {ex.Message}");
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered unauthorized access for incident with ID {IncidentId}: {Error}",username, role, id, ex.Message);
                 TempData["Error"] = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
                 return RedirectToPage("/Login");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading incident details: {ex.Message}, StackTrace: {ex.StackTrace}");
+                _logger.LogError("User {Username} (Role: {Role}) encountered error loading details for incident with ID {IncidentId}: {Error}",username, role, id, ex.Message);
                 TempData["Error"] = $"Đã xảy ra lỗi khi tải thông tin Incident: {ex.Message}";
                 return RedirectToPage("/Incidents/Index");
             }
@@ -113,11 +127,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                     return $"[{string.Join(", ", points)}]";
                 }
 
+                _logger.LogWarning("Failed to parse coordinates: Type={GeometryType}, Coordinates={Coordinates}",geometryType, coordinates?.ToString());
                 return $"Không xác định (Type: {geometryType}, Coordinates: {coordinates?.ToString()})";
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error parsing coordinates: {ex.Message}");
+                _logger.LogWarning("Error parsing coordinates: Type={GeometryType}, Error={Error}",geometryType, ex.Message);
                 return $"Lỗi xử lý tọa độ: {ex.Message}";
             }
         }

@@ -4,16 +4,19 @@ using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
 {
     public class AssetCagetoryUpdateModel : PageModel
     {
         private readonly IAssetCagetoriesService _assetCagetoriesService;
+        private readonly ILogger<AssetCagetoryUpdateModel> _logger;
 
-        public AssetCagetoryUpdateModel(IAssetCagetoriesService assetCagetoriesService)
+        public AssetCagetoryUpdateModel(IAssetCagetoriesService assetCagetoriesService, ILogger<AssetCagetoryUpdateModel> logger)
         {
             _assetCagetoriesService = assetCagetoriesService;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -24,9 +27,16 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is retrieving asset category with ID {CategoryId} for update", username, role, id);
+            
             Category = await _assetCagetoriesService.GetAssetCagetoriesByIdAsync(id);
             if (Category == null)
             {
+                _logger.LogWarning("User {Username} (Role: {Role}) found no asset category with ID {CategoryId}", 
+                    username, role, id);
                 return NotFound();
             }
 
@@ -35,11 +45,18 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
             AssetCategory.geometry_type = Category.geometry_type;
             AssetCategory.attribute_schema = JsonSerializer.Serialize(Category.attribute_schema);
 
+            _logger.LogInformation("User {Username} (Role: {Role}) successfully retrieved asset category with ID {CategoryId}", 
+                username, role, id);
             return Page();
         }
 
         public async Task<IActionResult> OnPostAsync(int id)
         {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is submitting update for asset category with ID {CategoryId}", username, role, id);
+
             // Xử lý dữ liệu cơ bản
             AssetCategory.category_name = Request.Form["category_name"];
             AssetCategory.geometry_type = Request.Form["geometry_type"];
@@ -100,23 +117,28 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
                     kvp => kvp.Key,
                     kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
                 );
-                Console.WriteLine($"Validation errors: {JsonSerializer.Serialize(errors)}");
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors while updating asset category with ID {CategoryId}: {Errors}", username, role, id, JsonSerializer.Serialize(errors));
                 return Page();
             }
 
             // Gửi request cập nhật lên service
             try
             {
+                _logger.LogDebug("User {Username} (Role: {Role}) sending update data for asset category with ID {CategoryId}: {Request}", 
+                    username, role, id, JsonSerializer.Serialize(AssetCategory));
                 var result = await _assetCagetoriesService.UpdateAssetCagetoriesAsync(id, AssetCategory);
                 if (result != null)
                 {
+                    _logger.LogInformation("User {Username} (Role: {Role}) successfully updated asset category with ID {CategoryId}", username, role, id);
                     return RedirectToPage("/AssetCagetories/Index");
                 }
+                _logger.LogWarning("User {Username} (Role: {Role}) failed to update asset category with ID {CategoryId}: No result returned", username, role, id);
                 ModelState.AddModelError("", "Không thể cập nhật danh mục. Vui lòng thử lại.");
                 return Page();
             }
             catch (Exception ex)
             {
+                _logger.LogError("User {Username} (Role: {Role}) encountered an error while updating asset category with ID {CategoryId}: {Error}", username, role, id, ex.Message);
                 ModelState.AddModelError("", $"Lỗi: {ex.Message}");
                 return Page();
             }
