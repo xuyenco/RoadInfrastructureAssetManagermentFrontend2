@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RoadInfrastructureAssetManagementFrontend2")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e1b558f8e832569e9374e124021995ba7bde7acf")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+212de61240466609a3d38a760058e95724a4cc3b")]
 [assembly: System.Reflection.AssemblyProductAttribute("RoadInfrastructureAssetManagementFrontend2")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RoadInfrastructureAssetManagementFrontend2")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

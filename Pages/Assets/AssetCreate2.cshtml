@@ -1,15 +1,51 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend2.Pages.Assets.AssetCreate2Model
 
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Danh sách Nhiệm vụ";
+    ViewData["Mapview"] = "Leaflet";
+}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tạo Tài Sản Mới</title>
+    <title>Tạo Kết Cấu Hạ Tầng Mới</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+        .container {
+            max-width: 100%; 
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 16px; 
+            padding-right: 16px; 
+        }
+
+        @@media (min-width: 640px) {
+            .container {
+                max-width: 640px; 
+            }
+        }
+        @@media (min-width: 768px) {
+            .container {
+                max-width: 768px; 
+            }
+        }
+        @@media (min-width: 1024px) {
+            .container {
+                max-width: 1024px; 
+            }
+        }
+        @@media (min-width: 1280px) {
+            .container {
+                max-width: 1504px; 
+            }
+        }
+        .asset-create-container {
+            overflow-y: auto;
+        }
         main {
             overflow-y: auto !important; /* Ghi đè overflow: hidden từ site.css */
         }
@@ -57,10 +93,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>Tạo Tài Sản Mới</h1>
+        <h1>Tạo Kết Cấu Hạ Tầng Mới</h1>
+        <div class="import-button-container">
+            <button type="button" class="btn btn-primary" onclick="window.location.href='/Assets/AssetImport'">Nhập kết cấu hạ tầng bằng excel</button>
+        </div>
         <ul class="nav nav-tabs" id="assetCreateTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">Thông Tin Tài Sản</button>
+                <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">Thông Tin Kết Cấu</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="attributes-tab" data-bs-toggle="tab" data-bs-target="#attributes" type="button" role="tab" disabled>Thuộc Tính</button>
@@ -72,7 +111,7 @@
 
         <form method="post" id="assetForm" enctype="multipart/form-data">
             <div class="tab-content" id="assetCreateTabContent">
-                <!-- Tab 1: Thông Tin Tài Sản -->
+                <!-- Tab 1: Thông Tin Kết Cấu Hạ Tầng -->
                 <div class="tab-pane fade show active" id="info" role="tabpanel">
                     <!-- Phần Chọn Danh Mục -->
                     <div class="section-title">Chọn Danh Mục</div>
@@ -95,12 +134,12 @@
                     <!-- Phần Thông Tin Cơ Bản -->
                     <div class="section-title">Thông Tin Cơ Bản</div>
                     <div class="form-group">
-                        <label asp-for="NewAsset.asset_name">Tên tài sản</label>
+                        <label asp-for="NewAsset.asset_name">Tên kết cấu hạ tầng</label>
                         <input asp-for="NewAsset.asset_name" class="form-control" required />
                         <span asp-validation-for="NewAsset.asset_name" class="text-danger"></span>
                     </div>
                     <div class="form-group">
-                        <label asp-for="NewAsset.asset_code">Mã tài sản</label>
+                        <label asp-for="NewAsset.asset_code">Mã kết cấu hạ tầng</label>
                         <input asp-for="NewAsset.asset_code" class="form-control" required />
                         <span asp-validation-for="NewAsset.asset_code" class="text-danger"></span>
                     </div>
@@ -134,8 +173,11 @@
                         <input asp-for="NewAsset.remaining_value" type="number" step="0.01" class="form-control" />
                     </div>
                     <div class="form-group">
-                        <label asp-for="NewAsset.asset_status">Tình trạng tài sản</label>
-                        <input asp-for="NewAsset.asset_status" class="form-control" />
+                        <label asp-for="NewAsset.asset_status">Tình trạng kết cấu hạ tầng</label>
+                        <select asp-for="NewAsset.asset_status" class="form-control" required>
+                            <option value="in_use">Đang sử dụng</option>
+                            <option value="damaged_not_in_use">Hỏng hóc/Không sử dụng</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label asp-for="NewAsset.installation_unit">Đơn vị lắp đặt</label>
@@ -174,13 +216,16 @@
                             </div>
                             <div class="form-group" id="manualCoordsGroup" style="display: none;">
                                 <label for="manualCoords">Tọa độ (dạng JSON):</label>
-                                <textarea id="manualCoords" class="form-control" rows="3" placeholder='Ví dụ: [[x1, y1], [x2,y2]]'></textarea>
+                                <textarea id="manualCoords" class="form-control" rows="3" placeholder='Ví dụ: [[x1, y1], [x2, y2]]'></textarea>
                             </div>
                         </div>
                     </div>
+                    <div id="multilineControls" style="display: none;" class="mt-3">
+                        <button type="button" class="btn btn-primary me-2" onclick="finishLineStringForMulti()">Hoàn thành LineString</button>
+                        <button type="button" class="btn btn-warning" onclick="completeMultiLineString()">Hoàn thành MultiLineString</button>
+                    </div>
                     <input type="hidden" id="geometryHidden" name="NewAsset.geometry" />
                     <button type="button" class="btn btn-primary mt-3" onclick="nextTab('attributes-tab')">Tiếp Theo</button>
-
                 </div>
 
                 <!-- Tab 2: Thuộc Tính -->
@@ -197,14 +242,14 @@
                     <h4>Tóm tắt thông tin</h4>
                     <div id="review-content"></div>
                     <button type="button" class="btn btn-secondary mt-3 me-2" onclick="prevTab('attributes-tab')">Quay Lại</button>
-                    <button type="submit" class="btn btn-success mt-3">Tạo Tài Sản</button>
+                    <button type="submit" class="btn btn-success mt-3">Tạo Kết Cấu Hạ Tầng</button>
                 </div>
             </div>
             <input type="hidden" id="customAttributesHidden" asp-for="NewAsset.custom_attributes" />
         </form>
     </div>
 
- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
@@ -215,6 +260,7 @@
         let currentZoom = 13;
         let isPointSelected = false;
         let currentGeoType = 'point'; // Giá trị mặc định
+        let currentLine = []; // Biến tạm cho MultiLineString
 
         // Khởi tạo bản đồ
         document.addEventListener('DOMContentLoaded', function () {
@@ -225,8 +271,9 @@
                     zoomControl: true
                 });
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors'
+                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, © <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd'
                 }).addTo(map);
 
                 const geocoder = L.Control.Geocoder.nominatim();
@@ -259,13 +306,12 @@
                 const geometryHiddenField = document.getElementById('geometryHidden');
                 if (geometryHiddenField && geometryHiddenField.value) {
                     try {
-                        // Parse and re-stringify to ensure clean JSON
                         const geometryObj = JSON.parse(geometryHiddenField.value);
-                        geometryHiddenField.value = JSON.stringify(geometryObj, null, 0); // No extra formatting
+                        geometryHiddenField.value = JSON.stringify(geometryObj, null, 0);
                     } catch (error) {
                         console.error('Error parsing geometry JSON:', error);
                         alert('Định dạng hình học không hợp lệ.');
-                        e.preventDefault(); // Prevent form submission if geometry is invalid
+                        e.preventDefault();
                     }
                 }
             });
@@ -281,6 +327,7 @@
                 success: function (response) {
                     let geoType = response.geometryType || 'Point';
                     if (geoType.toLowerCase() === 'line') geoType = 'LineString';
+                    if (geoType.toLowerCase() === 'multilinestring') geoType = 'MultiLineString';
                     currentGeoType = geoType.toLowerCase();
                     $('#geoType').val(currentGeoType);
                     $('#geoTypeDisplay').show();
@@ -319,6 +366,7 @@
             const manualLng = document.getElementById('manualLng');
             const manualCoordsGroup = document.getElementById('manualCoordsGroup');
             const manualCoords = document.getElementById('manualCoords');
+            const multilineControls = document.getElementById('multilineControls');
 
             if (!coordinatesInput) {
                 console.error('coordinatesInput element not found');
@@ -326,6 +374,7 @@
             }
 
             coordinates = [];
+            currentLine = [];
             if (currentLayer) {
                 map.removeLayer(currentLayer);
                 currentLayer = null;
@@ -344,12 +393,14 @@
                 manualCoordsGroup.style.display = 'none';
                 manualLat.parentElement.style.display = 'block';
                 manualLng.parentElement.style.display = 'block';
+                multilineControls.style.display = 'none';
                 map.on('click', onMapClickPoint);
             } else if (currentGeoType === 'linestring') {
                 instructionText.textContent = 'Click on the map to add points to the line (double-click to finish) or enter coordinates manually below.';
                 manualCoordsGroup.style.display = 'block';
                 manualLat.parentElement.style.display = 'none';
                 manualLng.parentElement.style.display = 'none';
+                multilineControls.style.display = 'none';
                 map.on('click', onMapClickLine);
                 map.on('dblclick', finishLineString);
             } else if (currentGeoType === 'polygon') {
@@ -357,8 +408,16 @@
                 manualCoordsGroup.style.display = 'block';
                 manualLat.parentElement.style.display = 'none';
                 manualLng.parentElement.style.display = 'none';
+                multilineControls.style.display = 'none';
                 map.on('click', onMapClickPolygon);
                 map.on('dblclick', finishPolygon);
+            } else if (currentGeoType === 'multilinestring') {
+                instructionText.textContent = 'Click on the map to add points to a line, then click "Hoàn thành LineString" to finish it. Click "Hoàn thành MultiLineString" when done.';
+                manualCoordsGroup.style.display = 'block';
+                manualLat.parentElement.style.display = 'none';
+                manualLng.parentElement.style.display = 'none';
+                multilineControls.style.display = 'block';
+                map.on('click', onMapClickMultiLineString);
             }
 
             // Lắng nghe thay đổi thủ công từ người dùng và cập nhật bản đồ
@@ -376,9 +435,20 @@
             manualCoords.oninput = function () {
                 if (currentGeoType !== 'point' && manualCoords.value) {
                     try {
-                        coordinates = JSON.parse(manualCoords.value);
-                        updateGeometry(currentGeoType === 'linestring' ? 'LineString' : 'Polygon',
-                            currentGeoType === 'polygon' ? [coordinates] : coordinates);
+                        const inputCoords = JSON.parse(manualCoords.value);
+                        if (currentGeoType === 'linestring') {
+                            coordinates = inputCoords;
+                            updateGeometry('LineString', coordinates);
+                        } else if (currentGeoType === 'polygon') {
+                            coordinates = inputCoords;
+                            if (coordinates.length >= 3 && (coordinates[0][0] !== coordinates[coordinates.length - 1][0] || coordinates[0][1] !== coordinates[coordinates.length - 1][1])) {
+                                coordinates.push(coordinates[0]);
+                            }
+                            updateGeometry('Polygon', [coordinates]);
+                        } else if (currentGeoType === 'multilinestring') {
+                            coordinates = inputCoords;
+                            updateGeometry('MultiLineString', coordinates);
+                        }
                         updateMapFromManualInput();
                     } catch (e) {
                         console.error('Invalid coordinates JSON:', e);
@@ -479,8 +549,57 @@
             map.off('click').off('dblclick');
         }
 
+        function onMapClickMultiLineString(e) {
+            if (!e || !e.latlng) {
+                console.error('Invalid click event or latlng:', e);
+                return;
+            }
+
+            currentLine.push([e.latlng.lng, e.latlng.lat]);
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
+            let displayCoords = coordinates.slice();
+            if (currentLine.length > 0) {
+                displayCoords.push(currentLine);
+            }
+            currentLayer = L.featureGroup(displayCoords.map(line => 
+                L.polyline(line.map(coord => [coord[1], coord[0]]), { color: 'blue' })
+            )).addTo(map);
+            document.getElementById('manualCoords').value = JSON.stringify(displayCoords);
+            document.getElementById('geometrySystem').value = 'wgs84';
+            updateGeometry('MultiLineString', displayCoords);
+        }
+
+        function finishLineStringForMulti() {
+            if (currentLine.length < 2) {
+                alert('Each LineString in a MultiLineString requires at least 2 points.');
+                return;
+            }
+
+            coordinates.push(currentLine);
+            currentLine = [];
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
+            currentLayer = L.featureGroup(coordinates.map(line => 
+                L.polyline(line.map(coord => [coord[1], coord[0]]), { color: 'blue' })
+            )).addTo(map);
+            document.getElementById('manualCoords').value = JSON.stringify(coordinates);
+            updateGeometry('MultiLineString', coordinates);
+        }
+
+        function completeMultiLineString() {
+            if (coordinates.length === 0 || coordinates.some(line => line.length < 2)) {
+                alert('MultiLineString cần ít nhất một đường với tối thiểu 2 điểm.');
+                return;
+            }
+            map.off('click');
+            document.getElementById('multilineControls').style.display = 'none';
+            document.getElementById('instructionText').textContent = 'MultiLineString đã hoàn thành. Nhấn "Tiếp Theo" để tiếp tục.';
+        }
+
         function updateMapFromManualInput() {
-            console.log('now we change point on map');
             if (currentLayer) {
                 map.removeLayer(currentLayer);
             }
@@ -493,8 +612,13 @@
             } else if (currentGeoType === 'linestring' && coordinates.length >= 1) {
                 currentLayer = L.polyline(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
                 map.fitBounds(currentLayer.getBounds());
-            } else if (currentGeoType === 'polygon' && coordinates[0].length >= 3) {
-                currentLayer = L.polygon(coordinates[0].map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
+            } else if (currentGeoType === 'polygon' && coordinates.length >= 3) {
+                currentLayer = L.polygon(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
+                map.fitBounds(currentLayer.getBounds());
+            } else if (currentGeoType === 'multilinestring' && coordinates.length >= 1) {
+                currentLayer = L.featureGroup(coordinates.map(line => 
+                    L.polyline(line.map(coord => [coord[1], coord[0]]), { color: 'blue' })
+                )).addTo(map);
                 map.fitBounds(currentLayer.getBounds());
             }
         }
@@ -502,9 +626,8 @@
         function updateGeometry(type, coords) {
             const geometryHiddenField = document.getElementById('geometryHidden');
             if (geometryHiddenField) {
-                // Store raw JSON object instead of stringified JSON
                 const geometryObj = { type: type, coordinates: coords };
-                geometryHiddenField.value = JSON.stringify(geometryObj); // Ensure single stringify
+                geometryHiddenField.value = JSON.stringify(geometryObj);
                 console.log('Geometry updated:', geometryObj);
             } else {
                 console.error('Geometry field not found');
@@ -555,7 +678,19 @@
                     alert('Vui lòng chọn vị trí trên bản đồ hoặc nhập tọa độ thủ công.');
                     return false;
                 }
-                return true;
+                if (currentGeoType === 'linestring' && coordinates.length < 2) {
+                    alert('LineString cần ít nhất 2 điểm.');
+                    return false;
+                }
+                if (currentGeoType === 'polygon' && coordinates.length < 3) {
+                    alert('Polygon cần ít nhất 3 điểm.');
+                    return false;
+                }
+                if (currentGeoType === 'multilinestring' && (coordinates.length === 0 || coordinates.some(line => line.length < 2))) {
+                    alert('MultiLineString cần ít nhất một đường với tối thiểu 2 điểm.');
+                    return false;
+                }
+                return valid;
             }
             return true;
         }

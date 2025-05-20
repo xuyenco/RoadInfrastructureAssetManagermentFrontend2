@@ -1,4 +1,5 @@
-﻿using RoadInfrastructureAssetManagementFrontend2.Interface;
+﻿using RoadInfrastructureAssetManagementFrontend2.Service;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Service;
 using Serilog;
 using System.Net.Http.Headers;
@@ -18,9 +19,17 @@ builder.Host.UseSerilog((context, configuration) =>
 });
 
 // Add services to the container.
-builder.Services.AddRazorPages().AddMvcOptions(options =>
+//builder.Services.AddRazorPages().AddMvcOptions(options =>
+//{
+//    options.Filters.Add<LoginFilter>(); // Áp dụng filter toàn cục
+//});
+
+builder.Services.AddRazorPages(options =>
 {
-    options.Filters.Add<LoginFilter>(); // Áp dụng filter toàn cục
+    options.Conventions.AddFolderApplicationModelConvention("/", model =>
+    {
+        model.Filters.Add(new LoginFilter());
+    });
 });
 
 builder.Services.AddHttpClient("ApiClient", client =>
@@ -45,6 +54,7 @@ builder.Services.AddScoped<IUsersService, UsersService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IMaintenanceHistoryService,MaintenanceHistoryService>();
 builder.Services.AddScoped<IMaintenanceDocumentService,MaintenanceDocumentService>();
+builder.Services.AddScoped<INotificationsService, NotificationsService>();
 // Setting Session
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

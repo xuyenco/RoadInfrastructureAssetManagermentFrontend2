@@ -1,0 +1,280 @@
+﻿@page
+@using System.Text.Json
+@model RoadInfrastructureAssetManagementFrontend2.Pages.Notifications.InboxModel
+@{
+    ViewData["Title"] = "Hộp thư thông báo";
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    .inbox-list {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .notification-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+        .notification-item.unread {
+            font-weight: bold;
+        }
+</style>
+
+<div class="container mx-auto px-4 py-6">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">Hộp thư thông báo</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Danh sách thông báo bên trái -->
+        <div class="col-span-1 inbox-list">
+            <div class="bg-white rounded-lg shadow-lg">
+                <div class="p-4 border-b border-gray-200">
+                    <h5 class="text-xl font-semibold text-gray-700">Danh sách thông báo</h5>
+                </div>
+                <div class="p-0">
+                    <ul class="divide-y divide-gray-200" id="notification-list">
+                        @if (!Model.Notifications.Any())
+                        {
+                            <li class="p-4 text-gray-500">Không có thông báo nào.</li>
+                        }
+                        else
+                        {
+                            foreach (var notification in Model.Notifications.OrderByDescending(n => n.created_at))
+                            {
+                                <li class="notification-item p-4 hover:bg-gray-100 @(notification.is_read ? "" : "unread bg-gray-200")"
+                                    data-id="@notification.notification_id">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <p class="mb-1 text-gray-800">
+                                                @(notification.message.Length > 50 ? notification.message.Substring(0, 50) + "..." : notification.message)
+                                            </p>
+                                            <small class="text-gray-500">@notification.created_at.ToString("dd/MM/yyyy HH:mm")</small>
+                                        </div>
+                                        @if (!notification.is_read)
+                                        {
+                                            <span class="bg-blue-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">Mới</span>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chi tiết thông báo bên phải -->
+        <div class="col-span-1 md:col-span-2">
+            <div class="bg-white rounded-lg shadow-lg">
+                <div class="p-4 border-b border-gray-200">
+                    <h5 class="text-xl font-semibold text-gray-700">Chi tiết thông báo</h5>
+                </div>
+                <div class="p-4 min-h-[400px]" id="notification-detail">
+                    <p class="text-gray-500">Vui lòng chọn một thông báo để xem chi tiết.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="antiForgeryForm" style="display: none;">
+    @Html.AntiForgeryToken()
+</form>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let inboxNotifications = @Html.Raw(JsonSerializer.Serialize(Model.Notifications));
+            const token = $("input[name='__RequestVerificationToken']").val();
+            const userId = @(Model.HttpContext.Session.GetInt32("Id") ?? 0);
+
+            // Sắp xếp ban đầu theo thời gian giảm dần
+            inboxNotifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            // Render danh sách thông báo ban đầu
+            renderNotifications();
+
+            // Gắn sự kiện click cho các phần tử notification-item
+            $(document).on("click", ".notification-item", function () {
+                const notificationId = $(this).data("id");
+                showNotificationDetail(notificationId);
+            });
+
+            // Singleton pattern cho kết nối
+            const getOrCreateConnection = () => {
+                if (!window.inboxSignalRConnection) {
+                    window.inboxSignalRConnection = new signalR.HubConnectionBuilder()
+                        .withUrl("https://localhost:7030/notificationHub", {
+                            skipNegotiation: true,
+                            transport: signalR.HttpTransportType.WebSockets,
+                            accessTokenFactory: () =>
+                                localStorage.getItem('accessToken') || ''
+                        })
+                        .withAutomaticReconnect({
+                            nextRetryDelayInMilliseconds: (context) =>
+                                [2000, 5000, 10000][context.previousRetryCount] ?? null
+                        })
+                        .configureLogging(signalR.LogLevel.Information)
+                        .build();
+                }
+                return window.inboxSignalRConnection;
+            };
+
+            const inboxConnection = getOrCreateConnection();
+            let isComponentMounted = true;
+
+            // Khởi động kết nối
+            const startConnection = async () => {
+                try {
+                    await inboxConnection.start();
+                    console.log("[Inbox] SignalR Connected!");
+
+                    await inboxConnection.invoke("JoinGroup", userId);
+                    console.log(`[Inbox] Joined user group ${userId}`);
+
+                    setupEventListeners();
+                } catch (err) {
+                    console.error("[Inbox] Connection Error:", err.toString());
+                    if (isComponentMounted) setTimeout(startConnection, 5000);
+                }
+            };
+
+            // Cấu hình event listeners
+            const setupEventListeners = () => {
+                inboxConnection.on("ReceiveNotification", handleNewNotification);
+
+                inboxConnection.onclose((error) => {
+                    if (isComponentMounted) {
+                        console.log(`[Inbox] Connection closed. Reason: ${error?.message}`);
+                    }
+                });
+
+                inboxConnection.onreconnected((connectionId) => {
+                    console.log(`[Inbox] Reconnected. New ID: ${connectionId}`);
+                    inboxConnection.invoke("JoinGroup", userId);
+                });
+            };
+
+            // Xử lý thông báo mới
+            const handleNewNotification = (newNotification) => {
+                console.log("[Inbox] New notification:", newNotification);
+
+                inboxNotifications = [newNotification, ...inboxNotifications]
+                    .slice(0, 50); // Giữ tối đa 50 thông báo
+
+                renderNotifications();
+                showNotificationToast(newNotification);
+            };
+
+            // Cleanup khi component unmount
+            window.addEventListener('beforeunload', () => {
+                isComponentMounted = false;
+                inboxConnection.off("ReceiveNotification");
+                inboxConnection.stop();
+            });
+
+            // Bắt đầu kết nối
+            startConnection();
+
+            function renderNotifications() {
+                console.log("Rendering notifications in Inbox:", inboxNotifications);
+                const list = $("#notification-list");
+                list.empty();
+                if (inboxNotifications.length === 0) {
+                    list.append('<li class="p-4 text-gray-500">Không có thông báo nào.</li>');
+                    return;
+                }
+                inboxNotifications.forEach(n => {
+                    const item = `
+                    <li class="notification-item p-4 hover:bg-gray-100 ${n.is_read ? '' : 'unread bg-gray-200'}"
+                        data-id="${n.notification_id}">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="mb-1 text-gray-800">
+                                    ${n.message.length > 50 ? n.message.substring(0, 50) + "..." : n.message}
+                                </p>
+                                <small class="text-gray-500">${new Date(n.created_at).toLocaleString()}</small>
+                            </div>
+                            ${!n.is_read ? '<span class="bg-blue-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">Mới</span>' : ''}
+                        </div>
+                    </li>`;
+                    list.append(item);
+                });
+            }
+
+            function showNotificationDetail(notificationId) {
+                const notification = inboxNotifications.find(n => n.notification_id === notificationId);
+                if (!notification) {
+                    $("#notification-detail").html('<p class="text-gray-500">Không tìm thấy thông báo.</p>');
+                    return;
+                }
+
+                if (!notification.is_read) {
+                    markAsRead(notificationId);
+                }
+
+                const detailHtml = `
+                    <h6 class="text-lg font-semibold text-gray-800">${notification.message}</h6>
+                    <p class="text-gray-600 mt-2"><strong>Thời gian:</strong> ${new Date(notification.created_at).toLocaleString()}</p>
+                    <p class="text-gray-600"><strong>Loại thông báo:</strong> ${notification.notification_type}</p>
+                    ${notification.task_id ? `<p class="text-gray-600"><strong>Task ID:</strong> <a href="/Tasks/Details?id=${notification.task_id}" class="text-blue-500 hover:underline">${notification.task_id}</a></p>` : ''}
+                `;
+                $("#notification-detail").html(detailHtml).data("current-id", notificationId);
+
+                $(`.notification-item[data-id="${notificationId}"]`).removeClass("unread bg-gray-200");
+            }
+
+            function markAsRead(notificationId) {
+                $.ajax({
+                    url: "/Notifications/MarkAsRead?id=" + notificationId,
+                    method: "POST",
+                    headers: {
+                        "RequestVerificationToken": token
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            const notification = inboxNotifications.find(n => n.notification_id === notificationId);
+                            if (notification) {
+                                notification.is_read = true;
+
+                                // Cập nhật trực tiếp DOM element
+                                const $notificationItem = $(`.notification-item[data-id="${notificationId}"]`);
+                                $notificationItem.removeClass("unread bg-gray-200");
+                                $notificationItem.find("span").remove(); // Xóa badge "Mới"
+
+                                // Cập nhật nội dung chi tiết (nếu đang hiển thị)
+                                if ($("#notification-detail").data("current-id") === notificationId) {
+                                    showNotificationDetail(notificationId);
+                                }
+                            }
+                        }
+                    },
+                    error: function (err) {
+                        console.error("Error marking notification as read: ", err);
+                        const toastHtml = `
+                        <div class="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
+                            <div>Không thể đánh dấu thông báo là đã đọc. Vui lòng thử lại sau.</div>
+                            <button type="button" class="ml-4 text-white hover:text-gray-200" onclick="this.parentElement.remove()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>`;
+                        $("body").append(toastHtml);
+                    }
+                });
+            }
+
+            function showNotificationToast(notification) {
+                const toastHtml = `
+                <div class="fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
+                    <div>
+                        Thông báo mới: ${notification.message.length > 50 ? notification.message.substring(0, 50) + "..." : notification.message}
+                    </div>
+                    <button type="button" class="ml-4 text-white hover:text-gray-200" onclick="this.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>`;
+                $("body").append(toastHtml);
+            }
+        });
+    </script>
+}

@@ -4,127 +4,46 @@
     Layout = "_Layout";
 }
 <!DOCTYPE html>
-
 <html>
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        main {
-            overflow-y: auto !important; /* Ghi đè overflow: hidden từ site.css */
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
         }
+
+        main {
+            overflow-y: auto !important;
+        }
+
         body {
             background-color: #f4f6f9;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        .container {
-            margin-top: 40px;
-            max-width: 1200px;
-        }
-
-        .form-container {
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            padding: 30px;
-            margin-bottom: 40px;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            color: #2c3e50;
-            font-weight: 700;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        h3 {
-            font-size: 1.75rem;
-            color: #34495e;
-            font-weight: 600;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 5px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-control {
-            border-radius: 8px;
-            padding: 10px;
-        }
-
-        .btn-primary {
-            background-color: #3498db;
-            border-color: #3498db;
-            padding: 10px 20px;
-            font-size: 1rem;
-            border-radius: 8px;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-            .btn-primary:hover {
-                background-color: #2980b9;
-                transform: translateY(-2px);
-            }
-
-        .btn-secondary {
-            background-color: #34495e;
-            border-color: #34495e;
-            padding: 10px 20px;
-            font-size: 1rem;
-            border-radius: 8px;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-            .btn-secondary:hover {
-                background-color: #2c3e50;
-                transform: translateY(-2px);
-            }
-
-        .btn i {
-            margin-right: 8px;
-        }
-
-        #map {
-            height: 400px;
-            width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-        .text-muted {
-            color: #7f8c8d;
-        }
-
-        .alert {
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Tạo Incident Mới</h1>
+    <div class="container mx-auto px-4 py-10 max-w-4xl">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Tạo Incident Mới</h1>
 
-        <div class="form-container">
-            <h3>Thông tin Incident</h3>
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Thông tin Incident</h3>
 
             @if (TempData["Error"] != null)
             {
-                <div class="alert alert-danger" role="alert">
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
                     @TempData["Error"]
                 </div>
             }
             @if (TempData["Success"] != null)
             {
-                <div class="alert alert-success" role="alert">
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4" role="alert">
                     @TempData["Success"]
                     @if (TempData["SuccessCount"] != null)
                     {
@@ -134,13 +53,15 @@
                     {
                         <br />
                         <a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,@TempData["ErrorFile"]"
-                           download="Incident_Error_Rows.xlsx" class="btn btn-danger btn-sm">Tải file lỗi</a>
+                           download="Incident_Error_Rows.xlsx" class="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-200">
+                            <i class="fas fa-download mr-2"></i> Tải file lỗi
+                        </a>
                     }
                 </div>
             }
             @if (!ViewData.ModelState.IsValid)
             {
-                <div class="alert alert-danger" role="alert">
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
                     @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
                     {
                         <p>@error.ErrorMessage</p>
@@ -150,140 +71,158 @@
 
             <!-- Form nhập thủ công -->
             <form method="post" enctype="multipart/form-data" asp-page-handler="Create">
-                <div class="form-group">
-                    <label for="address">Địa chỉ</label>
-                    <input asp-for="Incident.address" class="form-control" />
-                    <span asp-validation-for="Incident.address" class="text-danger"></span>
-                </div>
+                <div class="space-y-6">
+                    <div>
+                        <label for="address" class="block text-gray-700 font-semibold mb-1">Địa chỉ</label>
+                        <input asp-for="Incident.address" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <span asp-validation-for="Incident.address" class="text-red-500 text-sm"></span>
+                    </div>
 
-                <div class="form-group">
-                    <label for="route">Tuyến đường</label>
-                    <input asp-for="Incident.route" class="form-control" />
-                    <span asp-validation-for="Incident.route" class="text-danger"></span>
-                </div>
+                    <div>
+                        <label asp-for="Incident.incident_type" class="block text-gray-700 font-semibold mb-1">Loại sự cố</label>
+                        <select asp-for="Incident.incident_type" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Chọn loại tai nạn</option>
+                            <option value="Tai nạn giao thông">Tai nạn giao thông</option>
+                            <option value="Hư hỏng kết cấu hạ tầng">Hư hỏng kết cấu hạ tầng</option>
+                            <option value="Sự cố môi trường">Sự cố môi trường</option>
+                        </select>
+                        <span asp-validation-for="Incident.incident_type" class="text-red-500 text-sm"></span>
+                    </div>
 
-                <div class="form-group">
-                    <label for="geometryType">Loại hình học</label>
-                    <select class="form-control" id="geometryType" asp-for="Incident.geometry.type" required>
-                        <option value="">Chọn loại</option>
-                        <option value="Point">Điểm</option>
-                        <option value="LineString">Đường</option>
-                    </select>
-                    <span asp-validation-for="Incident.geometry.type" class="text-danger"></span>
-                </div>
+                    <div>
+                        <label for="route" class="block text-gray-700 font-semibold mb-1">Tuyến đường</label>
+                        <input asp-for="Incident.route" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <span asp-validation-for="Incident.route" class="text-red-500 text-sm"></span>
+                    </div>
 
-                <div class="form-group">
-                    <label for="GeometrySystem">Hệ tọa độ</label>
-                    <select class="form-control" id="GeometrySystem" name="GeometrySystem" required>
-                        <option value="">Chọn hệ tọa độ</option>
-                        <option value="wgs84">WGS84</option>
-                        <option value="vn2000">VN2000</option>
-                    </select>
-                    <span asp-validation-for="GeometrySystem" class="text-danger"></span>
-                </div>
+                    <div>
+                        <label for="geometryType" class="block text-gray-700 font-semibold mb-1">Loại hình học</label>
+                        <select asp-for="Incident.geometry.type" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="geometryType" required>
+                            <option value="">Chọn loại</option>
+                            <option value="Point">Điểm</option>
+                            <option value="LineString">Đường</option>
+                        </select>
+                        <span asp-validation-for="Incident.geometry.type" class="text-red-500 text-sm"></span>
+                    </div>
 
-                <div id="map"></div>
-                <div id="coordinatesInput">
-                    <p id="instructionText" class="text-muted">Chọn loại hình học để bắt đầu.</p>
-                    <div id="manualCoordinates" class="mt-3">
-                        <div class="form-group" id="pointCoordsGroup">
-                            <label for="manualLat">Vĩ độ (Latitude):</label>
-                            <input type="text" id="manualLat" class="form-control" placeholder="Nhập vĩ độ" />
-                        </div>
-                        <div class="form-group" id="pointCoordsGroup">
-                            <label for="manualLng">Kinh độ (Longitude):</label>
-                            <input type="text" id="manualLng" class="form-control" placeholder="Nhập kinh độ" />
-                        </div>
-                        <div class="form-group" id="lineCoordsGroup" style="display: none;">
-                            <label for="manualCoords">Tọa độ (dạng JSON):</label>
-                            <textarea id="manualCoords" class="form-control" rows="3" placeholder='Ví dụ: [[x1, y1], [x2, y2]]'></textarea>
+                    <div>
+                        <label for="GeometrySystem" class="block text-gray-700 font-semibold mb-1">Hệ tọa độ</label>
+                        <select asp-for="GeometrySystem" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="GeometrySystem" required>
+                            <option value="">Chọn hệ tọa độ</option>
+                            <option value="wgs84">WGS84</option>
+                            <option value="vn2000">VN2000</option>
+                        </select>
+                        <span asp-validation-for="GeometrySystem" class="text-red-500 text-sm"></span>
+                    </div>
+
+                    <div id="map"></div>
+                    <div id="coordinatesInput">
+                        <p id="instructionText" class="text-gray-500 mb-3">Chọn loại hình học để bắt đầu.</p>
+                        <div id="manualCoordinates" class="space-y-4">
+                            <div id="pointCoordsGroup">
+                                <label for="manualLat" class="block text-gray-700 font-semibold mb-1">Vĩ độ (Latitude)</label>
+                                <input type="text" id="manualLat" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập vĩ độ" />
+                            </div>
+                            <div id="pointCoordsGroup">
+                                <label for="manualLng" class="block text-gray-700 font-semibold mb-1">Kinh độ (Longitude)</label>
+                                <input type="text" id="manualLng" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập kinh độ" />
+                            </div>
+                            <div id="lineCoordsGroup" class="hidden">
+                                <label for="manualCoords" class="block text-gray-700 font-semibold mb-1">Tọa độ (dạng JSON)</label>
+                                <textarea id="manualCoords" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder='Ví dụ: [[x1, y1], [x2, y2]]'></textarea>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <input type="hidden" id="coordinatesJson" name="Incident.geometry.coordinates" />
+                    <input type="hidden" id="coordinatesJson" name="Incident.geometry.coordinates" />
 
-                <div class="form-group">
-                    <label asp-for="Incident.severity_level">Mức độ nghiêm trọng</label>
-                    <select asp-for="Incident.severity_level" class="form-control" required>
-                        <option value="">Chọn mức độ</option>
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="critical">Critical</option>
-                    </select>
-                    <span asp-validation-for="Incident.severity_level" class="text-danger"></span>
-                </div>
+                    <div>
+                        <label asp-for="Incident.severity_level" class="block text-gray-700 font-semibold mb-1">Mức độ nghiêm trọng</label>
+                        <select asp-for="Incident.severity_level" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Chọn mức độ</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                        <span asp-validation-for="Incident.severity_level" class="text-red-500 text-sm"></span>
+                    </div>
 
-                <div class="form-group">
-                    <label asp-for="Incident.damage_level">Mức độ hư hỏng</label>
-                    <select asp-for="Incident.damage_level" class="form-control" required>
-                        <option value="">Chọn mức độ</option>
-                        <option value="minor">Minor</option>
-                        <option value="moderate">Moderate</option>
-                        <option value="severe">Severe</option>
-                    </select>
-                    <span asp-validation-for="Incident.damage_level" class="text-danger"></span>
-                </div>
+                    <div>
+                        <label asp-for="Incident.damage_level" class="block text-gray-700 font-semibold mb-1">Mức độ hư hỏng</label>
+                        <select asp-for="Incident.damage_level" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Chọn mức độ</option>
+                            <option value="minor">Minor</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="severe">Severe</option>
+                        </select>
+                        <span asp-validation-for="Incident.damage_level" class="text-red-500 text-sm"></span>
+                    </div>
 
-                <div class="form-group">
-                    <label asp-for="Incident.processing_status">Trạng thái xử lý</label>
-                    <select asp-for="Incident.processing_status" class="form-control" required>
-                        <option value="">Chọn trạng thái</option>
-                        <option value="reported">Reported</option>
-                        <option value="under review">Under Review</option>
-                        <option value="resolved">Resolved</option>
-                        <option value="closed">Closed</option>
-                    </select>
-                    <span asp-validation-for="Incident.processing_status" class="text-danger"></span>
-                </div>
+                    <div>
+                        <label asp-for="Incident.processing_status" class="block text-gray-700 font-semibold mb-1">Trạng thái xử lý</label>
+                        <select asp-for="Incident.processing_status" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Chọn trạng thái</option>
+                            <option value="reported">Reported</option>
+                            <option value="under review">Under Review</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                        <span asp-validation-for="Incident.processing_status" class="text-red-500 text-sm"></span>
+                    </div>
 
-                <div class="form-group">
-                    <label asp-for="Incident.task_id">Mã nhiệm vụ</label>
-                    <input asp-for="Incident.task_id" class="form-control" type="number" min="0" />
-                    <span asp-validation-for="Incident.task_id" class="text-danger"></span>
-                </div>
+                    <div>
+                        <label asp-for="Incident.task_id" class="block text-gray-700 font-semibold mb-1">Mã nhiệm vụ</label>
+                        <input asp-for="Incident.task_id" type="number" min="0" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <span asp-validation-for="Incident.task_id" class="text-red-500 text-sm"></span>
+                    </div>
 
-                <div class="form-group">
-                    <label for="Images">Ảnh liên quan (có thể chọn nhiều ảnh)</label>
-                    <input type="file" class="form-control" id="Images" name="Images" multiple accept="image/*" />
-                </div>
+                    <div>
+                        <label for="Images" class="block text-gray-700 font-semibold mb-1">Ảnh liên quan (có thể chọn nhiều ảnh)</label>
+                        <input type="file" id="Images" name="Images" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" multiple accept="image/*" />
+                    </div>
 
-                <div class="form-group text-center">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Tạo Incident
-                    </button>
-                    <a href="/Incidents/Index" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Quay lại
-                    </a>
+                    <div class="flex justify-center space-x-4 mt-6">
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center">
+                            <i class="fas fa-save mr-2"></i> Tạo Incident
+                        </button>
+                        <a href="/Incidents/Index" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 flex items-center">
+                            <i class="fas fa-arrow-left mr-2"></i> Quay lại
+                        </a>
+                    </div>
                 </div>
             </form>
+            @if(HttpContext.Session.GetString("Role") != null)
+            {
+                <!-- Form nhập từ Excel -->
+                <h3 class="text-2xl font-semibold text-gray-700 mt-8 mb-4 border-b-2 border-blue-500 pb-2">Nhập từ Excel</h3>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-1">Click để tải file mẫu</label>
+                </div>
+                <button type="button" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 mb-4" onclick="downloadExcelTemplate()">Tải file mẫu</button>
 
-            <!-- Form nhập từ Excel -->
-            <h3>Nhập từ Excel</h3>
-            <div class="mb-3">
-                <label>Click để tải file mẫu</label>
-            </div>
-            <button type="button" class="btn btn-secondary mb-3" onclick="downloadExcelTemplate()">Tải file mẫu</button>
-
-            <form method="post" enctype="multipart/form-data" asp-page-handler="ImportExcel">
-                <div class="mb-3">
-                    <label for="excelFile">Chọn file Excel để nhập:</label>
-                    <input type="file" id="excelFile" name="excelFile" class="form-control" accept=".xlsx, .xls" required />
-                </div>
-                <div class="mb-3">
-                    <label for="imageFiles" class="form-label">Chọn các ảnh Incident:</label>
-                    <input type="file" id="imageFiles" name="imageFiles" class="form-control" accept=".png,.jpg,.jpeg" multiple />
-                    <small class="form-text text-muted">Tải lên tất cả ảnh tương ứng với cột "image_paths" trong Excel (các tên file cách nhau bằng dấu phẩy).</small>
-                </div>
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-upload"></i> Upload Excel
-                    </button>
-                    <a href="/Incidents/Index" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Quay lại
-                    </a>
-                </div>
-            </form>
+                <form method="post" enctype="multipart/form-data" asp-page-handler="ImportExcel">
+                    <div class="space-y-6">
+                        <div>
+                            <label for="excelFile" class="block text-gray-700 font-semibold mb-1">Chọn file Excel để nhập</label>
+                            <input type="file" id="excelFile" name="excelFile" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".xlsx, .xls" required />
+                        </div>
+                        <div>
+                            <label for="imageFiles" class="block text-gray-700 font-semibold mb-1">Chọn các ảnh Incident</label>
+                            <input type="file" id="imageFiles" name="imageFiles" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".png,.jpg,.jpeg" multiple />
+                            <small class="text-gray-500">Tải lên tất cả ảnh tương ứng với cột "image_paths" trong Excel (các tên file cách nhau bằng dấu phẩy).</small>
+                        </div>
+                        <div class="flex justify-center space-x-4 mt-6">
+                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center">
+                                <i class="fas fa-upload mr-2"></i> Upload Excel
+                            </button>
+                            <a href="/Incidents/Index" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 flex items-center">
+                                <i class="fas fa-arrow-left mr-2"></i> Quay lại
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            }
+            
         </div>
     </div>
 
@@ -294,7 +233,6 @@
                 window.location.href = "/Incidents/IncidentCreate?handler=DownloadExcelTemplate";
             }
 
-            // JavaScript code for map and coordinates (unchanged)
             var map;
             var geometryType = document.getElementById('geometryType');
             var coordinatesJsonInput = document.getElementById('coordinatesJson');
@@ -302,7 +240,7 @@
             var manualLat = document.getElementById('manualLat');
             var manualLng = document.getElementById('manualLng');
             var manualCoords = document.getElementById('manualCoords');
-            var pointCoordsGroup = document.getElementById('pointCoordsGroup');
+            var pointCoordsGroup = document.querySelectorAll('#pointCoordsGroup');
             var lineCoordsGroup = document.getElementById('lineCoordsGroup');
             var marker;
             var polyline;
@@ -347,10 +285,10 @@
                                 })
                             }).addTo(assetLayer);
                             marker.bindPopup(`
-                                                        <b>Asset ID:</b> ${asset.properties.asset_id}<br>
-                                                        <b>Loại:</b> ${category ? category.cagetory_name : asset.properties.category_id}<br>
-                                                        <button onclick="selectAsset(${asset.properties.asset_id})">Chọn</button>
-                                                    `);
+                                            <b>Asset ID:</b> ${asset.properties.asset_id}<br>
+                                            <b>Loại:</b> ${category ? category.cagetory_name : asset.properties.category_id}<br>
+                                            <button class="bg-blue-500 text-white px-2 py-1 rounded mt-2" onclick="selectAsset(${asset.properties.asset_id})">Chọn</button>
+                                        `);
                         }
                     }
                 });
@@ -374,7 +312,8 @@
                 document.getElementById('Incident_asset_id').value = assetId;
                 console.log("Selected asset ID:", assetId);
                 assetLayer.eachLayer(layer => {
-                    if (layer.getPopup().getContent().includes(`Asset ID: ${assetId}`)) {
+                    var popupContent = layer.getPopup().getContent();
+                    if (popupContent.includes(`Asset ID: ${assetId}`)) {
                         layer.openPopup();
                     } else {
                         layer.closePopup();
@@ -395,7 +334,6 @@
                 document.getElementById('GeometrySystem').value = 'wgs84';
                 manualLat.value = lat;
                 manualLng.value = lng;
-
                 findNearbyAssets(e.latlng);
             }
 
@@ -471,16 +409,17 @@
             };
 
             document.querySelector('form').addEventListener('submit', function (e) {
-                if (!coordinatesJsonInput.value) {
-                    alert('Vui lòng chọn tọa độ trên bản đồ hoặc nhập thủ công!');
+                if (!coordinatesJsonInput.value || !document.getElementById('GeometrySystem').value) {
+                    alert('Vui lòng chọn tọa độ và hệ tọa độ trên bản đồ hoặc nhập thủ công!');
                     e.preventDefault();
                 }
             });
 
             document.addEventListener('DOMContentLoaded', function () {
                 map = L.map('map').setView([21.0285, 105.8542], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, © <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
                 }).addTo(map);
                 assetLayer = L.layerGroup().addTo(map);
 
@@ -496,23 +435,25 @@
                         manualCoords.value = '';
                         coordinatesJsonInput.value = '';
                         assetLayer.clearLayers();
+                        pointCoordsGroup.forEach(group => group.classList.remove('hidden'));
+                        lineCoordsGroup.classList.add('hidden');
 
                         if (type === 'Point') {
                             instructionText.textContent = 'Nhấp vào bản đồ để chọn điểm hoặc nhập tọa độ thủ công.';
-                            pointCoordsGroup.style.display = 'block';
-                            lineCoordsGroup.style.display = 'none';
+                            pointCoordsGroup.forEach(group => group.classList.remove('hidden'));
+                            lineCoordsGroup.classList.add('hidden');
                             map.on('click', onMapClickPoint);
                             map.off('dblclick');
                         } else if (type === 'LineString') {
                             instructionText.textContent = 'Nhấp để thêm điểm cho đường (nhấp đúp để hoàn thành) hoặc nhập tọa độ thủ công.';
-                            pointCoordsGroup.style.display = 'none';
-                            lineCoordsGroup.style.display = 'block';
+                            pointCoordsGroup.forEach(group => group.classList.add('hidden'));
+                            lineCoordsGroup.classList.remove('hidden');
                             map.on('click', onMapClickLine);
                             map.on('dblclick', finishLineString);
                         } else {
                             instructionText.textContent = 'Chọn loại hình học để bắt đầu.';
-                            pointCoordsGroup.style.display = 'none';
-                            lineCoordsGroup.style.display = 'none';
+                            pointCoordsGroup.forEach(group => group.classList.add('hidden'));
+                            lineCoordsGroup.classList.add('hidden');
                             map.off('click').off('dblclick');
                         }
                     });
@@ -522,4 +463,3 @@
     }
 </body>
 </html>
-

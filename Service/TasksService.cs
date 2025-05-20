@@ -5,6 +5,7 @@ using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using static RoadInfrastructureAssetManagementFrontend2.Service.UsersService;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Service
 {
@@ -69,6 +70,62 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
             return result;
         }
 
+        public async Task<(List<TasksResponse> Tasks, int TotalCount)> GetTasksAsync(int page, int pageSize, string searchTerm, int searchField)
+        {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is retrieving tasks with pagination - Page: {Page}, PageSize: {PageSize}, SearchTerm: {SearchTerm}, SearchField: {SearchField}",
+                username, role, page, pageSize, searchTerm, searchField);
+
+            // Xây dựng query string cho API
+            var query = new Dictionary<string, string>
+            {
+                { "page", page.ToString() },
+                { "pageSize", pageSize.ToString() },
+                { "searchTerm", searchTerm ?? "" },
+                { "searchField", searchField.ToString() }
+            };
+
+            var queryString = string.Join("&", query.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
+            var requestUrl = $"api/tasks/paged?{queryString}";
+
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync(requestUrl));
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve tasks: Unauthorized access", username, role);
+                throw new UnauthorizedAccessException("Token expired or invalid. Please login again.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve tasks: {StatusCode} - {Error}",
+                    username, role, response.StatusCode, errorContent);
+                throw new HttpRequestException($"Failed to retrieve tasks: {response.StatusCode} - {errorContent}");
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<TasksPaginationResponse>(content);
+
+            if (result?.tasks == null)
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) received empty tasks list for Page: {Page}", username, role, page);
+                return (new List<TasksResponse>(), 0);
+            }
+
+            _logger.LogInformation("User {Username} (Role: {Role}) retrieved {Count} tasks with total count {TotalCount} for Page: {Page}",
+                username, role, result.tasks.Count, result.totalCount, page);
+
+            return (result.tasks, result.totalCount);
+        }
+        // Lớp để ánh xạ phản hồi JSON từ API
+        public class TasksPaginationResponse
+        {
+            public List<TasksResponse> tasks { get; set; }
+            public int totalCount { get; set; }
+        }
         public async Task<TasksResponse?> CreateTaskAsync(TasksRequest request)
         {
             var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";

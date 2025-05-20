@@ -1,10 +1,261 @@
 ﻿@page
-@model IndexModel
+@model RoadInfrastructureAssetManagementFrontend2.Pages.IndexModel
 @{
-    ViewData["Title"] = "Home page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<div id="home" class="pt-16">
+    <!-- Banner -->
+    <div class="banner relative h-[700px] md:h-[350px] w-full">
+        <div class="slider">
+            <div class="slide-item relative">
+                <img src="https://res.cloudinary.com/djsz5xlej/image/upload/v1747124287/infrastructure_dfqzzo.png"
+                     alt="Đường bộ Hà Nội"
+                     class="w-full h-full object-cover block" />
+                <div class="overlay-text absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white p-4">
+                    <p class="text-lg md:text-base">Hệ thống đường bộ hiện đại tại Hà Nội, đảm bảo giao thông thông suốt.</p>
+                </div>
+            </div>
+            <div class="slide-item relative">
+                <img src="https://res.cloudinary.com/djsz5xlej/image/upload/v1747124287/duong-hoang-dieu_whp8ye.jpg"
+                     alt="Cầu Hà Nội"
+                     class="w-full h-full object-cover block" />
+                <div class="overlay-text absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white p-4">
+                    <p class="text-lg md:text-base">Đường Hoàng Diệu - cung đường thơ mộng giữa lòng thủ đô.</p>
+                </div>
+            </div>
+            <div class="slide-item relative">
+                <img src="https://res.cloudinary.com/djsz5xlej/image/upload/v1747124286/cau-long-bien11_pvrunp.jpg"
+                     alt="Hạ tầng Hà Nội"
+                     class="w-full h-full object-cover block" />
+                <div class="overlay-text absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white p-4">
+                    <p class="text-lg md:text-base">Cầu Long Biên - di sản lịch sử và hạ tầng giao thông quan trọng.</p>
+                </div>
+            </div>
+        </div>
+        <div class="sln-name absolute right-0 bottom-12 md:bottom-3">
+            <a href="https://soxaydung.hanoi.gov.vn/vi-vn" target="_blank">
+                <p class="text-white uppercase bg-white/40 rounded-[20px_5px_5px_20px] px-5 py-2 font-bold hover:bg-black/40 hover:text-red-600 transition">Sở Xây dựng Hà Nội</p>
+            </a>
+        </div>
+    </div>
+
+    <!-- Introduce -->
+    <div class="introduce my-12 md:my-8 max-w-7xl mx-auto px-4">
+        <h1 class="text-4xl font-bold uppercase text-gray-800 text-center md:text-2xl">Hệ thống Quản lý Kết cấu Cơ sở Hạ tầng Giao thông Vận tải Đường bộ Hà Nội</h1>
+        <div class="mt-8 md:mt-5 text-gray-600 text-justify text-base">
+            <p class="my-2">
+                Hệ thống được xây dựng nhằm số hóa và tối ưu hóa việc quản lý kết cấu hạ tầng giao thông vận tải đường bộ tại thành phố Hà Nội. Với các tính năng quản lý hạ tầng, sự cố và nhiệm vụ, hệ thống hỗ trợ cơ quan chức năng giám sát, bảo trì và nâng cấp hạ tầng giao thông, đảm bảo an toàn và hiệu quả cho người dân.
+            </p>
+        </div>
+    </div>
+
+    <!-- Core Features -->
+    <div class="features my-12 md:my-8 max-w-7xl mx-auto px-4">
+        <h1 class="text-4xl font-bold uppercase text-gray-800 text-center md:text-2xl mb-8">Nghiệp vụ chính</h1>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-road text-3xl text-blue-600 mr-3"></i>
+                    <h2 class="text-xl font-semibold text-gray-700">Quản lý hạ tầng</h2>
+                </div>
+                <p class="text-gray-600">
+                    Theo dõi và quản lý các tài sản hạ tầng đường bộ như đường, cầu, hầm, đèn giao thông. Cung cấp thông tin chi tiết về trạng thái, lịch sử bảo trì và kế hoạch nâng cấp.
+                </p>
+                <a asp-page="/Assets/Index" class="text-blue-600 hover:underline mt-4 inline-block">Xem chi tiết</a>
+            </div>
+            <div class="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-exclamation-triangle text-3xl text-red-600 mr-3"></i>
+                    <h2 class="text-xl font-semibold text-gray-700">Quản lý sự cố</h2>
+                </div>
+                <p class="text-gray-600">
+                    Ghi nhận, phân loại và xử lý các sự cố hạ tầng như hư hỏng đường, tắc nghẽn giao thông, hoặc tai nạn. Hỗ trợ phản hồi nhanh và phối hợp khắc phục.
+                </p>
+                <a asp-page="/Incidents/Index" class="text-blue-600 hover:underline mt-4 inline-block">Xem chi tiết</a>
+            </div>
+            <div class="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-tasks text-3xl text-green-600 mr-3"></i>
+                    <h2 class="text-xl font-semibold text-gray-700">Quản lý nhiệm vụ</h2>
+                </div>
+                <p class="text-gray-600">
+                    Quản lý các nhiệm vụ sửa chữa, bảo trì và nâng cấp hạ tầng. Theo dõi tiến độ, phân công công việc và đảm bảo hoàn thành đúng hạn.
+                </p>
+                <a asp-page="/Tasks/Index" class="text-blue-600 hover:underline mt-4 inline-block">Xem chi tiết</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div id="charts" class="my-12 md:my-8 max-w-7xl mx-auto px-4">
+        <h1 class="text-4xl font-bold uppercase text-gray-800 text-center md:text-2xl">Thống kê</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+            <div>
+                <h2 class="text-2xl font-bold uppercase text-gray-700 border-l-4 border-red-600 pl-8 mb-8 md:text-center md:pl-0 md:text-lg">Số lượng sự cố</h2>
+                <div id="chart-incidents" class="min-h-[400px]"></div>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold uppercase text-gray-700 border-l-4 border-red-600 pl-8 mb-8 md:text-center md:pl-0 md:text-lg">Tiến độ nhiệm vụ</h2>
+                <div id="chart-tasks" class="min-h-[400px]"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Links -->
+    <!-- Links -->
+    <div id="links" class="py-12 max-w-7xl mx-auto px-4">
+        <h1 class="text-4xl font-bold uppercase text-gray-800 text-center md:text-2xl mb-8">Liên kết hữu ích</h1>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Link 1 -->
+            <div class="flex flex-col">
+                <a href="https://sogtvt.hanoi.gov.vn" target="_blank" class="block">
+                    <div class="relative overflow-hidden rounded-t-md" style="aspect-ratio: 672/90;">
+                        <img src="https://res.cloudinary.com/djsz5xlej/image/upload/v1747218152/pq25xsmzcywm5nnrevmg.png"
+                             alt="Sở GTVT Hà Nội"
+                             class="w-full h-full object-cover">
+                    </div>
+                    <p class="bg-gray-200 text-black font-medium uppercase text-xs text-center p-2 rounded-b-md">
+                        Trang thông tin điện tử Sở Xây dựng Hà Nội
+                    </p>
+                </a>
+            </div>
+
+            <!-- Link 2 -->
+            <div class="flex flex-col">
+                <a href="https://hanoi.gov.vn" target="_blank" class="block">
+                    <div class="relative overflow-hidden rounded-t-md" style="aspect-ratio: 672/90;">
+                        <img src="https://res.cloudinary.com/djsz5xlej/image/upload/v1747218152/ah98e9m63xg37by6nate.png"
+                             alt="Cổng thông tin Hà Nội"
+                             class="w-full h-full object-cover">
+                    </div>
+                    <p class="bg-gray-200 text-black font-medium uppercase text-xs text-center p-2 rounded-b-md">
+                        Cổng thông tin điện tử Hà Nội
+                    </p>
+                </a>
+            </div>
+
+            <!-- Link 3 -->
+            <div class="flex flex-col">
+                <a href="https://dichvucong.gov.vn" target="_blank" class="block">
+                    <div class="relative overflow-hidden rounded-t-md" style="aspect-ratio: 672/90;">
+                        <img src="https://res.cloudinary.com/djsz5xlej/image/upload/v1747218152/swmdpwxfjzsuhgqbiqn9.png"
+                             alt="Dịch vụ công"
+                             class="w-full h-full object-cover">
+                    </div>
+                    <p class="bg-gray-200 text-black font-medium uppercase text-xs text-center p-2 rounded-b-md">
+                        Cổng dịch vụ công quốc gia
+                    </p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script>
+        $(document).ready(function () {
+            console.log("Slick initializing, slider found:", $('.slider').length);
+            
+            // Chờ tất cả ảnh tải xong
+            const images = $('.slider img');
+            let loadedImages = 0;
+            const totalImages = images.length;
+
+            if (totalImages === 0) {
+                console.warn("No images found in slider, initializing Slick immediately");
+                initializeSlick();
+            } else {
+                images.each(function () {
+                    const img = new Image();
+                    img.src = $(this).attr('src');
+                    img.onload = function () {
+                        loadedImages++;
+                        console.log("Image loaded:", img.src, "Progress:", loadedImages, "/", totalImages);
+                        if (loadedImages === totalImages) {
+                            initializeSlick();
+                        }
+                    };
+                    img.onerror = function () {
+                        console.error("Error loading image:", img.src);
+                        loadedImages++;
+                        if (loadedImages === totalImages) {
+                            initializeSlick();
+                        }
+                    };
+                });
+            }
+
+            function initializeSlick() {
+                console.log("All images loaded, initializing Slick");
+                $('.slider').on('init', function (event, slick) {
+                    console.log("Slick initialized, track height:", $('.slick-track').height());
+                    // Buộc hiển thị slide đầu tiên
+                    $('.slick-slide').css('opacity', '1');
+                });
+                $('.slider').slick({
+                    autoplay: true,
+                    autoplaySpeed: 3000,
+                    arrows: true,
+                    dots: false,
+                    fade: true, // Sử dụng fade để tránh ẩn slide
+                    cssEase: 'linear',
+                    prevArrow: '<div class="btn-prev absolute top-1/2 -translate-y-1/2 left-12 bg-white opacity-50 w-12 h-12 rounded-full flex items-center justify-center text-gray-600 hover:text-gray-900 hover:opacity-100 transition md:left-4 md:w-8 md:h-8"><i class="fas fa-chevron-left"></i></div>',
+                    nextArrow: '<div class="btn-next absolute top-1/2 -translate-y-1/2 right-12 bg-white opacity-50 w-12 h-12 rounded-full flex items-center justify-center text-gray-600 hover:text-gray-900 hover:opacity-100 transition md:right-4 md:w-8 md:h-8"><i class="fas fa-chevron-right"></i></div>',
+                    responsive: [{
+                        breakpoint: 768,
+                        settings: { arrows: true }
+                    }]
+                });
+            }
+
+            // Khởi tạo biểu đồ Highcharts mẫu
+            Highcharts.chart('chart-incidents', {
+                chart: { type: 'pie' },
+                title: { text: '' },
+                series: [{
+                    name: 'Sự cố',
+                    data: [
+                        { name: 'Hư hỏng đường', y: 40 },
+                        { name: 'Tắc nghẽn giao thông', y: 30 },
+                        { name: 'Khác', y: 20 }
+                    ]
+                }]
+            });
+
+            Highcharts.chart('chart-tasks', {
+                chart: { type: 'column' },
+                title: { text: '' },
+                xAxis: { categories: ['Sửa chữa', 'Bảo trì', 'Nâng cấp'] },
+                yAxis: { title: { text: 'Số nhiệm vụ' } },
+                series: [{
+                    name: 'Nhiệm vụ',
+                    data: [50, 30, 20]
+                }]
+            });
+
+            // Khởi tạo slider cho các liên kết
+            $('.autoplay').slick({
+                slidesToShow: 3,
+                slidesToScroll: 1,
+                autoplay: true,
+                autoplaySpeed: 2000,
+                responsive: [
+                    {
+                        breakpoint: 1024,
+                        settings: {
+                            slidesToShow: 2
+                        }
+                    },
+                    {
+                        breakpoint: 600,
+                        settings: {
+                            slidesToShow: 1
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+}

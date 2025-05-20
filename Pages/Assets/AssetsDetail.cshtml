@@ -1,0 +1,200 @@
+﻿@page "{id:int}"
+@model RoadInfrastructureAssetManagementFrontend2.Pages.Assets.AssetsDetailModel
+@{
+    ViewData["Title"] = "Chi tiết Tài sản";
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    #map {
+        height: 400px;
+        width: 100%;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-top: 1.5rem;
+    }
+
+    main {
+        overflow-y: auto !important;
+    }
+
+    body {
+        background-color: #f4f6f9;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .info-item {
+        transition: transform 0.2s ease;
+    }
+
+        .info-item:hover {
+            transform: translateY(-3px);
+        }
+
+    .asset-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+    }
+</style>
+
+<div class="container mx-auto px-4 py-10 max-w-4xl">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Chi tiết Tài sản</h1>
+
+    <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+        @if (TempData["Error"] != null)
+        {
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
+                @TempData["Error"]
+            </div>
+        }
+
+        @if (Model.Asset != null)
+        {
+            <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Thông tin Tài sản</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">ID:</strong>
+                    <span class="text-gray-600 block">@Model.Asset.asset_id</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Tên tài sản:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.asset_name ?? "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Mã tài sản:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.asset_code ?? "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Địa chỉ:</strong>
+                    <span class="text-gray-600 block break-words">@(Model.Asset.address ?? "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Vị trí (VN2000):</strong>
+                    <span class="text-gray-600 block break-words">@Model.LocationDisplay</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Năm xây dựng:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.construction_year?.ToString("dd/MM/yyyy") ?? "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Năm vận hành:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.operation_year?.ToString("dd/MM/yyyy") ?? "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Diện tích đất:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.land_area.HasValue ? $"{Model.Asset.land_area.Value:N0} m²" : "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Diện tích sàn:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.floor_area.HasValue ? $"{Model.Asset.floor_area.Value:N0} m²" : "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Giá trị ban đầu:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.original_value.HasValue ? $"{Model.Asset.original_value.Value:N0} VNĐ" : "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Giá trị còn lại:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.remaining_value.HasValue ? $"{Model.Asset.remaining_value.Value:N0} VNĐ" : "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Tình trạng:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.asset_status ?? "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Đơn vị lắp đặt:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.installation_unit ?? "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Đơn vị quản lý:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.management_unit ?? "Không có")</span>
+                </div>
+                <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                    <strong class="text-gray-800 font-semibold">Thời gian tạo:</strong>
+                    <span class="text-gray-600 block">@(Model.Asset.created_at?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa tạo")</span>
+                </div>
+                @if (Model.CustomAttributes != null)
+                {
+                    foreach (var attr in Model.CustomAttributes)
+                    {
+                        <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                            <strong class="text-gray-800 font-semibold">@attr.Key:</strong>
+                            <span class="text-gray-600 block break-words">@(attr.Value?.ToString() ?? "Không có")</span>
+                        </div>
+                    }
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Asset.image_url))
+            {
+                <h3 class="text-2xl font-semibold text-gray-700 mt-6 mb-4 border-b-2 border-blue-500 pb-2">Hình ảnh</h3>
+                <div class="flex justify-center">
+                    <img src="@Model.Asset.image_url" alt="Hình ảnh tài sản" class="asset-image" />
+                </div>
+            }
+
+            <h3 class="text-2xl font-semibold text-gray-700 mt-6 mb-4 border-b-2 border-blue-500 pb-2">Vị trí trên bản đồ (WGS84)</h3>
+            <div id="map"></div>
+        }
+        else
+        {
+            <p class="text-gray-500">Không có dữ liệu để hiển thị.</p>
+        }
+
+        <div class="flex justify-center mt-6 gap-4">
+            <a href="/Assets/Index" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i> Quay lại
+            </a>
+            <a href="/Assets/AssetUpdate?id=@Model.Asset?.asset_id" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center">
+                <i class="fas fa-edit mr-2"></i> Cập nhật
+            </a>
+            <a href="/MaintenanceHistory/MaintenanceHistorybyAssetId/@Model.Asset?.asset_id" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition duration-200 flex items-center">
+                <i class="fas fa-history mr-2"></i> Lịch sử bảo dưỡng
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var map = L.map('map').setView([10.8231, 106.6297], 13); // Default center (HCMC)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Parse WGS84 geometry from Model
+        var geometry = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Wgs84Geometry));
+        if (geometry && geometry.coordinates) {
+            if (geometry.type === 'Point') {
+                var lat = geometry.coordinates[1];
+                var lng = geometry.coordinates[0];
+                L.marker([lat, lng]).addTo(map).bindPopup(`Asset ID: ${@Model.Asset?.asset_id}`);
+                map.setView([lat, lng], 15);
+            } else if (geometry.type === 'LineString') {
+                var coords = geometry.coordinates.map(function (coord) {
+                    return [coord[1], coord[0]]; // Convert to [lat, lng]
+                });
+                L.polyline(coords, { color: 'blue' }).addTo(map).bindPopup(`Asset ID: ${@Model.Asset?.asset_id}`);
+                map.fitBounds(coords);
+            } else if (geometry.type === 'Polygon') {
+                var coords = geometry.coordinates[0].map(function (coord) {
+                    return [coord[1], coord[0]]; // Convert to [lat, lng]
+                });
+                L.polygon(coords, { color: 'blue' }).addTo(map).bindPopup(`Asset ID: ${@Model.Asset?.asset_id}`);
+                map.fitBounds(coords);
+            } else if (geometry.type === 'MultiLineString') {
+                var coords = geometry.coordinates[0].map(function (coord) {
+                    return [coord[1], coord[0]]; // Convert to [lat, lng]
+                });
+                L.polyline(coords, { color: 'blue' }).addTo(map).bindPopup(`Asset ID: ${@Model.Asset?.asset_id}`);
+                map.fitBounds(coords);
+            }
+        } else {
+            // Fallback: Display a message if no valid geometry
+            L.marker([10.8231, 106.6297]).addTo(map).bindPopup('Không có tọa độ hợp lệ.');
+        }
+    });
+</script>

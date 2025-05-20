@@ -31,28 +31,30 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                 return Page();
             }
 
-            var loginResponse = await _usersService.LoginAsync(LoginRequest);
-            if (loginResponse == null)
+            try
             {
-                ErrorMessage = "Invalid username or password.";
+                var result = await _usersService.LoginAsync(LoginRequest);
+                if (result != null)
+                {
+                    HttpContext.Session.SetString("AccessToken", result.accessToken);
+                    HttpContext.Session.SetString("RefreshToken", result.refreshToken);
+                    HttpContext.Session.SetString("Role", result.role);
+                    HttpContext.Session.SetString("Username", result.username);
+                    HttpContext.Session.SetInt32("Id", result.id);
+
+                    // Commit Session để đảm bảo cookie được gửi
+                    await HttpContext.Session.CommitAsync();
+
+                    return RedirectToPage("/index");
+                }
+                ModelState.AddModelError("", "Invalid login attempt.");
                 return Page();
             }
-
-            // Kiểm tra null trước khi lưu vào Session
-            if (string.IsNullOrEmpty(loginResponse.accessToken))
+            catch (Exception ex)
             {
-                ErrorMessage = "Login failed: Access token is missing.";
+                ModelState.AddModelError("", $"Error: {ex.Message}");
                 return Page();
             }
-
-            // Lưu thông tin vào Session với kiểm tra null
-            HttpContext.Session.SetString("AccessToken", loginResponse.accessToken);
-            HttpContext.Session.SetString("RefreshToken", loginResponse.refreshToken ?? ""); // Giá trị mặc định nếu null
-            HttpContext.Session.SetString("Username", loginResponse.username ?? "");
-            HttpContext.Session.SetString("Role", loginResponse.role ?? "");
-
-            // Chuyển hướng đến trang chính sau khi đăng nhập thành công
-            return RedirectToPage("/Index");
         }
     }
 }

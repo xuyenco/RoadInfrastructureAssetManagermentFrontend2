@@ -3,205 +3,320 @@
 @{
     ViewData["Title"] = "Reports Dashboard";
 }
-
-<h1>Reports Dashboard</h1>
-
-<!-- CSS để tạo lưới -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
+    body {
+        background-color: #f4f6f9;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
     .grid-container {
         display: grid;
-        grid-template-columns: repeat(2, 1fr); /* 2 cột */
-        gap: 20px;
-        padding: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        gap: 2rem;
+        padding: 2rem;
+        max-height: calc(100vh - 200px); /* Giới hạn chiều cao lưới, trừ header và padding */
+        overflow-y: auto; /* Cho phép cuộn dọc nếu nội dung vượt quá */
     }
     .chart-container {
+        background-color: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+        padding: 2rem;
+        overflow-x: auto;
+        max-height: 500px; /* Giới hạn chiều cao tối đa của mỗi container */
+        overflow-y: auto; /* Cuộn dọc nếu biểu đồ vượt quá */
+    }
+    .pie-chart-canvas {
+        aspect-ratio: 1 / 1;
         width: 100%;
-        max-width: 500px;
-        margin: auto;
+        max-height: 400px; /* Giới hạn chiều cao tối đa cho pie chart */
+    }
+    canvas {
+        width: 100% !important;
+        max-height: 400px !important; /* Giới hạn chiều cao cho các biểu đồ khác */
     }
 </style>
 
-<div class="grid-container">
-    <!-- 1. Asset Distribution by Category -->
-    <div class="chart-container">
-        <h3>Asset Distribution by Category</h3>
-        <canvas id="assetDistributionChart"></canvas>
-    </div>
+<div class="container mx-auto px-4 py-10">
+    <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">Reports Dashboard</h1>
 
-    <!-- 2. Asset Distributed by Condition -->
-    <div class="chart-container">
-        <h3>Asset Distribution by Condition</h3>
-        <canvas id="assetConditionChart"></canvas>
-    </div>
+    <!-- Hiển thị lỗi nếu có -->
+    @if (!ModelState.IsValid)
+    {
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6" role="alert">
+            @foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <p>@error.ErrorMessage</p>
+            }
+        </div>
+    }
 
-    <!-- 3. Task Status Distribution -->
-    <div class="chart-container">
-        <h3>Task Status Distribution</h3>
-        <canvas id="taskStatusChart"></canvas>
-    </div>
+    <div class="grid-container">
+        <!-- 1. Asset Status Report -->
+        <div class="chart-container">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Asset Distribution by Status</h3>
+            <canvas id="assetStatusChart"></canvas>
+        </div>
 
-    <!-- 4. Incident Type Distribution -->
-    <div class="chart-container">
-        <h3>Incident Type Distribution</h3>
-        <canvas id="incidentTypeChart"></canvas>
-    </div>
+        <!-- 2. Incident Distribution Report -->
+        <div class="chart-container">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Incident Distribution by Route</h3>
+            <canvas id="incidentDistributionChart" class="pie-chart-canvas"></canvas>
+        </div>
 
-    <!-- 5. Incidents Over Time -->
-    <div class="chart-container">
-        <h3>Incidents Over Time</h3>
-        <canvas id="incidentsOverTimeChart"></canvas>
-    </div>
+        <!-- 3. Task Performance Report -->
+        <div class="chart-container">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Task Performance by Department</h3>
+            <canvas id="taskPerformanceChart"></canvas>
+        </div>
 
-    <!-- 6. Budget and Costs -->
-    <div class="chart-container">
-        <h3>Budget vs Costs</h3>
-        <canvas id="budgetAndCostsChart"></canvas>
+        <!-- 4. Incident and Task Trend Report -->
+        <div class="chart-container">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Incidents and Tasks Over Time</h3>
+            <canvas id="trendChart"></canvas>
+        </div>
+
+        <!-- 5. Maintenance Frequency Report -->
+        <div class="chart-container">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Maintenance Frequency by Asset</h3>
+            <canvas id="maintenanceFrequencyChart"></canvas>
+        </div>
     </div>
 </div>
 
 <!-- Thêm Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // 1. Asset Distribution by Category
-    var assetData = @Html.Raw(Json.Serialize(Model.AssetDistribution));
-    new Chart(document.getElementById('assetDistributionChart'), {
-        type: 'pie',
-        data: {
-            labels: assetData.map(item => item.category_name),
-            datasets: [{
-                label: 'Assets',
-                data: assetData.map(item => item.count),
-                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50', '#E7E9ED']
-            }]
-        },
-        options: { plugins: { title: { display: true, text: 'Asset Distribution by Category' } } }
-    });
+    // Màu sắc đồng bộ với Tailwind
+    const chartColors = {
+        blue: '#3B82F6',
+        red: '#EF4444',
+        green: '#10B981',
+        yellow: '#F59E0B',
+        gray: '#6B7280',
+        purple: '#8B5CF6',
+        teal: '#14B8A6',
+        pink: '#EC4899',
+        orange: '#F97316',
+        indigo: '#6366F1',
+        lime: '#84CC16'
+    };
 
-    // 2. Asset Distributed by Condition
-    var conditionData = @Html.Raw(Json.Serialize(Model.AssetCondition));
-    new Chart(document.getElementById('assetConditionChart'), {
-        type: 'bar',
-        data: {
-            labels: conditionData.map(item => item.condition),
-            datasets: [{
-                label: 'Assets',
-                data: conditionData.map(item => item.count),
-                backgroundColor: '#36A2EB',
-                barPercentage : 0.25,
-                categoryPercentage: 0.5
-            }]
-        },
-        options: {
-            scales: { y: { beginAtZero: true, title: { display: true, text: 'Count' } } },
-            plugins: { title: { display: true, text: 'Asset Distribution by Condition' } }
-        }
-    });
-
-    // 3. Task Status Distribution
-    var taskData = @Html.Raw(Json.Serialize(Model.TaskStatus));
-    new Chart(document.getElementById('taskStatusChart'), {
-        type: 'pie',
-        data: {
-            labels: taskData.map(item => item.status),
-            datasets: [{
-                label: 'Tasks',
-                data: taskData.map(item => item.count),
-                backgroundColor: ['#FF6384', '#36A2EB', '#4CAF50', '#FFCE56']
-            }]
-        },
-        options: { plugins: { title: { display: true, text: 'Task Status Distribution' } } }
-    });
-
-    // 4. Incident Type Distribution
-    var incidentTypeData = @Html.Raw(Json.Serialize(Model.IncidentTypes));
-    new Chart(document.getElementById('incidentTypeChart'), {
-        type: 'pie',
-        data: {
-            labels: incidentTypeData.map(item => item.incident_type),
-            datasets: [{
-                label: 'Incidents',
-                data: incidentTypeData.map(item => item.count),
-                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50', '#E7E9ED']
-            }]
-        },
-        options: { plugins: { title: { display: true, text: 'Incident Type Distribution' } } }
-    });
-
-    // 5. Incidents Over Time
-    var incidentsOverTimeData = @Html.Raw(Json.Serialize(Model.IncidentsOverTime));
-    new Chart(document.getElementById('incidentsOverTimeChart'), {
-        type: 'line',
-        data: {
-            labels: incidentsOverTimeData.map(item => `${item.year}-${item.month}`),
-            datasets: [{
-                label: 'Incidents',
-                data: incidentsOverTimeData.map(item => item.count),
-                borderColor: '#36A2EB',
-                fill: false
-            }]
-        },
-        options: {
-            scales: { y: { beginAtZero: true, title: { display: true, text: 'Count' } } },
-            plugins: { title: { display: true, text: 'Incidents Over Time' } }
-        }
-    });
-
-    // 6. Budget and Costs
-    var budgetCostData = @Html.Raw(Json.Serialize(Model.BudgetAndCosts));
-    new Chart(document.getElementById('budgetAndCostsChart'), {
-        type: 'bar',
-        data: {
-            labels: budgetCostData.map(item => item.fiscal_year),
-            datasets: [
-                {
-                    label: 'Total Budget',
-                    data: budgetCostData.map(item => item.total_budget),
-                    backgroundColor: '#36A2EB', // Màu xanh cho budget
-                    barPercentage: 0.8, // Độ rộng cột
-                    categoryPercentage: 0.9
-                },
-                {
-                    label: 'Total Cost',
-                    data: budgetCostData.map(item => item.total_cost),
-                    backgroundColor: '#FF6384', // Màu đỏ cho cost
-                    barPercentage: 0.8, // Độ rộng cột
-                    categoryPercentage: 0.9
-                }
-            ]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: 'Amount' },
-                    ticks: { stepSize: 5000000 } // Bước để dễ nhìn
-                },
-                x: {
-                    title: { display: true, text: 'Fiscal Year' }
-                }
+    // 1. Asset Status Report
+    var assetStatusData = @Html.Raw(Json.Serialize(Model.AssetStatusReport));
+    if (assetStatusData.length === 0) {
+        document.getElementById('assetStatusChart').parentElement.innerHTML = '<p class="text-gray-500 text-center">No data available</p>';
+    } else {
+        new Chart(document.getElementById('assetStatusChart'), {
+            type: 'bar',
+            data: {
+                labels: assetStatusData.map(item => item.category_name),
+                datasets: [
+                    {
+                        label: 'In Use',
+                        data: assetStatusData.map(item => item.in_use_count),
+                        backgroundColor: chartColors.blue,
+                        barPercentage: 0.5,
+                        categoryPercentage: 0.6
+                    },
+                    {
+                        label: 'Damaged',
+                        data: assetStatusData.map(item => item.damaged_count),
+                        backgroundColor: chartColors.red,
+                        barPercentage: 0.5,
+                        categoryPercentage: 0.6
+                    }
+                ]
             },
-            plugins: {
-                title: { display: true, text: 'Budget vs Costs' },
-                legend: { position: 'top' },
-                tooltip: {
-                    callbacks: {
-                        label: function (context) {
-                            return `${context.dataset.label}: ${context.raw.toLocaleString()}`;
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                aspectRatio: 1.5, // Tỷ lệ chiều rộng/chiều cao để kiểm soát chiều cao
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Count' } },
+                    x: { title: { display: true, text: 'Category' } }
+                },
+                plugins: {
+                    title: { display: true, text: 'Asset Distribution by Status' },
+                    legend: { position: 'top' }
+                }
+            }
+        });
+    }
+
+    // 2. Incident Distribution Report
+    var incidentData = @Html.Raw(Json.Serialize(Model.IncidentDistributionReport));
+    if (incidentData.length === 0) {
+        document.getElementById('incidentDistributionChart').parentElement.innerHTML = '<p class="text-gray-500 text-center">No data available</p>';
+    } else {
+        new Chart(document.getElementById('incidentDistributionChart'), {
+            type: 'pie',
+            data: {
+                labels: incidentData.map(item => item.route),
+                datasets: [{
+                    label: 'Incidents',
+                    data: incidentData.map(item => item.incident_count),
+                    backgroundColor: [
+                        chartColors.red, chartColors.blue, chartColors.yellow, chartColors.green, chartColors.gray,
+                        chartColors.orange, chartColors.teal, chartColors.purple, chartColors.pink, chartColors.indigo, chartColors.lime
+                    ]
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                aspectRatio: 1, // Đảm bảo tỷ lệ 1:1
+                plugins: {
+                    title: { display: true, text: 'Incident Distribution by Route' },
+                    legend: { position: 'right' }
+                }
+            }
+        });
+    }
+
+    // 3. Task Performance Report
+    var taskData = @Html.Raw(Json.Serialize(Model.TaskPerformanceReport));
+    if (taskData.length === 0) {
+        document.getElementById('taskPerformanceChart').parentElement.innerHTML = '<p class="text-gray-500 text-center">No data available</p>';
+    } else {
+        new Chart(document.getElementById('taskPerformanceChart'), {
+            type: 'bar',
+            data: {
+                labels: taskData.map(item => item.department_company_unit),
+                datasets: [{
+                    label: 'Tasks',
+                    data: taskData.map(item => item.task_count),
+                    backgroundColor: chartColors.green,
+                    barPercentage: 0.5,
+                    categoryPercentage: 0.6
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                aspectRatio: 1.5,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Task Count' } },
+                    x: { title: { display: true, text: 'Department' } }
+                },
+                plugins: {
+                    title: { display: true, text: 'Task Performance by Department' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var item = taskData[context.dataIndex];
+                                return `Tasks: ${item.task_count}, Avg Hours: ${item.avg_hours_to_complete.toFixed(2)}`;
+                            }
                         }
                     }
                 }
             }
-        }
-    });
-</script>
+        });
+    }
 
-<!-- Hiển thị lỗi nếu có -->
-@if (!ModelState.IsValid)
-{
-    <div class="alert alert-danger">
-        @foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-        {
-            <p>@error.ErrorMessage</p>
-        }
-    </div>
-}
+    // 4. Incident and Task Trend Report
+    var trendData = @Html.Raw(Json.Serialize(Model.IncidentTaskTrendReport));
+    if (trendData.length === 0) {
+        document.getElementById('trendChart').parentElement.innerHTML = '<p class="text-gray-500 text-center">No data available</p>';
+    } else {
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: trendData.map(item => new Date(item.month).toLocaleString('default', { year: 'numeric', month: 'short' })),
+                datasets: [
+                    {
+                        label: 'Incidents',
+                        data: trendData.map(item => item.incident_count),
+                        borderColor: chartColors.red,
+                        fill: false
+                    },
+                    {
+                        label: 'Tasks',
+                        data: trendData.map(item => item.task_count),
+                        borderColor: chartColors.blue,
+                        fill: false
+                    },
+                    {
+                        label: 'Completed Tasks',
+                        data: trendData.map(item => item.completed_task_count),
+                        borderColor: chartColors.green,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                aspectRatio: 1.8, // Tỷ lệ phù hợp cho line chart
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Count' } },
+                    x: { title: { display: true, text: 'Month' } }
+                },
+                plugins: {
+                    title: { display: true, text: 'Incidents and Tasks Over Time' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var item = trendData[context.dataIndex];
+                                return `${context.dataset.label}: ${context.raw}, Status: ${item.task_status}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 5. Maintenance Frequency Report
+    var maintenanceData = @Html.Raw(Json.Serialize(Model.MaintenanceFrequencyReport));
+    if (maintenanceData.length === 0) {
+        document.getElementById('maintenanceFrequencyChart').parentElement.innerHTML = '<p class="text-gray-500 text-center">No data available</p>';
+    } else {
+        var topMaintenanceData = maintenanceData
+            .sort((a, b) => b.maintenance_count - a.maintenance_count)
+            .slice(0, 10);
+
+        new Chart(document.getElementById('maintenanceFrequencyChart'), {
+            type: 'bar',
+            data: {
+                labels: topMaintenanceData.map(item => 
+                    item.asset_name.length > 15 ? item.asset_name.substring(0, 12) + '...' : item.asset_name
+                ),
+                datasets: [{
+                    label: 'Maintenance Count',
+                    data: topMaintenanceData.map(item => item.maintenance_count),
+                    backgroundColor: chartColors.yellow,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                aspectRatio: 1.5,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: 'Maintenance Count' } 
+                    },
+                    x: { 
+                        title: { display: true, text: 'Asset' },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: { size: 12 }
+                        }
+                    }
+                },
+                plugins: {
+                    title: { display: true, text: 'Top 10 Maintenance Frequency by Asset' },
+                    legend: { display: true, position: 'top' }
+                },
+                layout: {
+                    padding: { bottom: 30 }
+                }
+            }
+        });
+    }
+</script>

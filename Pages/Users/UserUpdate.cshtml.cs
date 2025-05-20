@@ -1,16 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using RoadInfrastructureAssetManagementFrontend2.Model.Request;
-using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
-using System;
-using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 {
-    //[AuthorizeRole("manager")]
+    //[AuthorizeRole("admin")]
     public class UserUpdateModel : PageModel
     {
         private readonly IUsersService _usersService;
@@ -40,10 +37,11 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                 UserRequest = new UsersRequest
                 {
                     username = UserResponse.username,
-                    password_hash = "", // Không hiển thị mật khẩu cũ
+                    password = "", // Không hiển thị mật khẩu cũ
                     full_name = UserResponse.full_name,
                     email = UserResponse.email,
-                    role = UserResponse.role
+                    role = UserResponse.role,
+                    department_company_unit = UserResponse.department_company_unit,
                 };
 
                 return Page();
@@ -83,9 +81,9 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                 }
 
                 // Nếu mật khẩu để trống, giữ nguyên mật khẩu cũ (gán null để backend xử lý)
-                if (string.IsNullOrEmpty(UserRequest.password_hash))
+                if (string.IsNullOrEmpty(UserRequest.password))
                 {
-                    UserRequest.password_hash = null;
+                    UserRequest.password = null;
                 }
 
                 // Gửi yêu cầu cập nhật

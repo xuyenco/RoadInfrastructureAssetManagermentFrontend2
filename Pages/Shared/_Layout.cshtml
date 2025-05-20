@@ -1,5 +1,9 @@
 ﻿@using Microsoft.AspNetCore.Http
+@using RoadInfrastructureAssetManagementFrontend2.Interface
+@using System.Text.Json
+@using RoadInfrastructureAssetManagementFrontend2.Model.Response
 @inject IHttpContextAccessor HttpContextAccessor
+@inject INotificationsService NotificationService
 
 <!DOCTYPE html>
 <html lang="en">
@@ -7,73 +11,242 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - RoadInfrastructureAssetManagementFrontend</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="icon" type="image/png" href="https://res.cloudinary.com/djsz5xlej/image/upload/v1747383566/ditblpab8rq40q003i8u.png" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css" />
+    @await RenderSectionAsync("Styles", required: false) <!-- Thêm dòng này để render section Styles -->
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">RoadInfrastructureAssetManagementFrontend</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+<body class="flex flex-col min-h-screen bg-gray-100">
+    <header class="z-50">
+        <nav class="bg-white shadow-md">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <img src="https://res.cloudinary.com/djsz5xlej/image/upload/v1747383566/ditblpab8rq40q003i8u.png" alt="Favicon" class="h-8 w-8">
+                    <div class="flex flex-col">
+                        <a class="text-xl font-semibold text-gray-800 hover:text-blue-600 transition" asp-area="" asp-page="/Index">
+                            <span>Hệ thống quản lý kết cấu hạ tầng</span>
+                            <span class="block">Giao thông Vận tải đường bộ Thành phố Hà Nội</span>
+                        </a>
+                    </div>
+                </div>
+                <button class="md:hidden text-gray-600 focus:outline-none" type="button" id="menu-toggle" aria-label="Toggle navigation">
+                    <i class="fas fa-bars text-xl"></i>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/AssetCategories/index">AssetCategories</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Assets/index">Assets</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Budgets/index">Budgets</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Costs/index">Costs</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Incidents/index">Incidents</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Tasks/index">Tasks</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Users/index">Users</a>
-                        </li>
+                <div class="hidden md:flex md:items-center md:space-x-8" id="nav-menu">
+                    <ul class="flex flex-col md:flex-row md:space-x-8">
+                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Map/index">Bản đồ</a></li>
+                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/AssetCategories/index">Danh mục KC</a></li>
+                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Assets/AssetsTable">Kết cấu</a></li>
+                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Incidents/IncidentsTable">Tai nạn</a></li>
+                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Tasks/TasksTable">Công việc</a></li>
+                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Users/index">Người dùng</a></li>
+                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Report/index">Báo cáo</a></li>
                     </ul>
-                    <ul class="navbar-nav">
+                    <div class="relative notification-bell ml-8">
+                        <i class="fas fa-bell text-gray-600 cursor-pointer text-xl"></i>
+                        <span class="notification-count absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1" id="notification-count">0</span>
+                        <div class="notification-dropdown hidden absolute right-0 mt-2 w-80 bg-white border border-gray-200 shadow-lg rounded-lg max-h-96 overflow-y-auto z-50" id="notification-dropdown">
+                            <div id="notification-list"></div>
+                        </div>
+                    </div>
+                    <ul class="flex space-x-4 ml-8">
                         @if (!string.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session.GetString("AccessToken")))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Users/Logout">Logout</a>
-                            </li>
+                            <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Users/Logout">Logout</a></li>
+                        }
+                        else
+                        {
+                            <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Users/Login">Login</a></li>
                         }
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
-    <main role="main">
+
+    @{
+        var authError = HttpContextAccessor.HttpContext?.Session.GetString("AuthorizationError");
+        if (!string.IsNullOrEmpty(authError))
+        {
+            HttpContextAccessor.HttpContext?.Session.Remove("AuthorizationError");
+            <div class="fixed bottom-4 right-4 z-50">
+                <div id="authToast" class="bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center" data-bs-autohide="true" data-bs-delay="5000">
+                    <span>@authError</span>
+                    <button type="button" class="ml-4 text-white" data-bs-dismiss="toast" aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+        }
+    }
+
+    @{
+        var userId = HttpContextAccessor.HttpContext?.Session.GetInt32("Id") ?? 0;
+        var notifications = userId != 0
+        ? (await NotificationService.GetAllNotificationsByUserIdAsync(userId))
+        .OrderByDescending(n => n.created_at)
+        .Take(5)
+        .ToList()
+        : new List<NotificationsResponse>();
+    }
+
+    <main class="flex-grow container mx-auto px-4 py-6">
         @RenderBody()
     </main>
 
     @if (ViewData["Mapview"] != "Leaflet")
     {
-        <footer class="border-top footer text-muted">
-            <div class="container">
-                © 2025 - RoadInfrastructureAssetManagementFrontend - <a asp-area="" asp-page="/Privacy">Privacy</a>
+        <footer class="bg-white shadow-inner mt-auto py-4 text-center text-gray-600">
+            <div class="container mx-auto">
+                © 2025 - RoadInfrastructureAssetManagementFrontend - <a class="text-blue-600 hover:underline" asp-area="" asp-page="/Privacy">Privacy</a>
             </div>
         </footer>
     }
 
+    <form id="antiForgeryForm" style="display: none;">
+        @Html.AntiForgeryToken()
+    </form>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
+    @if (!string.IsNullOrEmpty(authError))
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var toastEl = document.getElementById('authToast');
+                if (toastEl) {
+                    setTimeout(() => toastEl.remove(), 5000);
+                }
+            });
+        </script>
+    }
+
+    <script>
+        let notifications = @Html.Raw(JsonSerializer.Serialize(notifications));
+        const userId = @(HttpContextAccessor.HttpContext?.Session.GetInt32("Id") ?? 0);
+
+        notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        window.signalRConnection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7030/notificationHub")
+            .withAutomaticReconnect()
+            .build();
+
+        $(document).ready(function () {
+            if (userId === 0) {
+                $(".notification-bell").hide();
+                return;
+            }
+
+            renderNotifications();
+            updateNotificationCount();
+
+            if (userId !== 0) {
+                window.signalRConnection.start()
+                    .then(() => {
+                        window.signalRConnection.invoke("JoinGroup", userId);
+                        window.signalRConnection.on("ReceiveNotification", (notification) => {
+                            notifications.unshift(notification);
+                            notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                            notifications = notifications.slice(0, 5);
+                            renderNotifications();
+                            updateNotificationCount();
+                            showNotificationToast(notification);
+                        });
+                    })
+                    .catch(err => console.error("SignalR Connection Error:", err));
+            }
+
+            $(document).on('click', '.notification-bell', function () {
+                const $dropdown = $("#notification-dropdown");
+                $dropdown.toggleClass('hidden');
+            });
+
+            $("#notification-list").on("click", ".notification-item", function () {
+                const notificationId = $(this).data("id");
+                markAsRead(notificationId);
+                $(this).removeClass("unread");
+                updateNotificationCount();
+                const taskId = $(this).data("task-id");
+                if (taskId && taskId !== '') {
+                    window.location.href = `/Tasks/TaskDetail/${taskId}`;
+                }
+            });
+
+            // Toggle menu for mobile
+            $("#menu-toggle").on("click", function () {
+                $("#nav-menu").toggleClass("hidden");
+            });
+
+            function renderNotifications() {
+                const list = $("#notification-list");
+                list.empty();
+                if (notifications.length === 0) {
+                    list.append('<div class="p-4 text-gray-500">Không có thông báo nào.</div>');
+                } else {
+                    notifications.forEach(n => {
+                        const item = `<div class="notification-item ${n.is_read ? '' : 'unread bg-gray-100 font-bold'} p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-200" data-id="${n.notification_id}" data-task-id="${n.task_id || ''}">
+                                        <p class="text-gray-800">${n.message}</p>
+                                        <small class="text-gray-500">${new Date(n.created_at).toLocaleString()}</small>
+                                    </div>`;
+                        list.append(item);
+                    });
+                    list.append('<div class="p-4 text-center"><a href="/Notifications/Inbox" class="text-blue-600 hover:underline">Xem tất cả</a></div>');
+                }
+            }
+
+            function updateNotificationCount() {
+                const unreadCount = notifications.filter(n => !n.is_read).length;
+                $("#notification-count").text(unreadCount);
+            }
+
+            function markAsRead(notificationId) {
+                const token = $("input[name='__RequestVerificationToken']").val();
+                $.ajax({
+                    url: "/Notifications/MarkAsRead?id=" + notificationId,
+                    method: "POST",
+                    headers: {
+                        "RequestVerificationToken": token
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            const notification = notifications.find(n => n.notification_id === notificationId);
+                            if (notification) {
+                                notification.is_read = true;
+                                renderNotifications();
+                                updateNotificationCount();
+                            }
+                        }
+                    },
+                    error: function (err) {
+                        const toastHtml = `
+                                    <div class="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
+                                        <span>Không thể đánh dấu thông báo là đã đọc.</span>
+                                        <button type="button" class="ml-4 text-white" data-bs-dismiss="toast"><i class="fas fa-times"></i></button>
+                                    </div>`;
+                        $("body").append(toastHtml);
+                        setTimeout(() => $(".fixed.bottom-4.right-4").remove(), 5000);
+                    }
+                });
+            }
+
+            function showNotificationToast(notification) {
+                const toastHtml = `
+                            <div class="fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
+                                <span>Thông báo mới: ${notification.message.length > 50 ? notification.message.substring(0, 50) + "..." : notification.message}</span>
+                                <button type="button" class="ml-4 text-white" data-bs-dismiss="toast"><i class="fas fa-times"></i></button>
+                            </div>`;
+                $("body").append(toastHtml);
+                setTimeout(() => $(".fixed.bottom-4.right-4").remove(), 5000);
+            }
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

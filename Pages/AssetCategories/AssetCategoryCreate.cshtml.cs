@@ -5,9 +5,11 @@ using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
 {
+    //[AuthorizeRole("admin")]
     public class AssetCagetoryCreateModel : PageModel
     {
         private readonly IAssetCagetoriesService _assetCagetoriesService;

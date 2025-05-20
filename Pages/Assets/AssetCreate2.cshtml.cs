@@ -7,9 +7,11 @@ using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 {
+    //[AuthorizeRole("inspector")]
     public class AssetCreate2Model : PageModel
     {
         private readonly IAssetsService _assetsService;
@@ -78,7 +80,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                     var inputType = details.TryGetValue("type", out var type) ? type.ToString() : "string";
 
                     html += $@"
-                <div class='form-group'>
+                    <div class='form-group'>
                     <label for='{prop.Key}'>{prop.Key} {(isRequired ? "(bắt buộc)" : "")}</label>";
                     if (details.TryGetValue("enum", out var enumObj) && enumObj != null)
                     {
@@ -215,7 +217,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                     return Page();
                 }
                 _logger.LogInformation("User {Username} (Role: {Role}) successfully created asset with ID {AssetId}",username, role, createdAsset.asset_id);
-                return RedirectToPage("/Assets/Index");
+                return RedirectToPage("/Assets/AssetsTable");
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {

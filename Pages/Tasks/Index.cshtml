@@ -1,233 +1,87 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend2.Pages.Tasks.IndexModel
+
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Danh sách Nhiệm vụ";
     ViewData["Mapview"] = "Leaflet";
 }
 
-<style>
-    /* CSS cho bản đồ */
-    #map {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        width: 100%;
-        height: calc(100% - 60px); /* Trừ chiều cao footer */
-        z-index: 1;
-    }
+<div id="map" class="absolute top-16 left-0 right-0 bottom-0 z-0"></div>
 
-    /* Container cho nội dung overlay */
-    .container {
-        position: absolute;
-        right: 20px;
-        top: 20px;
-        z-index: 10;
-        max-width: 300px;
-    }
-
-    /* Nội dung overlay */
-    .content-overlay {
-        background: rgba(255, 255, 255, 0.9);
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Tiêu đề */
-    h1 {
-        font-size: 1.5rem;
-        color: #2c3e50;
-        font-weight: 700;
-        margin-bottom: 15px;
-        text-align: left;
-    }
-
-    .alert {
-        border-radius: 8px;
-        padding: 10px;
-        margin-bottom: 15px;
-    }
-
-    .btn-primary {
-        background-color: #3498db;
-        border-color: #3498db;
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        transition: background-color 0.3s ease, transform 0.2s ease;
-    }
-
-        .btn-primary:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-        }
-
-    .btn i {
-        margin-right: 6px;
-    }
-
-    .mb-3 {
-        text-align: center;
-    }
-
-    /* Thanh tìm kiếm */
-    .navbar-filter {
-        position: absolute;
-        top: 0;
-        left: -300px; /* Ẩn mặc định */
-        width: 300px;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 20px;
-        z-index: 1000;
-        transition: left 0.3s ease;
-        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-        overflow-y: auto;
-        visibility: hidden;
-    }
-
-        .navbar-filter.open {
-            left: 0; /* Hiển thị khi mở */
-            visibility: visible;
-        }
-
-    .filter-group {
-        margin-bottom: 15px;
-    }
-
-        .filter-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-
-        .filter-group input {
-            width: 100%;
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid #ced4da;
-        }
-
-    /* Nút toggle thanh tìm kiếm */
-    .toggle-filter-btn {
-        position: absolute;
-        top: 60px;
-        left: 20px;
-        z-index: 10;
-        background-color: #3498db;
-        color: white;
-        border: none;
-        padding: 10px;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-
-        .toggle-filter-btn:hover {
-            background-color: #2980b9;
-        }
-
-    /* Nút đóng thanh tìm kiếm */
-    .close-filter-btn {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: none;
-        border: none;
-        font-size: 1.2rem;
-        color: #2c3e50;
-        cursor: pointer;
-        transition: color 0.3s ease;
-    }
-
-        .close-filter-btn:hover {
-            color: #c0392b;
-        }
-
-    /* Thông báo kết quả tìm kiếm */
-    .search-message {
-        display: none;
-        position: absolute;
-        top: 120px;
-        left: 20px;
-        z-index: 10;
-        background: rgba(255, 255, 255, 0.9);
-        padding: 10px;
-        border-radius: 6px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        color: #2c3e50;
-    }
-</style>
-
-<div id="map"></div>
-
-<!-- Nút toggle thanh tìm kiếm -->
-<button class="toggle-filter-btn" id="toggleFilterBtn">
-    <i class="fas fa-filter"></i> Tìm kiếm
+<button class="toggle-filter-btn fixed top-24 left-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition z-10" id="toggleFilterBtn">
+    <i class="fas fa-filter mr-2"></i> Tìm kiếm
 </button>
 
-<!-- Thanh tìm kiếm -->
-<div class="navbar-filter" id="filterNavbar">
-    <button class="close-filter-btn" id="closeFilterBtn">
+<div class="navbar-filter fixed top-0 -left-80 w-80 h-full bg-white bg-opacity-95 p-6 z-50 shadow-lg transition-all duration-300" id="filterNavbar">
+    <button class="close-filter-btn absolute top-4 right-4 text-gray-600 hover:text-red-600 transition" id="closeFilterBtn">
         <i class="fas fa-times"></i>
     </button>
-    <h4 style="color: #2c3e50; margin-bottom: 20px;">Tìm kiếm Nhiệm vụ</h4>
-    <div class="filter-group">
-        <label>Tìm kiếm</label>
-        <input type="text" id="searchFilter" class="form-control" placeholder="Nhập loại nhiệm vụ hoặc địa chỉ">
+    <h4 class="text-gray-800 font-bold mb-6">Tìm kiếm Nhiệm vụ</h4>
+    <div class="mb-4">
+        <label class="block text-gray-700 font-semibold mb-2">Tìm kiếm</label>
+        <input type="text" id="searchFilter" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập loại nhiệm vụ hoặc địa chỉ">
     </div>
 </div>
 
-<!-- Container cho tiêu đề và nút tạo mới -->
-<div class="container">
-    <div class="content-overlay">
-        <h1>Danh sách Nhiệm vụ</h1>
-
+<div class="fixed top-20 right-4 z-10 max-w-xs">
+    <div class="bg-white bg-opacity-90 p-4 rounded-lg shadow-lg">
+        <h1 class="text-xl font-bold text-gray-800 mb-4">Danh sách Nhiệm vụ</h1>
         @if (TempData["Error"] != null)
         {
-            <div class="alert alert-danger" role="alert">
+            <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
                 @TempData["Error"]
             </div>
         }
-
-        <div class="mb-3">
-            <a class="btn btn-primary" asp-page="/Tasks/TaskCreate">
-                <i class="fas fa-plus"></i> Tạo Nhiệm vụ mới
+        <div class="flex flex-col gap-2">
+            <a class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition w-full block text-center" asp-page="/Tasks/TaskCreate">
+                <i class="fas fa-plus mr-2"></i> Tạo Nhiệm vụ mới
             </a>
+            @if (HttpContext.Session.GetString("Role") == "manager" || HttpContext.Session.GetString("Role") == "inspector")
+            {
+                <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition w-full mb-2" onclick="exportIncidentsReport()">
+                    <i class="fas fa-file-export mr-2"></i> Xuất báo cáo
+                </button>
+            }
         </div>
     </div>
 </div>
 
-<!-- Thông báo kết quả tìm kiếm -->
-<div class="search-message" id="searchMessage"></div>
+<div class="search-message hidden fixed top-32 left-4 bg-white bg-opacity-90 p-4 rounded-lg shadow-lg z-10 text-gray-700" id="searchMessage"></div>
 
 @Html.AntiForgeryToken()
 @section Scripts {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        // Hàm toggle thanh tìm kiếm
+        // Lấy trực tiếp từ HttpContext.Session
+        const userTaskRole = '@(HttpContext.Session.GetString("Role") ?? "")';
+        const userTaskId = @(HttpContext.Session.GetInt32("Id")?.ToString() ?? "0");
+        console.log('User Task Role:', userTaskRole, 'User Task ID:', userTaskId);
+
+        // Kiểm tra session hợp lệ
+        if (!userTaskRole || userTaskId === 0) {
+            console.warn('Session invalid: Role or ID missing. Redirecting to login.');
+            alert('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+            window.location.href = '/Users/Login';
+        }
+
         function toggleFilterNavbar() {
-            const navbar = document.getElementById('filterNavbar');
-            if (navbar) {
-                console.log('Toggling filter navbar:', navbar.classList.contains('open') ? 'Closing' : 'Opening');
-                navbar.classList.toggle('open');
+            var navbar = document.getElementById('filterNavbar');
+            navbar.classList.toggle('open');
+            if (navbar.classList.contains('open')) {
+                navbar.style.left = '0';
             } else {
-                console.error('Filter navbar element not found');
+                navbar.style.left = '-20rem';
             }
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            // Khởi tạo bản đồ
             const map = L.map('map').setView([21.0285, 105.8542], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // Thêm layer WMS từ GeoServer
             const wmsLayer = L.tileLayer.wms('http://localhost:8080/geoserver/wms', {
                 layers: 'road_incidents',
                 format: 'image/png',
@@ -235,7 +89,6 @@
                 attribution: 'GeoServer'
             }).addTo(map);
 
-            // Layer để hiển thị marker nhiệm vụ
             const taskLayer = L.geoJSON(null, {
                 pointToLayer: function (feature, latlng) {
                     return L.marker(latlng);
@@ -250,15 +103,37 @@
                     if (feature.properties) {
                         const props = feature.properties;
                         const popupContent = `
-                                    <b>Mã Nhiệm vụ:</b> ${props.task_id || 'Chưa có'}<br>
-                                    <b>Loại Nhiệm vụ:</b> ${props.task_type || 'Chưa có'}<br>
-                                    <b>Trạng thái:</b> ${props.status || 'Chưa có'}<br>
-                                    <b>Địa chỉ:</b> ${props.address || 'Chưa có'}<br>
-                                    <b>Ngày bắt đầu:</b> ${props.start_date ? new Date(props.start_date).toLocaleDateString('vi-VN') : 'Chưa có'}<br>
-                                    <button id="update-btn-${props.task_id}" class="btn btn-primary btn-sm mt-2">Cập nhật</button>
-                                    <button id="detail-btn-${props.task_id}" class="btn btn-primary btn-sm mt-2">Chi tiết</button>
-                                    <button id="delete-btn-${props.task_id}" class="btn btn-danger btn-sm mt-2">Xóa</button>
-                                `;
+                            <div class="p-4 max-w-xs font-sans text-gray-800">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin nhiệm vụ</h3>
+                                <table class="w-full text-sm border-collapse">
+                                    <tr class="border-b">
+                                        <td class="p-2 font-semibold">Mã Nhiệm vụ:</td>
+                                        <td class="p-2">${props.task_id || 'Chưa có'}</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-2 font-semibold">Loại Nhiệm vụ:</td>
+                                        <td class="p-2">${props.task_type || 'Chưa có'}</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-2 font-semibold">Trạng thái:</td>
+                                        <td class="p-2">${props.status || 'Chưa có'}</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-2 font-semibold">Địa chỉ:</td>
+                                        <td class="p-2">${props.address || 'Chưa có'}</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-2 font-semibold">Ngày bắt đầu:</td>
+                                        <td class="p-2">${props.start_date ? new Date(props.start_date).toLocaleDateString('vi-VN') : 'Chưa có'}</td>
+                                    </tr>
+                                </table>
+                                <div class="text-center mt-4 flex justify-center gap-2">
+                                    <button id="update-btn-${props.task_id}" class="bg-blue-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-blue-600 transition duration-200">Cập nhật</button>
+                                    <button id="detail-btn-${props.task_id}" class="bg-blue-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-blue-600 transition duration-200">Chi tiết</button>
+                                    <button id="delete-btn-${props.task_id}" class="bg-red-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-red-600 transition duration-200">Xóa</button>
+                                </div>
+                            </div>
+                        `;
                         layer.bindPopup(popupContent, { autoClose: false }).on('popupopen', function () {
                             document.getElementById(`update-btn-${props.task_id}`).addEventListener('click', function () {
                                 window.location.href = `/Tasks/TaskUpdate/${props.task_id}`;
@@ -295,36 +170,26 @@
                 }
             }).addTo(map);
 
-            // Hàm cache dữ liệu
             function getCachedData(key, maxAgeInSec = 600) {
                 const cached = localStorage.getItem(key);
                 if (cached) {
                     const { data, timestamp } = JSON.parse(cached);
                     const age = (Date.now() - timestamp) / 1000;
-                    if (age < maxAgeInSec) {
-                        return data;
-                    } else {
-                        localStorage.removeItem(key);
-                    }
+                    if (age < maxAgeInSec) return data;
+                    localStorage.removeItem(key);
                 }
                 return null;
             }
 
             function setCachedData(key, data) {
-                const cacheEntry = {
-                    data,
-                    timestamp: Date.now()
-                };
-                localStorage.setItem(key, JSON.stringify(cacheEntry));
+                localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
             }
 
-            // Hàm tải dữ liệu nhiệm vụ từ GeoServer
             function loadTasks(searchKeyword = '') {
-                const cacheKey = `geoserver_tasks_${encodeURIComponent(searchKeyword)}`;
-                const cachedData = null; // Bỏ cache để debug
+                const cacheKey = `geoserver_tasks_${encodeURIComponent(searchKeyword)}_${userTaskRole}_${userTaskId}`;
+                const cachedData = getCachedData(cacheKey);
 
                 if (cachedData) {
-                    console.log('Get data from cache for search:', searchKeyword);
                     taskLayer.clearLayers();
                     taskLayer.addData(cachedData);
                     updateMap();
@@ -332,29 +197,25 @@
                 }
 
                 let cqlFilter = '1=1';
+                if (userTaskRole === 'technician' && userTaskId > 0) {
+                    cqlFilter = `execution_unit_id = ${userTaskId}`;
+                }
                 if (searchKeyword) {
                     const safeKeyword = searchKeyword.trim().replace(/'/g, "''");
-                    // Chỉ tìm kiếm theo task_type và address
-                    cqlFilter = `task_type ILIKE '%${safeKeyword}%' OR address ILIKE '%${safeKeyword}%'`;
+                    const searchFilter = `task_type ILIKE '%${safeKeyword}%' OR address ILIKE '%${safeKeyword}%'`;
+                    cqlFilter = cqlFilter === '1=1' ? searchFilter : `${cqlFilter} AND (${searchFilter})`;
                 }
 
                 const wfsUrl = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:tasks_layer_2&outputFormat=application/json&srsName=EPSG:4326&cql_filter=${encodeURIComponent(cqlFilter)}`;
                 console.log('WFS URL:', wfsUrl);
 
                 return fetch(wfsUrl)
-                    .then(response => {
-                        console.log('Response status:', response.status);
-                        return response.text().then(text => ({ response, text }));
-                    })
+                    .then(response => response.text().then(text => ({ response, text })))
                     .then(({ response, text }) => {
-                        console.log('Raw response:', text);
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
-                        }
+                        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
                         return JSON.parse(text);
                     })
                     .then(data => {
-                        console.log('GeoServer response:', data);
                         taskLayer.clearLayers();
                         if (data.features && data.features.length > 0) {
                             setCachedData(cacheKey, data);
@@ -368,7 +229,6 @@
                     });
             }
 
-            // Hàm cập nhật bản đồ và thông báo
             function updateMap() {
                 const searchKeyword = document.getElementById('searchFilter').value.trim();
                 const searchMessage = document.getElementById('searchMessage');
@@ -376,11 +236,9 @@
 
                 if (searchKeyword) {
                     searchMessage.style.display = 'block';
-                    if (totalFeatures > 0) {
-                        searchMessage.textContent = `Tìm thấy ${totalFeatures} nhiệm vụ khớp với "${searchKeyword}"`;
-                    } else {
-                        searchMessage.textContent = `Không tìm thấy nhiệm vụ nào khớp với "${searchKeyword}"`;
-                    }
+                    searchMessage.textContent = totalFeatures > 0
+                        ? `Tìm thấy ${totalFeatures} nhiệm vụ khớp với "${searchKeyword}"`
+                        : `Không tìm thấy nhiệm vụ nào khớp với "${searchKeyword}"`;
                 } else {
                     searchMessage.style.display = 'none';
                 }
@@ -397,32 +255,27 @@
                 }
             }
 
-            // Gắn sự kiện cho các nút và tìm kiếm
             const toggleBtn = document.getElementById('toggleFilterBtn');
             const closeBtn = document.getElementById('closeFilterBtn');
             const searchInput = document.getElementById('searchFilter');
 
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', toggleFilterNavbar);
-            }
-            if (closeBtn) {
-                closeBtn.addEventListener('click', toggleFilterNavbar);
-            }
+            if (toggleBtn) toggleBtn.addEventListener('click', toggleFilterNavbar);
+            if (closeBtn) closeBtn.addEventListener('click', toggleFilterNavbar);
 
             if (searchInput) {
                 let debounceTimeout;
                 searchInput.addEventListener('input', function () {
                     clearTimeout(debounceTimeout);
-                    debounceTimeout = setTimeout(() => {
-                        const searchKeyword = searchInput.value.trim();
-                        console.log('Search keyword:', searchKeyword);
-                        loadTasks(searchKeyword);
-                    }, 500);
+                    debounceTimeout = setTimeout(() => loadTasks(searchInput.value.trim()), 500);
                 });
             }
 
-            // Tải dữ liệu ban đầu
             loadTasks();
+
+            // Export report function
+            window.exportTasksReport = function () {
+                window.location.href = "/Tasks/Index?handler=ExportExcel";
+            };
         });
     </script>
 }

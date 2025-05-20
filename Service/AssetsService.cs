@@ -1,11 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
-using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Service
 {
@@ -37,6 +35,61 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
             var result = JsonSerializer.Deserialize<List<AssetsResponse>>(content);
             _logger.LogInformation("User {Username} (Role: {Role}) retrieved {Count} assets successfully", username, role, result?.Count ?? 0);
             return result;
+        }
+
+        public async Task<(List<AssetsResponse> Assets, int TotalCount)> GetAssetsAsync(int page, int pageSize, string searchTerm, int searchField)
+        {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is retrieving assets with pagination - Page: {Page}, PageSize: {PageSize}, SearchTerm: {SearchTerm}, SearchField: {SearchField}",
+                username, role, page, pageSize, searchTerm, searchField);
+
+            // Xây dựng query string cho API
+            var query = new Dictionary<string, string>
+    {
+        { "page", page.ToString() },
+        { "pageSize", pageSize.ToString() },
+        { "searchTerm", searchTerm ?? "" },
+        { "searchField", searchField.ToString() }
+    };
+            var queryString = string.Join("&", query.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
+            var requestUrl = $"api/assets/paged?{queryString}";
+
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync(requestUrl));
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve assets: Unauthorized access", username, role);
+                throw new UnauthorizedAccessException("Token expired or invalid. Please login again.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve assets: {StatusCode} - {Error}",
+                    username, role, response.StatusCode, errorContent);
+                throw new HttpRequestException($"Failed to retrieve assets: {response.StatusCode} - {errorContent}");
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<AssetsPaginationResponse>(content);
+
+            if (result?.assets == null)
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) received empty assets list for Page: {Page}", username, role, page);
+                return (new List<AssetsResponse>(), 0);
+            }
+
+            _logger.LogInformation("User {Username} (Role: {Role}) retrieved {Count} assets with total count {TotalCount} for Page: {Page}",
+                username, role, result.assets.Count, result.totalCount, page);
+
+            return (result.assets, result.totalCount);
+        }        // Lớp để ánh xạ phản hồi JSON từ API
+        public class AssetsPaginationResponse
+        {
+            public List<AssetsResponse> assets { get; set; }
+            public int totalCount { get; set; }
         }
 
         public async Task<AssetsResponse?> GetAssetByIdAsync(int id)

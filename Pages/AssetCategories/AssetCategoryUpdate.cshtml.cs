@@ -5,9 +5,11 @@ using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
 {
+    //[AuthorizeRole("admin")]
     public class AssetCagetoryUpdateModel : PageModel
     {
         private readonly IAssetCagetoriesService _assetCagetoriesService;
@@ -111,15 +113,15 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
             });
 
             // Kiểm tra ModelState
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
-                );
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors while updating asset category with ID {CategoryId}: {Errors}", username, role, id, JsonSerializer.Serialize(errors));
-                return Page();
-            }
+            //if (!ModelState.IsValid)
+            //{
+            //    var errors = ModelState.ToDictionary(
+            //        kvp => kvp.Key,
+            //        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+            //    );
+            //    _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors while updating asset category with ID {CategoryId}: {Errors}", username, role, id, JsonSerializer.Serialize(errors));
+            //    return Page();
+            //}
 
             // Gửi request cập nhật lên service
             try
@@ -130,7 +132,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
                 if (result != null)
                 {
                     _logger.LogInformation("User {Username} (Role: {Role}) successfully updated asset category with ID {CategoryId}", username, role, id);
-                    return RedirectToPage("/AssetCagetories/Index");
+                    return RedirectToPage("/AssetCategories/Index");
                 }
                 _logger.LogWarning("User {Username} (Role: {Role}) failed to update asset category with ID {CategoryId}: No result returned", username, role, id);
                 ModelState.AddModelError("", "Không thể cập nhật danh mục. Vui lòng thử lại.");

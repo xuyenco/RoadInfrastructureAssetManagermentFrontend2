@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using RoadInfrastructureAssetManagementFrontend2.Interface;
 using OfficeOpenXml;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
@@ -17,42 +17,53 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
             _logger = logger;
         }
 
-        public List<UsersResponse> Users { get; set; } = new List<UsersResponse>();
-
         public async Task<IActionResult> OnGetAsync()
         {
             var username = HttpContext.Session.GetString("Username") ?? "anonymous";
             var role = HttpContext.Session.GetString("Role") ?? "unknown";
 
             _logger.LogInformation("User {Username} (Role: {Role}) is accessing the users index page", username, role);
+            return Page();
+        }
+
+        public async Task<IActionResult> OnGetUsersAsync(int currentPage = 1, int pageSize = 1, string searchTerm = "", int searchField = 0)
+        {
+            var username = HttpContext.Session.GetString("Username") ?? "anonymous";
+            var role = HttpContext.Session.GetString("Role") ?? "unknown";
+
+            // Log query string thô để kiểm tra
+            //var queryString = HttpContext.Request.QueryString.ToString();
+            //_logger.LogInformation("Raw query string: {QueryString}", queryString);
+
+            // Log tham số nhận được
+            _logger.LogInformation("Received parameters - currentPage: {CurrentPage}, pageSize: {PageSize}, searchTerm: {SearchTerm}, searchField: {SearchField}",
+                currentPage, pageSize, searchTerm, searchField);
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is fetching users - Page: {CurrentPage}, PageSize: {PageSize}, SearchTerm: {SearchTerm}, SearchField: {SearchField}",
+                username, role, currentPage, pageSize, searchTerm, searchField);
 
             try
             {
-                Users = await _usersService.GetAllUsersAsync();
-                if (Users == null)
+                var (users, totalCount) = await _usersService.GetUsersAsync(currentPage, pageSize, searchTerm, searchField);
+                if (users == null || !users.Any())
                 {
-                    _logger.LogWarning("User {Username} (Role: {Role}) received null response when fetching users", username, role);
-                    TempData["Error"] = "Không thể tải danh sách người dùng.";
-                    Users = new List<UsersResponse>();
+                    _logger.LogWarning("User {Username} (Role: {Role}) received empty users list for Page: {CurrentPage}", username, role, currentPage);
+                    return new JsonResult(new { success = true, users = new List<UsersResponse>(), totalCount = 0 });
                 }
-                else
-                {
-                    _logger.LogInformation("User {Username} (Role: {Role}) retrieved {UserCount} users", username, role, Users.Count);
-                }
-                return Page();
+                _logger.LogInformation("User {Username} (Role: {Role}) retrieved {UserCount} users with total count {TotalCount} for Page: {CurrentPage}",
+                    username, role, users.Count, totalCount, currentPage);
+                return new JsonResult(new { success = true, users, totalCount });
             }
             catch (UnauthorizedAccessException)
             {
                 _logger.LogWarning("User {Username} (Role: {Role}) encountered unauthorized access while fetching users", username, role);
                 HttpContext.Session.Clear();
-                return RedirectToPage("/Users/Login");
+                return new JsonResult(new { success = false, message = "Phiên làm việc hết hạn, vui lòng đăng nhập lại." });
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error loading users: {Error}", username, role, ex.Message);
-                TempData["Error"] = $"Lỗi khi tải danh sách người dùng: {ex.Message}";
-                Users = new List<UsersResponse>();
-                return Page();
+                _logger.LogError("User {Username} (Role: {Role}) encountered error fetching users: {Error}", username, role, ex.Message);
+                return new JsonResult(new { success = false, message = $"Lỗi khi tải danh sách người dùng: {ex.Message}" });
             }
         }
 
@@ -66,7 +77,6 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 
             try
             {
-                // Optional: Add check to prevent self-deletion
                 var currentUserId = HttpContext.Session.GetInt32("UserId");
                 if (currentUserId.HasValue && currentUserId.Value == id)
                 {
@@ -80,17 +90,17 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error deleting user with ID {UserId}: {Error}",username, role, id, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error deleting user with ID {UserId}: {Error}", username, role, id, ex.Message);
                 return new JsonResult(new { success = false, message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error deleting user with ID {UserId}: {Error}",username, role, id, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error deleting user with ID {UserId}: {Error}", username, role, id, ex.Message);
                 return new JsonResult(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error deleting user with ID {UserId}: {Error}",username, role, id, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error deleting user with ID {UserId}: {Error}", username, role, id, ex.Message);
                 return new JsonResult(new { success = false, message = $"Đã xảy ra lỗi: {ex.Message}" });
             }
         }
@@ -156,7 +166,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                     var stream = new MemoryStream(package.GetAsByteArray());
                     string fileName = $"Users_Report_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
 
-                    _logger.LogInformation("User {Username} (Role: {Role}) successfully exported {UserCount} users to Excel file {FileName}",username, role, users.Count, fileName);
+                    _logger.LogInformation("User {Username} (Role: {Role}) successfully exported {UserCount} users to Excel file {FileName}", username, role, users.Count, fileName);
                     return File(stream,
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         fileName);
@@ -164,7 +174,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error exporting users to Excel: {Error}",username, role, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error exporting users to Excel: {Error}", username, role, ex.Message);
                 TempData["Error"] = $"Lỗi khi xuất báo cáo người dùng: {ex.Message}";
                 return RedirectToPage();
             }

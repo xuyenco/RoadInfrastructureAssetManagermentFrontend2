@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
 {
+    //[AuthorizeRole("inspector")]
     public class MaintenaneHistoryCreateByAssetIdModel : PageModel
     {
         private readonly IMaintenanceHistoryService _maintenanceHistoryService;
@@ -113,7 +115,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
                 }
 
                 TempData["Success"] = $"Lịch sử bảo trì với ID {createdHistory.maintenance_id} và tài liệu (nếu có) đã được tạo thành công!";
-                return RedirectToPage("/MaintenanceHistories/Index");
+                return RedirectToPage("/MaintenanceHistory/Index");
             }
             catch (UnauthorizedAccessException ex)
             {

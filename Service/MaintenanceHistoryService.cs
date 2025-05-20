@@ -63,6 +63,55 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
             return result;
         }
 
+        public class PagedMaintenanceHistoryResult
+        {
+            public List<MaintenanceHistoryResponse> maintenanceHistories { get; set; }
+            public int totalCount { get; set; }
+        }
+
+        public async Task<PagedMaintenanceHistoryResult> GetPagedMaintenanceHistoryByAssetId(int id,int currentPage = 1,int pageSize = 10,string searchTerm = "",int searchField = 0)
+        {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation(
+                "User {Username} (Role: {Role}) is retrieving paged maintenance histories for asset ID {AssetId} with parameters: Page={CurrentPage}, PageSize={PageSize}, SearchTerm='{SearchTerm}', SearchField={SearchField}",
+                username, role, id, currentPage, pageSize, searchTerm, searchField);
+
+            // Ensure searchTerm is not null
+            searchTerm = searchTerm ?? "";
+
+            // Build query string
+            var query = new Dictionary<string, string>
+        {
+            { "currentPage", currentPage.ToString() },
+            { "pageSize", pageSize.ToString() },
+            { "searchTerm", searchTerm },
+            { "searchField", searchField.ToString() }
+        };
+            var queryString = string.Join("&", query.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
+            var requestUrl = $"api/MaintenanceHistories/AssetId/{id}/Paged?{queryString}";
+
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync(requestUrl));
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError(
+                    "User {Username} (Role: {Role}) failed to retrieve paged maintenance histories for asset ID {AssetId}: {StatusCode} - {Error}",
+                    username, role, id, response.StatusCode, errorContent);
+                throw new HttpRequestException($"Failed to retrieve paged maintenance history: {response.StatusCode} - {errorContent}");
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<PagedMaintenanceHistoryResult>(content);
+
+            _logger.LogInformation(
+                "User {Username} (Role: {Role}) retrieved {Count} maintenance histories for asset ID {AssetId} successfully (Page: {CurrentPage}, PageSize: {PageSize}, TotalCount: {TotalCount})",
+                username, role, result?.maintenanceHistories?.Count ?? 0, id, currentPage, pageSize, result?.totalCount ?? 0);
+
+            return result ?? new PagedMaintenanceHistoryResult { maintenanceHistories = new List<MaintenanceHistoryResponse>(), totalCount = 0 };
+        }
+
         public async Task<MaintenanceHistoryResponse?> GetMaintenanceHistoryById(int id)
         {
             var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";

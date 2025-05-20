@@ -82,21 +82,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.sample_image.ContentType);
                 formData.Add(fileContent, "sample_image", request.sample_image.FileName);
             }
-            else
-            {
-                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid sample image for asset category creation", username, role); // Log lỗi validation
-                throw new ArgumentException("File ảnh mẫu là bắt buộc.");
-            }
+
             if (request.icon != null && request.icon.Length > 0)
             {
                 var fileContent = new StreamContent(request.icon.OpenReadStream());
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.icon.ContentType);
                 formData.Add(fileContent, "icon", request.icon.FileName);
-            }
-            else
-            {
-                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid icon for asset category creation", username, role); // Log lỗi validation
-                throw new ArgumentException("File ảnh icon là bắt buộc.");
             }
 
             // Log dữ liệu gửi lên (thay Console.WriteLine)

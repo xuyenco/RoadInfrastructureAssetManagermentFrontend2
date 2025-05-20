@@ -4,11 +4,10 @@ namespace RoadInfrastructureAssetManagementFrontend2.Interface
 {
     public interface IReportService
     {
-        Task<List<TaskStatusDistribution>> GetTaskStatusDistributions();
-        Task<List<IncidentTypeDistribution>> GetIncidentTypeDistributions();
-        Task<List<IncidentsOverTime>> GetIncidentsOverTime();
-        Task<List<BudgetAndCost>> GetBudgetAndCosts();
-        Task<List<AssetDistributionByCategory>> GetAssetDistributionByCategories();
-        Task<List<AssetDistributedByCondition>> GetAssetDistributedByCondition();
+        Task<List<AssetStatusReport>> GetAssetDistributedByCondition();
+        Task<List<IncidentDistributionReport>> GetIncidentTypeDistributions();
+        Task<List<TaskPerformanceReport>> GetTaskStatusDistributions();
+        Task<List<IncidentTaskTrendReport>> GetIncidentsOverTime();
+        Task<List<MaintenanceFrequencyReport>> GetMaintenanceFrequency();
     }
 }

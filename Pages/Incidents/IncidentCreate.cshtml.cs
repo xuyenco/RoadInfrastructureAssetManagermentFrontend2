@@ -543,7 +543,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 
                 _logger.LogInformation("User {Username} (Role: {Role}) successfully created incident ID {IncidentId} with {ImageCount} images",username, role, createdIncident.incident_id, Images?.Length ?? 0);
                 TempData["Success"] = "Incident và ảnh (nếu có) đã được tạo thành công!";
-                return RedirectToPage("/Incidents/Index");
+                return RedirectToPage("/Incidents/IncidentsTable");
             }
             catch (Exception ex)
             {

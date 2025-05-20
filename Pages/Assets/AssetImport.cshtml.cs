@@ -7,6 +7,7 @@ using OfficeOpenXml;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 {
@@ -66,7 +67,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                 var worksheet = package.Workbook.Worksheets.Add($"Asset template for {category.category_name}");
                 var fixedColumns = new List<string>
                 {
-                    "category_id", "asset_name", "asset_code", "address", "geometry_type", "geometry_coordinates", "geometry_system",
+                    "category_id", "asset_name", "asset_code", "address", "geometry_coordinates", "geometry_system",
                     "construction_year", "operation_year", "land_area", "floor_area", "original_value", "remaining_value",
                     "asset_status", "installation_unit", "management_unit", "image_path"
                 };
@@ -144,7 +145,6 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                         {
                             var asset = new AssetsRequest { custom_attributes = "{}", geometry = "" };
                             var rowData = new Dictionary<string, string>();
-                            string geometryType = null;
                             string geometryCoordinates = null;
                             string geometrySystem = null;
                             string imagePath = null;
@@ -165,8 +165,6 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                                         asset.asset_code = value; break;
                                     case "address":
                                         asset.address = value; break;
-                                    case "geometry_type":
-                                        geometryType = value; break;
                                     case "geometry_coordinates":
                                         geometryCoordinates = value; break;
                                     case "geometry_system":
@@ -209,23 +207,31 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                                 }
                             }
 
-                            // Xử lý geometry dưới dạng chuỗi JSON
-                            if (!string.IsNullOrEmpty(geometryType) && !string.IsNullOrEmpty(geometryCoordinates))
+                            // Xử lý geometry_coordinates dưới dạng GeoJSON
+                            if (!string.IsNullOrEmpty(geometryCoordinates))
                             {
                                 try
                                 {
-                                    var coordinates = JsonSerializer.Deserialize<object>(geometryCoordinates);
-                                    var geometryObj = new { type = geometryType, coordinates };
-                                    asset.geometry = JsonSerializer.Serialize(geometryObj);
-
-                                    // Chuyển đổi tọa độ nếu geometry_system là WGS84
-                                    if (geometrySystem?.ToUpper() == "WGS84")
+                                    // Kiểm tra định dạng GeoJSON
+                                    var geometryJson = JsonSerializer.Deserialize<JsonElement>(geometryCoordinates);
+                                    if (geometryJson.TryGetProperty("type", out var typeElement) &&
+                                        geometryJson.TryGetProperty("coordinates", out var coordsElement))
                                     {
-                                        var geoJsonGeometry = JsonSerializer.Deserialize<GeoJsonGeometry>(asset.geometry);
-                                        var vn2000Geometry = CoordinateConverter.ConvertGeometryToVN2000(geoJsonGeometry, 48);
-                                        asset.geometry = JsonSerializer.Serialize(vn2000Geometry);
-                                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000 for row {Row}: {Geometry}",
-                                            username, role, row, asset.geometry);
+                                        asset.geometry = geometryCoordinates;
+
+                                        // Chuyển đổi tọa độ nếu geometry_system là WGS84
+                                        if (geometrySystem?.ToUpper() == "WGS84")
+                                        {
+                                            var geoJsonGeometry = JsonSerializer.Deserialize<GeoJsonGeometry>(asset.geometry);
+                                            var vn2000Geometry = CoordinateConverter.ConvertGeometryToVN2000(geoJsonGeometry, 48);
+                                            asset.geometry = JsonSerializer.Serialize(vn2000Geometry);
+                                            _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000 for row {Row}: {Geometry}",
+                                                username, role, row, asset.geometry);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        throw new JsonException("GeoJSON thiếu trường 'type' hoặc 'coordinates'.");
                                     }
                                 }
                                 catch (Exception ex)
@@ -243,13 +249,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                             }
                             else
                             {
-                                _logger.LogWarning("User {Username} (Role: {Role}) missing geometry_type or geometry_coordinates in row {Row}",
+                                _logger.LogWarning("User {Username} (Role: {Role}) missing geometry_coordinates in row {Row}",
                                     username, role, row);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = row,
                                     OriginalData = JsonSerializer.Serialize(rowData),
-                                    ErrorMessage = "Thiếu geometry_type hoặc geometry_coordinates."
+                                    ErrorMessage = "Thiếu geometry_coordinates."
                                 });
                                 continue;
                             }

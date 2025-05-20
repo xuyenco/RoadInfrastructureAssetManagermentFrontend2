@@ -1,193 +1,245 @@
 ﻿@page "{id:int}"
 @model RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory.MaintenanceHistoryByAssetIdModel
 @{
+    ViewData["Title"] = "Danh sách Lịch sử Bảo trì";
 }
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    body {
+        background-color: #f4f6f9;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-<!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <style>
-        body {
-            background-color: #f4f6f9;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .pagination-controls button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-controls button {
+        min-width: 32px;
+        text-align: center;
+        transition: background-color 0.2s;
+    }
+</style>
+
+<div class="container mx-auto px-4 py-10 max-w-5xl">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Danh sách Lịch sử Bảo trì</h1>
+
+    <div class="bg-white rounded-lg shadow-lg p-6 table-container">
+        @if (TempData["Error"] != null)
+        {
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
+                @TempData["Error"]
+            </div>
+        }
+        @if (TempData["Success"] != null)
+        {
+            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4" role="alert">
+                @TempData["Success"]
+            </div>
         }
 
-        .container {
-            margin-top: 40px;
-            max-width: 1200px;
-        }
-
-        .table-container {
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            padding: 30px;
-            margin-bottom: 40px;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            color: #2c3e50;
-            font-weight: 700;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .table {
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .table th, .table td {
-            vertical-align: middle;
-            padding: 12px;
-        }
-
-        .table thead {
-            background-color: #3498db;
-            color: #ffffff;
-        }
-
-        .table tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-
-        .btn-primary {
-            background-color: #3498db;
-            border-color: #3498db;
-            padding: 8px 16px;
-            font-size: 0.9rem;
-            border-radius: 8px;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-            .btn-primary:hover {
-                background-color: #2980b9;
-                transform: translateY(-2px);
-            }
-
-        .btn-warning, .btn-danger {
-            padding: 8px 16px;
-            font-size: 0.9rem;
-            border-radius: 8px;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-            .btn-warning:hover, .btn-danger:hover {
-                transform: translateY(-2px);
-            }
-
-        .btn i {
-            margin-right: 8px;
-        }
-
-        .alert {
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .document-links a {
-            color: #3498db;
-            text-decoration: none;
-            margin-right: 10px;
-        }
-
-            .document-links a:hover {
-                text-decoration: underline;
-            }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Danh sách Lịch sử Bảo trì</h1>
-
-        <div class="table-container">
-            @if (TempData["Error"] != null)
-            {
-                <div class="alert alert-danger" role="alert">
-                    @TempData["Error"]
-                </div>
-            }
-            @if (TempData["Success"] != null)
-            {
-                <div class="alert alert-success" role="alert">
-                    @TempData["Success"]
-                </div>
-            }
-
-            <div class="mb-3">
-                <a asp-page="/MaintenanceHistory/MaintenaneHistoryCreateByAssetId" asp-route-id="@Model.Id" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Tạo Lịch sử Bảo trì Mới
+        <div class="flex flex-col md:flex-row md:items-center mb-4 gap-3">
+            <div class="flex w-full md:w-1/2 gap-2">
+                <input type="text" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tìm kiếm..." id="searchInput">
+                <select class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="searchField">
+                    <option value="0">Mã Bảo trì</option>
+                    <option value="1">Mã Nhiệm vụ</option>
+                    <option value="2">Ngày tạo</option>
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <a asp-page="/MaintenanceHistory/MaintenanceHistoryCreateByAssetId" asp-route-id="@Model.Id" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Tạo Lịch sử Bảo trì Mới
                 </a>
             </div>
+        </div>
 
+        <div class="text-sm text-gray-600 mb-2" id="resultCount"></div>
 
-            @if (Model.MaintenanceHistories == null || !Model.MaintenanceHistories.Any())
-            {
-                <p class="text-muted">Không có Lịch sử Bảo trì nào để hiển thị.</p>
-            }
-            else
-            {
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Asset ID</th>
-                            <th>Task ID</th>
-                            <th>Tài liệu</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var history in Model.MaintenanceHistories)
-                        {
-                            <tr>
-                                <td>@history.maintenance_id</td>
-                                <td>@history.asset_id</td>
-                                <td>@history.task_id</td>
-                                <td>
-                                    @{
-                                        var documents = Model.MaintenanceDocuments
-                                        .Where(d => d.maintenance_id == history.maintenance_id)
-                                        .ToList();
-                                    }
-                                    @if (documents.Any())
-                                    {
-                                        <div class="document-links">
-                                            @foreach (var doc in documents)
-                                            {
-                                                <a href="@doc.file_url" target="_blank">@doc.file_url</a>
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">Không có tài liệu</span>
-                                    }
-                                </td>
-                                <td>
-                                    <a asp-page="MaintenanceHistoryUpdate" asp-route-id="@history.maintenance_id" class="btn btn-warning btn-sm">
-                                        <i class="fas fa-edit"></i> Sửa
-                                    </a>
-                                    <form asp-page-handler="Delete" asp-route-id="@history.maintenance_id" method="post" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa Lịch sử Bảo trì này?');">
-                                        <button type="submit" class="btn btn-danger btn-sm">
-                                            <i class="fas fa-trash"></i> Xóa
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-700">
+                <thead class="bg-blue-500 text-white">
+                    <tr>
+                        <th class="px-4 py-3">ID</th>
+                        <th class="px-4 py-3">Asset ID</th>
+                        <th class="px-4 py-3">Task ID</th>
+                        <th class="px-4 py-3">Tài liệu</th>
+                        <th class="px-4 py-3">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody" class="divide-y divide-gray-200"></tbody>
+            </table>
+        </div>
+
+        <div class="pagination-controls mt-4 flex justify-center items-center gap-2">
+            <button id="prevPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Trước</button>
+            <div id="pageNumbers" class="flex gap-1"></div>
+            <button id="nextPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Sau</button>
         </div>
     </div>
+</div>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
-</body>
-</html>
+@Html.AntiForgeryToken()
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+<script>
+    console.log('Script loaded');
+
+    let currentPage = 1;
+    const pageSize = 10;
+    const assetId = @Model.Id;
+
+    function debounce(func, delay) {
+        let timeoutId;
+        return function (...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    function fetchHistory(currentPage = 1, searchTerm = '', searchField = 0) {
+        console.log('fetchHistory called with:', { currentPage, pageSize, searchTerm, searchField });
+        $.ajax({
+            url: '/MaintenanceHistory/MaintenanceHistorybyAssetId/' + assetId + '?handler=History',
+            type: 'GET',
+            data: { currentPage, pageSize, searchTerm, searchField },
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            beforeSend: function () {
+                $('#historyTableBody').html('<tr><td colspan="5" class="text-center">Đang tải...</td></tr>');
+            },
+            success: function (response) {
+                console.log('AJAX success:', response);
+                if (!response.success) {
+                    alert(response.message);
+                    $('#historyTableBody').html('<tr><td colspan="5" class="text-center">Không có dữ liệu để hiển thị.</td></tr>');
+                    return;
+                }
+                updateTable(response.maintenanceHistories, response.maintenanceDocuments);
+                updatePagination(response.totalCount);
+                $('#resultCount').text(`Tổng số lịch sử bảo trì: ${response.totalCount}`);
+            },
+            error: function (xhr) {
+                console.error('AJAX error:', xhr);
+                alert('Lỗi khi tải lịch sử bảo trì: ' + (xhr.responseJSON?.message || xhr.statusText || 'Lỗi không xác định'));
+                $('#historyTableBody').html('<tr><td colspan="5" class="text-center">Lỗi khi tải dữ liệu.</td></tr>');
+            }
+        });
+    }
+
+    function updateTable(histories, documents) {
+        const tbody = $('#historyTableBody');
+        tbody.empty();
+        if (!histories || histories.length === 0) {
+            tbody.append('<tr><td colspan="5" class="text-center">Không có Lịch sử Bảo trì nào để hiển thị.</td></tr>');
+            return;
+        }
+
+        histories.forEach(history => {
+            const historyDocs = documents.filter(d => d.maintenance_id === history.maintenance_id);
+            let docsHtml = historyDocs.length > 0
+                ? historyDocs.map((doc, index) => `
+                        <span>
+                            <a href="${doc.file_url}" target="_blank" class="text-blue-600 hover:text-blue-800">${doc.file_name}</a>
+                            ${index < historyDocs.length - 1 ? '<span class="text-gray-500 mx-1">,</span>' : ''}
+                        </span>`).join('')
+                : '<span class="text-gray-500">Không có tài liệu</span>';
+
+            const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3">${history.maintenance_id}</td>
+                        <td class="px-4 py-3">${history.asset_id}</td>
+                        <td class="px-4 py-3">${history.task_id}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap gap-2 items-center">${docsHtml}</div>
+                        </td>
+                        <td class="px-4 py-3 flex gap-2">
+                            <a href="/MaintenanceHistory/MaintenanceHistoryUpdate?id=${history.maintenance_id}" class="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600 transition duration-200">
+                                <i class="fas fa-edit"></i> Sửa
+                            </a>
+                            <form action="/MaintenanceHistory/${assetId}?handler=Delete&id=${history.maintenance_id}" method="post" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa Lịch sử Bảo trì này?');">
+                                <input type="hidden" name="__RequestVerificationToken" value="$('input[name=\"__RequestVerificationToken\"]').val()" />
+                                <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition duration-200">
+                                    <i class="fas fa-trash"></i> Xóa
+                                </button>
+                            </form>
+                        </td>
+                    </tr>`;
+            tbody.append(row);
+        });
+    }
+
+    function updatePagination(totalCount) {
+        const totalPages = Math.ceil(totalCount / pageSize);
+        const pageNumbers = $('#pageNumbers');
+        pageNumbers.empty();
+
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = startPage + maxVisiblePages - 1;
+
+        if (endPage > totalPages) {
+            endPage = totalPages;
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        if (startPage > 1) {
+            pageNumbers.append(`<button class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300" onclick="currentPage=1;fetchHistory(1, $('#searchInput').val(), $('#searchField').val())">1</button>`);
+            if (startPage > 2) pageNumbers.append('<span>...</span>');
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            pageNumbers.append(`<button class="px-3 py-1 ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'} rounded" onclick="currentPage=${i};fetchHistory(${i}, $('#searchInput').val(), $('#searchField').val())">${i}</button>`);
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) pageNumbers.append('<span>...</span>');
+            pageNumbers.append(`<button class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300" onclick="currentPage=${totalPages};fetchHistory(${totalPages}, $('#searchInput').val(), $('#searchField').val())">${totalPages}</button>`);
+        }
+
+        $('#prevPage').prop('disabled', currentPage === 1);
+        $('#nextPage').prop('disabled', currentPage === totalPages || totalPages === 0);
+    }
+
+    $(document).ready(function () {
+        console.log('Document ready');
+        fetchHistory(1);
+
+        const debouncedSearch = debounce(function (searchTerm, searchField) {
+            currentPage = 1;
+            fetchHistory(currentPage, searchTerm, searchField);
+        }, 500);
+
+        $('#searchInput').on('input', function () {
+            debouncedSearch($(this).val(), $('#searchField').val());
+        });
+
+        $('#searchField').on('change', function () {
+            currentPage = 1;
+            fetchHistory(currentPage, $('#searchInput').val(), $(this).val());
+        });
+
+        $('#prevPage').on('click', function () {
+            if (currentPage > 1) {
+                currentPage--;
+                fetchHistory(currentPage, $('#searchInput').val(), $('#searchField').val());
+            }
+        });
+
+        $('#nextPage').on('click', function () {
+            const totalPages = Math.ceil($('#resultCount').text().match(/\d+/)?.[0] / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                fetchHistory(currentPage, $('#searchInput').val(), $('#searchField').val());
+            }
+        });
+    });
+</script>

@@ -1,17 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
+using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
-using RoadInfrastructureAssetManagementFrontend2.Interface;
-using System;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 {
+    //[AuthorizeRole("inspector,technician")]
     public class TaskUpdateModel : PageModel
     {
         private readonly ITasksService _tasksService;
@@ -67,7 +66,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                     execution_unit_id = TaskResponse.execution_unit_id,
                     supervisor_id = TaskResponse.supervisor_id,
                     method_summary = TaskResponse.method_summary,
-                    main_result = TaskResponse.main_result
+                    main_result = TaskResponse.main_result,
+                    description = TaskResponse.description,
                 };
 
                 _logger.LogInformation("User {Username} (Role: {Role}) successfully loaded task with ID {TaskId} for update",
@@ -88,8 +88,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
             var username = HttpContext.Session.GetString("Username") ?? "anonymous";
             var role = HttpContext.Session.GetString("Role") ?? "unknown";
 
-            _logger.LogInformation("User {Username} (Role: {Role}) is submitting update for task with ID {TaskId}",username, role, id);
-            _logger.LogDebug("User {Username} (Role: {Role}) submitted form data: {FormData}",username, role, JsonSerializer.Serialize(Request.Form));
+            _logger.LogInformation("User {Username} (Role: {Role}) is submitting update for task with ID {TaskId}", username, role, id);
+            _logger.LogDebug("User {Username} (Role: {Role}) submitted form data: {FormData}", username, role, JsonSerializer.Serialize(Request.Form));
 
             if (TaskRequest.geometry == null) TaskRequest.geometry = new GeoJsonGeometry();
 
@@ -102,7 +102,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
             }
             else
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid geometry type for task ID {TaskId}: {GeometryType}",username, role, id, geometryType);
+                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid geometry type for task ID {TaskId}: {GeometryType}", username, role, id, geometryType);
                 ModelState.AddModelError("TaskRequest.geometry.type", "Loại hình học phải là 'Point' hoặc 'LineString'.");
             }
 
@@ -112,88 +112,83 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                 try
                 {
                     TaskRequest.geometry.coordinates = JsonSerializer.Deserialize<object>(coordinatesJson);
-                    _logger.LogDebug("User {Username} (Role: {Role}) deserialized coordinates for task ID {TaskId}: {Coordinates}",username, role, id, JsonSerializer.Serialize(TaskRequest.geometry.coordinates));
+                    _logger.LogDebug("User {Username} (Role: {Role}) deserialized coordinates for task ID {TaskId}: {Coordinates}", username, role, id, JsonSerializer.Serialize(TaskRequest.geometry.coordinates));
 
                     if (GeometrySystem == "wgs84")
                     {
                         TaskRequest.geometry = CoordinateConverter.ConvertGeometryToVN2000(TaskRequest.geometry);
-                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000 for task ID {TaskId}: {Geometry}",username, role, id, JsonSerializer.Serialize(TaskRequest.geometry));
+                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000 for task ID {TaskId}: {Geometry}", username, role, id, JsonSerializer.Serialize(TaskRequest.geometry));
                     }
                 }
                 catch (JsonException ex)
                 {
-                    _logger.LogWarning("User {Username} (Role: {Role}) provided invalid coordinates for task ID {TaskId}: {Error}",username, role, id, ex.Message);
+                    _logger.LogWarning("User {Username} (Role: {Role}) provided invalid coordinates for task ID {TaskId}: {Error}", username, role, id, ex.Message);
                     ModelState.AddModelError("TaskRequest.geometry.coordinates", $"Định dạng tọa độ không hợp lệ: {ex.Message}");
                 }
             }
             else
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) did not provide geometry coordinates for task ID {TaskId}",username, role, id);
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide geometry coordinates for task ID {TaskId}", username, role, id);
                 ModelState.AddModelError("TaskRequest.geometry.coordinates", "Tọa độ là bắt buộc.");
             }
 
             // Validate required fields
             if (string.IsNullOrWhiteSpace(TaskRequest.task_type))
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) did not provide task_type for task ID {TaskId}",username, role, id);
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide task_type for task ID {TaskId}", username, role, id);
                 ModelState.AddModelError("TaskRequest.task_type", "Loại nhiệm vụ là bắt buộc.");
             }
 
             if (string.IsNullOrWhiteSpace(TaskRequest.status))
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) did not provide status for task ID {TaskId}",username, role, id);
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide status for task ID {TaskId}", username, role, id);
                 ModelState.AddModelError("TaskRequest.status", "Trạng thái là bắt buộc.");
             }
-            else if (!new[] { "pending", "in-progress", "completed", "cancelled" }.Contains(TaskRequest.status.ToLower()))
-            {
-                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid status for task ID {TaskId}: {Status}",username, role, id, TaskRequest.status);
-                ModelState.AddModelError("TaskRequest.status", "Trạng thái không hợp lệ: phải là 'pending', 'in-progress', 'completed', hoặc 'cancelled'.");
-            }
 
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
-                );
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors for task ID {TaskId}: {Errors}",username, role, id, JsonSerializer.Serialize(errors));
-                TaskResponse = await _tasksService.GetTaskByIdAsync(id);
-                return Page();
-            }
+            //if (!ModelState.IsValid)
+            //{
+            //    var errors = ModelState.ToDictionary(
+            //        kvp => kvp.Key,
+            //        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+            //    );
+            //    _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors for task ID {TaskId}: {Errors}",username, role, id, JsonSerializer.Serialize(errors));
+            //    TaskResponse = await _tasksService.GetTaskByIdAsync(id);
+            //    return Page();
+            //}
 
             try
             {
-                _logger.LogDebug("User {Username} (Role: {Role}) updating task with ID {TaskId}: {TaskData}",username, role, id, JsonSerializer.Serialize(TaskRequest));
+                _logger.LogDebug("User {Username} (Role: {Role}) updating task with ID {TaskId}: {TaskData}", username, role, id, JsonSerializer.Serialize(TaskRequest));
                 var updatedTask = await _tasksService.UpdateTaskAsync(id, TaskRequest);
                 if (updatedTask == null)
                 {
-                    _logger.LogWarning("User {Username} (Role: {Role}) failed to update task with ID {TaskId}: No result returned",username, role, id);
+                    _logger.LogWarning("User {Username} (Role: {Role}) failed to update task with ID {TaskId}: No result returned", username, role, id);
                     TempData["Error"] = "Không thể cập nhật nhiệm vụ. Dữ liệu trả về từ dịch vụ là null.";
                     TaskResponse = await _tasksService.GetTaskByIdAsync(id);
                     return Page();
                 }
 
-                _logger.LogInformation("User {Username} (Role: {Role}) successfully updated task with ID {TaskId}",username, role, id);
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully updated task with ID {TaskId}", username, role, id);
                 TempData["Success"] = "Nhiệm vụ đã được cập nhật thành công!";
-                return RedirectToPage("/Tasks/Index");
+                return RedirectToPage("/Tasks/TasksTable");
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error updating task with ID {TaskId}: {Error}",username, role, id, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error updating task with ID {TaskId}: {Error}", username, role, id, ex.Message);
                 TempData["Error"] = ex.Message;
                 TaskResponse = await _tasksService.GetTaskByIdAsync(id);
                 return Page();
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error updating task with ID {TaskId}: {Error}",username, role, id, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error updating task with ID {TaskId}: {Error}", username, role, id, ex.Message);
                 TempData["Error"] = ex.Message;
                 TaskResponse = await _tasksService.GetTaskByIdAsync(id);
                 return Page();
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error updating task with ID {TaskId}: {Error}",username, role, id, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error updating task with ID {TaskId}: {Error}", username, role, id, ex.Message);
                 TempData["Error"] = $"Đã xảy ra lỗi khi cập nhật nhiệm vụ: {ex.Message}";
                 TaskResponse = await _tasksService.GetTaskByIdAsync(id);
                 return Page();

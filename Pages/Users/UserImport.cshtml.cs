@@ -1,19 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using OfficeOpenXml;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 {
+    //[AuthorizeRole("admin")]
     public class UserImportModel : PageModel
     {
         private readonly IUsersService _usersService;
@@ -78,8 +74,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                 var errorRows = new List<ExcelErrorRow>();
                 var imageFileMap = imageFiles.ToDictionary(f => f.FileName, f => f);
 
-                _logger.LogDebug("User {Username} (Role: {Role}) uploaded Excel file: {FileName}, size: {FileSize}",username, role, excelFile.FileName, excelFile.Length);
-                _logger.LogDebug("User {Username} (Role: {Role}) uploaded {ImageCount} image files",username, role, imageFiles.Count);
+                _logger.LogDebug("User {Username} (Role: {Role}) uploaded Excel file: {FileName}, size: {FileSize}", username, role, excelFile.FileName, excelFile.Length);
+                _logger.LogDebug("User {Username} (Role: {Role}) uploaded {ImageCount} image files", username, role, imageFiles.Count);
 
                 using (var stream = new MemoryStream())
                 {
@@ -120,7 +116,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                                 switch (header)
                                 {
                                     case "username": user.username = value; break;
-                                    case "password hash": user.password_hash = value; break;
+                                    case "password hash": user.password = value; break;
                                     case "full name": user.full_name = value; break;
                                     case "email": user.email = value; break;
                                     case "role (admin, manager, technician, inspector)": user.role = value; break;
@@ -134,7 +130,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                                 }
                             }
 
-                            _logger.LogDebug("User {Username} (Role: {Role}) parsed row {Row} data: {RowData}",username, role, row, JsonSerializer.Serialize(rowData));
+                            _logger.LogDebug("User {Username} (Role: {Role}) parsed row {Row} data: {RowData}", username, role, row, JsonSerializer.Serialize(rowData));
 
                             // Validate required fields
                             if (string.IsNullOrWhiteSpace(user.username))
@@ -148,7 +144,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                                 continue;
                             }
 
-                            if (string.IsNullOrWhiteSpace(user.password_hash))
+                            if (string.IsNullOrWhiteSpace(user.password))
                             {
                                 errorRows.Add(new ExcelErrorRow
                                 {
@@ -183,7 +179,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 
                             if (!string.IsNullOrEmpty(imagePath) && !imageFileMap.ContainsKey(Path.GetFileName(imagePath)))
                             {
-                                _logger.LogWarning("User {Username} (Role: {Role}) could not find image '{ImagePath}' for row {Row}",username, role, imagePath, row);
+                                _logger.LogWarning("User {Username} (Role: {Role}) could not find image '{ImagePath}' for row {Row}", username, role, imagePath, row);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = row,
@@ -206,7 +202,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                             if (string.IsNullOrWhiteSpace(user.role) ||
                                 !new[] { "admin", "manager", "technician", "inspector" }.Contains(user.role.ToLower()))
                             {
-                                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid role '{Role}' for row {Row}",username, role, user.role, rowNumber);
+                                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid role '{Role}' for row {Row}", username, role, user.role, rowNumber);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -218,11 +214,11 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 
                             try
                             {
-                                _logger.LogDebug("User {Username} (Role: {Role}) creating user for row {Row}: {UserData}",username, role, rowNumber, JsonSerializer.Serialize(user));
+                                _logger.LogDebug("User {Username} (Role: {Role}) creating user for row {Row}: {UserData}", username, role, rowNumber, JsonSerializer.Serialize(user));
                                 var createdUser = await _usersService.CreateUserAsync(user);
                                 if (createdUser == null)
                                 {
-                                    _logger.LogWarning("User {Username} (Role: {Role}) failed to create user for row {Row}: No result returned",username, role, rowNumber);
+                                    _logger.LogWarning("User {Username} (Role: {Role}) failed to create user for row {Row}: No result returned", username, role, rowNumber);
                                     errorRows.Add(new ExcelErrorRow
                                     {
                                         RowNumber = rowNumber,
@@ -233,12 +229,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                                 else
                                 {
                                     successCount++;
-                                    _logger.LogInformation("User {Username} (Role: {Role}) successfully created user ID {UserId} for row {Row}",username, role, createdUser.user_id, rowNumber);
+                                    _logger.LogInformation("User {Username} (Role: {Role}) successfully created user ID {UserId} for row {Row}", username, role, createdUser.user_id, rowNumber);
                                 }
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogWarning("User {Username} (Role: {Role}) encountered error creating user for row {Row}: {Error}",username, role, rowNumber, ex.Message);
+                                _logger.LogWarning("User {Username} (Role: {Role}) encountered error creating user for row {Row}: {Error}", username, role, rowNumber, ex.Message);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -270,14 +266,14 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                                 TempData["SuccessCount"] = successCount;
                                 TempData["ErrorFile"] = Convert.ToBase64String(errorStream.ToArray());
                                 TempData["Message"] = "Có lỗi trong quá trình nhập Excel. Vui lòng kiểm tra file lỗi.";
-                                _logger.LogInformation("User {Username} (Role: {Role}) imported {SuccessCount} users with {ErrorCount} errors",username, role, successCount, errorRows.Count);
+                                _logger.LogInformation("User {Username} (Role: {Role}) imported {SuccessCount} users with {ErrorCount} errors", username, role, successCount, errorRows.Count);
                             }
                         }
                         else
                         {
                             TempData["SuccessCount"] = successCount;
                             TempData["Message"] = "Nhập Excel thành công!";
-                            _logger.LogInformation("User {Username} (Role: {Role}) successfully imported {SuccessCount} users with no errors",username, role, successCount);
+                            _logger.LogInformation("User {Username} (Role: {Role}) successfully imported {SuccessCount} users with no errors", username, role, successCount);
                         }
                         return Page();
                     }
@@ -285,7 +281,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error processing Excel file: {Error}",username, role, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error processing Excel file: {Error}", username, role, ex.Message);
                 TempData["Error"] = $"Lỗi khi xử lý file Excel: {ex.Message}";
                 return Page();
             }

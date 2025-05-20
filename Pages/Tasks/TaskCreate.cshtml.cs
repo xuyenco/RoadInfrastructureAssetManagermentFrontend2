@@ -2,28 +2,27 @@
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using OfficeOpenXml;
-using RoadInfrastructureAssetManagementFrontend2.Model.Request;
-using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Geometry;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 {
+    //[AuthorizeRole("inspector")]
     public class TaskCreateModel : PageModel
     {
         private readonly ITasksService _tasksService;
         private readonly ILogger<TaskCreateModel> _logger;
+        private readonly INotificationsService _notificationsService;
 
-        public TaskCreateModel(ITasksService tasksService, ILogger<TaskCreateModel> logger)
+        public TaskCreateModel(ITasksService tasksService, ILogger<TaskCreateModel> logger, INotificationsService notificationsService)
         {
             _tasksService = tasksService;
             _logger = logger;
+            _notificationsService = notificationsService;
         }
 
         [BindProperty]
@@ -31,6 +30,10 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 
         [BindProperty]
         public string GeometrySystem { get; set; }
+        [BindProperty]
+        public NotificationsRequest NotificationExecutionUnitRequest { get; set; }
+        [BindProperty]
+        public NotificationsRequest NotificationsSupervisorRequest { get; set; }
 
         public IActionResult OnGet()
         {
@@ -64,7 +67,9 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                     "Start Date (yyyy-MM-dd)",
                     "End Date (yyyy-MM-dd)",
                     "Execution Unit ID",
+                    "Message for Execution Unit",
                     "Supervisor ID",
+                    "Message for Supervisor Unit",
                     "Method Summary",
                     "Main Result"
                 };
@@ -86,18 +91,18 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
             var username = HttpContext.Session.GetString("Username") ?? "anonymous";
             var role = HttpContext.Session.GetString("Role") ?? "unknown";
 
-            _logger.LogInformation("User {Username} (Role: {Role}) is importing tasks from Excel file", username, role);
+            _logger.LogInformation("Người dùng {Username} (Vai trò: {Role}) đang nhập nhiệm vụ từ file Excel", username, role);
 
             if (excelFile == null || excelFile.Length == 0)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) did not upload an Excel file", username, role);
+                _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) không tải lên file Excel", username, role);
                 TempData["Error"] = "Vui lòng chọn file Excel.";
                 return RedirectToPage();
             }
 
             try
             {
-                var tasks = new List<TasksRequest>();
+                var tasks = new List<(TasksRequest Task, NotificationsRequest SupervisorNotification, NotificationsRequest ExecutionUnitNotification)>();
                 var errorRows = new List<ExcelErrorRow>();
                 using (var stream = new MemoryStream())
                 {
@@ -112,7 +117,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 
                         if (rowCount < 2 || colCount < 1)
                         {
-                            _logger.LogWarning("User {Username} (Role: {Role}) uploaded an empty or invalid Excel file", username, role);
+                            _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) tải lên file Excel trống hoặc không hợp lệ", username, role);
                             TempData["Error"] = "File Excel trống hoặc không hợp lệ.";
                             return RedirectToPage();
                         }
@@ -126,6 +131,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                         for (int row = 2; row <= rowCount; row++)
                         {
                             var task = new TasksRequest { geometry = new GeoJsonGeometry() };
+                            var supervisorNotification = new NotificationsRequest();
+                            var executionUnitNotification = new NotificationsRequest();
                             var rowData = new Dictionary<string, string>();
                             string geometrySystem = null;
 
@@ -167,8 +174,14 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                     case "execution unit id":
                                         task.execution_unit_id = int.TryParse(value, out var unitId) ? unitId : null;
                                         break;
+                                    case "message for execution unit":
+                                        executionUnitNotification.message = value;
+                                        break;
                                     case "supervisor id":
                                         task.supervisor_id = int.TryParse(value, out var supId) ? supId : null;
+                                        break;
+                                    case "message for supervisor unit":
+                                        supervisorNotification.message = value;
                                         break;
                                     case "method summary":
                                         task.method_summary = value;
@@ -179,7 +192,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                 }
                             }
 
-                            _logger.LogDebug("User {Username} (Role: {Role}) parsed row {Row} data: {RowData}",username, role, row, JsonSerializer.Serialize(rowData));
+                            _logger.LogDebug("Người dùng {Username} (Vai trò: {Role}) đã phân tích dữ liệu hàng {Row}: {RowData}", username, role, row, JsonSerializer.Serialize(rowData));
 
                             // Xử lý geometry và chuyển đổi tọa độ
                             if (!string.IsNullOrEmpty(task.geometry.type) && !string.IsNullOrEmpty(task.geometry.coordinates as string))
@@ -187,19 +200,17 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                 try
                                 {
                                     task.geometry.coordinates = JsonSerializer.Deserialize<object>(task.geometry.coordinates as string);
-                                    _logger.LogDebug("User {Username} (Role: {Role}) deserialized coordinates for row {Row}: {Coordinates}",username, role, row, JsonSerializer.Serialize(task.geometry.coordinates));
+                                    _logger.LogDebug("Người dùng {Username} (Vai trò: {Role}) đã giải mã tọa độ cho hàng {Row}: {Coordinates}", username, role, row, JsonSerializer.Serialize(task.geometry.coordinates));
 
-                                    // Chuyển đổi tọa độ nếu geometry_system là WGS84
                                     if (geometrySystem?.ToUpper() == "WGS84")
                                     {
                                         task.geometry = CoordinateConverter.ConvertGeometryToVN2000(task.geometry, 48);
-                                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000 for row {Row}: {Geometry}",
-                                            username, role, row, JsonSerializer.Serialize(task.geometry));
+                                        _logger.LogDebug("Người dùng {Username} (Vai trò: {Role}) đã chuyển đổi geometry sang VN2000 cho hàng {Row}: {Geometry}", username, role, row, JsonSerializer.Serialize(task.geometry));
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.LogWarning("User {Username} (Role: {Role}) encountered geometry error in row {Row}: {Error}",username, role, row, ex.Message);
+                                    _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) gặp lỗi geometry ở hàng {Row}: {Error}", username, role, row, ex.Message);
                                     errorRows.Add(new ExcelErrorRow
                                     {
                                         RowNumber = row,
@@ -211,7 +222,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                             }
                             else
                             {
-                                _logger.LogWarning("User {Username} (Role: {Role}) missing geometry type or coordinates in row {Row}",username, role, row);
+                                _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) thiếu geometry type hoặc tọa độ ở hàng {Row}", username, role, row);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = row,
@@ -221,22 +232,23 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                 continue;
                             }
 
-                            tasks.Add(task);
+                            tasks.Add((task, supervisorNotification, executionUnitNotification));
                         }
 
                         int successCount = 0;
+                        int notificationFailures = 0;
                         for (int i = 0; i < tasks.Count; i++)
                         {
-                            var task = tasks[i];
+                            var (task, supervisorNotification, executionUnitNotification) = tasks[i];
                             var rowNumber = i + 2;
 
-                            // Validate required fields
+                            // Kiểm tra các trường bắt buộc
                             if (string.IsNullOrWhiteSpace(task.task_type) ||
                                 string.IsNullOrWhiteSpace(task.status) ||
                                 string.IsNullOrWhiteSpace(task.geometry.type) ||
                                 task.geometry.coordinates == null)
                             {
-                                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid data in row {Row}: Missing task_type, status, geometry.type, or geometry.coordinates",username, role, rowNumber);
+                                _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) cung cấp dữ liệu không hợp lệ ở hàng {Row}: Thiếu task_type, status, geometry.type, hoặc geometry.coordinates", username, role, rowNumber);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -246,10 +258,9 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                 continue;
                             }
 
-                            // Validate status
                             if (!new[] { "pending", "in-progress", "completed", "cancelled" }.Contains(task.status.ToLower()))
                             {
-                                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid status in row {Row}: {Status}",username, role, rowNumber, task.status);
+                                _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) cung cấp trạng thái không hợp lệ ở hàng {Row}: {Status}", username, role, rowNumber, task.status);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -259,10 +270,9 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                 continue;
                             }
 
-                            // Validate geometry type
                             if (!new[] { "Point", "LineString" }.Contains(task.geometry.type))
                             {
-                                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid geometry type in row {Row}: {GeometryType}",username, role, rowNumber, task.geometry.type);
+                                _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) cung cấp loại geometry không hợp lệ ở hàng {Row}: {GeometryType}", username, role, rowNumber, task.geometry.type);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -274,27 +284,67 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 
                             try
                             {
-                                _logger.LogDebug("User {Username} (Role: {Role}) creating task for row {Row}: {TaskData}",username, role, rowNumber, JsonSerializer.Serialize(task));
+                                _logger.LogDebug("Người dùng {Username} (Vai trò: {Role}) đang tạo nhiệm vụ cho hàng {Row}: {TaskData}", username, role, rowNumber, JsonSerializer.Serialize(task));
                                 var createdTask = await _tasksService.CreateTaskAsync(task);
                                 if (createdTask == null)
                                 {
-                                    _logger.LogWarning("User {Username} (Role: {Role}) failed to create task for row {Row}: No result returned",username, role, rowNumber);
+                                    _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) không thể tạo nhiệm vụ cho hàng {Row}: Không có kết quả trả về", username, role, rowNumber);
                                     errorRows.Add(new ExcelErrorRow
                                     {
                                         RowNumber = rowNumber,
                                         OriginalData = JsonSerializer.Serialize(task),
                                         ErrorMessage = "Không thể tạo nhiệm vụ (lỗi từ service)."
                                     });
+                                    continue;
+                                }
+
+                                successCount++;
+                                _logger.LogInformation("Người dùng {Username} (Vai trò: {Role}) đã tạo thành công nhiệm vụ ID {TaskId} cho hàng {Row}", username, role, createdTask.task_id, rowNumber);
+
+                                // Tạo thông báo
+                                // Thông báo cho người giám sát
+                                if (createdTask.supervisor_id.HasValue && createdTask.supervisor_id.Value > 0)
+                                {
+                                    supervisorNotification.notification_type = "Giám sát";
+                                    supervisorNotification.is_read = false;
+                                    supervisorNotification.task_id = createdTask.task_id;
+                                    supervisorNotification.user_id = createdTask.supervisor_id.Value;
+                                    _logger.LogDebug("Người dùng {Username} (Vai trò: {Role}) đang tạo thông báo cho người giám sát cho hàng {Row}: {NotificationData}", username, role, rowNumber, JsonSerializer.Serialize(supervisorNotification));
+                                    var supervisorResult = await _notificationsService.CreateNotificationAsync(supervisorNotification);
+                                    if (supervisorResult == null)
+                                    {
+                                        _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) không thể tạo thông báo cho người giám sát cho nhiệm vụ ID {TaskId} ở hàng {Row}", username, role, createdTask.task_id, rowNumber);
+                                        notificationFailures++;
+                                    }
                                 }
                                 else
                                 {
-                                    successCount++;
-                                    _logger.LogInformation("User {Username} (Role: {Role}) successfully created task ID {TaskId} for row {Row}",username, role, createdTask.task_id, rowNumber);
+                                    _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) bỏ qua thông báo cho người giám sát cho nhiệm vụ ID {TaskId} ở hàng {Row} do thiếu supervisor_id", username, role, createdTask.task_id, rowNumber);
+                                }
+
+                                // Thông báo cho đơn vị thực hiện
+                                if (createdTask.execution_unit_id.HasValue && createdTask.execution_unit_id.Value > 0)
+                                {
+                                    executionUnitNotification.notification_type = createdTask.task_type;
+                                    executionUnitNotification.is_read = false;
+                                    executionUnitNotification.task_id = createdTask.task_id;
+                                    executionUnitNotification.user_id = createdTask.execution_unit_id.Value;
+                                    _logger.LogDebug("Người dùng {Username} (Vai trò: {Role}) đang tạo thông báo cho đơn vị thực hiện cho hàng {Row}: {NotificationData}", username, role, rowNumber, JsonSerializer.Serialize(executionUnitNotification));
+                                    var executionUnitResult = await _notificationsService.CreateNotificationAsync(executionUnitNotification);
+                                    if (executionUnitResult == null)
+                                    {
+                                        _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) không thể tạo thông báo cho đơn vị thực hiện cho nhiệm vụ ID {TaskId} ở hàng {Row}", username, role, createdTask.task_id, rowNumber);
+                                        notificationFailures++;
+                                    }
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) bỏ qua thông báo cho đơn vị thực hiện cho nhiệm vụ ID {TaskId} ở hàng {Row} do thiếu execution_unit_id", username, role, createdTask.task_id, rowNumber);
                                 }
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogWarning("User {Username} (Role: {Role}) encountered error creating task for row {Row}: {Error}",username, role, rowNumber, ex.Message);
+                                _logger.LogWarning("Người dùng {Username} (Vai trò: {Role}) gặp lỗi khi tạo nhiệm vụ cho hàng {Row}: {Error}", username, role, rowNumber, ex.Message);
                                 errorRows.Add(new ExcelErrorRow
                                 {
                                     RowNumber = rowNumber,
@@ -310,9 +360,9 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                             using (var errorPackage = new ExcelPackage())
                             {
                                 var errorWorksheet = errorPackage.Workbook.Worksheets.Add("Error Rows");
-                                errorWorksheet.Cells[1, 1].Value = "Row Number";
-                                errorWorksheet.Cells[1, 2].Value = "Original Data";
-                                errorWorksheet.Cells[1, 3].Value = "Error Message";
+                                errorWorksheet.Cells[1, 1].Value = "Số hàng";
+                                errorWorksheet.Cells[1, 2].Value = "Dữ liệu gốc";
+                                errorWorksheet.Cells[1, 3].Value = "Thông báo lỗi";
 
                                 for (int i = 0; i < errorRows.Count; i++)
                                 {
@@ -327,22 +377,29 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                                 var errorStream = new MemoryStream(errorPackage.GetAsByteArray());
                                 TempData["SuccessCount"] = successCount;
                                 TempData["ErrorFile"] = Convert.ToBase64String(errorStream.ToArray());
-                                _logger.LogInformation("User {Username} (Role: {Role}) imported {SuccessCount} tasks with {ErrorCount} errors",username, role, successCount, errorRows.Count);
+                                _logger.LogInformation("Người dùng {Username} (Vai trò: {Role}) đã nhập {SuccessCount} nhiệm vụ với {ErrorCount} lỗi", username, role, successCount, errorRows.Count);
                             }
                         }
                         else
                         {
                             TempData["SuccessCount"] = successCount;
-                            _logger.LogInformation("User {Username} (Role: {Role}) successfully imported {SuccessCount} tasks with no errors",username, role, successCount);
+                            _logger.LogInformation("Người dùng {Username} (Vai trò: {Role}) đã nhập thành công {SuccessCount} nhiệm vụ mà không có lỗi", username, role, successCount);
                         }
 
-                        TempData["Success"] = $"Đã nhập thành công {successCount} nhiệm vụ.";
+                        if (notificationFailures > 0)
+                        {
+                            TempData["Warning"] = $"Đã nhập thành công {successCount} nhiệm vụ, nhưng {notificationFailures} thông báo không thể gửi.";
+                        }
+                        else
+                        {
+                            TempData["Success"] = $"Đã nhập thành công {successCount} nhiệm vụ.";
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error processing Excel file: {Error}",username, role, ex.Message);
+                _logger.LogError("Người dùng {Username} (Vai trò: {Role}) gặp lỗi khi xử lý file Excel: {Error}", username, role, ex.Message);
                 TempData["Error"] = $"Lỗi khi xử lý file Excel: {ex.Message}";
             }
 
@@ -355,7 +412,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
             var role = HttpContext.Session.GetString("Role") ?? "unknown";
 
             _logger.LogInformation("User {Username} (Role: {Role}) is submitting a new task", username, role);
-            _logger.LogDebug("User {Username} (Role: {Role}) submitted form data: {FormData}",username, role, JsonSerializer.Serialize(Request.Form));
+            _logger.LogDebug("User {Username} (Role: {Role}) submitted form data: {FormData}", username, role, JsonSerializer.Serialize(Request.Form));
 
             if (Task.geometry == null) Task.geometry = new GeoJsonGeometry();
 
@@ -368,7 +425,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
             }
             else
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid geometry type: {GeometryType}",username, role, geometryType);
+                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid geometry type: {GeometryType}", username, role, geometryType);
                 ModelState.AddModelError("Task.geometry.type", "Loại hình học phải là 'Point' hoặc 'LineString'.");
             }
 
@@ -378,17 +435,17 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                 try
                 {
                     Task.geometry.coordinates = JsonSerializer.Deserialize<object>(coordinatesJson);
-                    _logger.LogDebug("User {Username} (Role: {Role}) deserialized coordinates: {Coordinates}",username, role, JsonSerializer.Serialize(Task.geometry.coordinates));
+                    _logger.LogDebug("User {Username} (Role: {Role}) deserialized coordinates: {Coordinates}", username, role, JsonSerializer.Serialize(Task.geometry.coordinates));
 
                     if (GeometrySystem == "wgs84")
                     {
                         Task.geometry = CoordinateConverter.ConvertGeometryToVN2000(Task.geometry, 48);
-                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000: {Geometry}",username, role, JsonSerializer.Serialize(Task.geometry));
+                        _logger.LogDebug("User {Username} (Role: {Role}) converted geometry to VN2000: {Geometry}", username, role, JsonSerializer.Serialize(Task.geometry));
                     }
                 }
                 catch (JsonException ex)
                 {
-                    _logger.LogWarning("User {Username} (Role: {Role}) provided invalid coordinates: {Error}",username, role, ex.Message);
+                    _logger.LogWarning("User {Username} (Role: {Role}) provided invalid coordinates: {Error}", username, role, ex.Message);
                     ModelState.AddModelError("Task.geometry.coordinates", $"Định dạng tọa độ không hợp lệ: {ex.Message}");
                 }
             }
@@ -412,7 +469,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
             }
             else if (!new[] { "pending", "in-progress", "completed", "cancelled" }.Contains(Task.status.ToLower()))
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid status: {Status}",username, role, Task.status);
+                _logger.LogWarning("User {Username} (Role: {Role}) provided invalid status: {Status}", username, role, Task.status);
                 ModelState.AddModelError("Task.status", "Trạng thái không hợp lệ: phải là 'pending', 'in-progress', 'completed', hoặc 'cancelled'.");
             }
 
@@ -428,7 +485,9 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 
             try
             {
-                _logger.LogDebug("User {Username} (Role: {Role}) creating task: {TaskData}",username, role, JsonSerializer.Serialize(Task));
+                // Gán giá trị vào cho 2 noti
+
+                _logger.LogDebug("User {Username} (Role: {Role}) creating task: {TaskData}", username, role, JsonSerializer.Serialize(Task));
                 var createdTask = await _tasksService.CreateTaskAsync(Task);
                 if (createdTask == null)
                 {
@@ -437,31 +496,62 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                     return Page();
                 }
 
-                _logger.LogInformation("User {Username} (Role: {Role}) successfully created task ID {TaskId}",username, role, createdTask.task_id);
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully created task ID {TaskId}", username, role, createdTask.task_id);
                 TempData["Success"] = "Nhiệm vụ đã được tạo thành công!";
-                return RedirectToPage("/Tasks/Index");
+                // Gán giá trị để tạo noti
+                if (createdTask.supervisor_id.HasValue && createdTask.supervisor_id > 0)
+                {
+                    _logger.LogInformation("User {Username} (Role: {Role}) create notification for supervisor", username, role);
+                    NotificationsSupervisorRequest.notification_type = "Giám sát";
+                    NotificationsSupervisorRequest.is_read = false;
+                    NotificationsSupervisorRequest.task_id = createdTask.task_id;
+                    NotificationsSupervisorRequest.user_id = createdTask.supervisor_id ?? 0;
+                    _logger.LogDebug("User {Username} (Role: {Role}) creating notification for supervisor: {TaskData}", username, role, JsonSerializer.Serialize(NotificationsSupervisorRequest));
+                    var supervisorNotificatio = await _notificationsService.CreateNotificationAsync(NotificationsSupervisorRequest);
+                    if (supervisorNotificatio == null)
+                    {
+                        _logger.LogWarning("User {Username} (Role: {Role}) failed to create notification for supervisor: No result returned", username, role);
+                    }
+                }
+
+                if (createdTask.execution_unit_id.HasValue && createdTask.execution_unit_id > 0)
+                {
+                    _logger.LogInformation("User {Username} (Role: {Role}) create notification for execution unit", username, role);
+                    NotificationExecutionUnitRequest.notification_type = createdTask.task_type;
+                    NotificationExecutionUnitRequest.is_read = false;
+                    NotificationExecutionUnitRequest.task_id = createdTask.task_id;
+                    NotificationExecutionUnitRequest.user_id = createdTask.execution_unit_id ?? 0;
+                    _logger.LogDebug("User {Username} (Role: {Role}) creating notification for execution unit: {TaskData}", username, role, JsonSerializer.Serialize(NotificationExecutionUnitRequest));
+                    var executionUnitNotification = await _notificationsService.CreateNotificationAsync(NotificationExecutionUnitRequest);
+                    if (executionUnitNotification == null)
+                    {
+                        _logger.LogWarning("User {Username} (Role: {Role}) failed to create notification for execution unit: No result returned", username, role);
+                    }
+                }
+
+                return RedirectToPage("/Tasks/TasksTable");
             }
             catch (JsonException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered JSON error: {Error}",username, role, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered JSON error: {Error}", username, role, ex.Message);
                 ModelState.AddModelError("Task.geometry.coordinates", "Tọa độ phải là JSON hợp lệ.");
                 return Page();
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error: {Error}",username, role, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error: {Error}", username, role, ex.Message);
                 TempData["Error"] = ex.Message;
                 return Page();
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error: {Error}",username, role, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error: {Error}", username, role, ex.Message);
                 TempData["Error"] = ex.Message;
                 return Page();
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error creating task: {Error}",username, role, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error creating task: {Error}", username, role, ex.Message);
                 TempData["Error"] = $"Đã xảy ra lỗi khi tạo nhiệm vụ: {ex.Message}";
                 return Page();
             }

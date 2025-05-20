@@ -6,242 +6,64 @@
     ViewData["Mapview"] = "Leaflet";
 }
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Incidents Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-    <style>
-        /* Map styling to fill the page */
-        #map {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: calc(100% - 60px); /* Subtract footer height */
-            z-index: 1;
-        }
+<div id="map" class="absolute top-16 left-0 right-0 bottom-0 z-0"></div>
 
-        /* Container for overlay content */
-        .container {
-            position: absolute;
-            right: 20px;
-            top: 20px;
-            z-index: 10;
-            max-width: 300px;
-        }
+<button class="toggle-filter-btn fixed top-100 left-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 transition z-20" id="toggleFilterBtn" style="top: 100px !important;">
+    <i class="fas fa-filter mr-2"></i> Filters
+</button>
 
-        /* Overlay content styling */
-        .content-overlay {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Title */
-        h1 {
-            font-size: 1.5rem;
-            color: #2c3e50;
-            font-weight: 700;
-            margin-bottom: 15px;
-            text-align: left;
-        }
-
-        /* Button styling */
-        .btn-primary, .btn-success {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-        .btn-primary {
-            background-color: #3498db;
-            border-color: #3498db;
-        }
-
-            .btn-primary:hover {
-                background-color: #2980b9;
-                transform: translateY(-2px);
-            }
-
-        .btn-success {
-            background-color: #28a745;
-            border-color: #28a745;
-        }
-
-            .btn-success:hover {
-                background-color: #218838;
-                transform: translateY(-2px);
-            }
-
-        .btn i {
-            margin-right: 6px;
-        }
-
-        .mb-3 {
-            text-align: center;
-        }
-
-        /* Navbar filter styling */
-        .navbar-filter {
-            position: absolute;
-            top: 0;
-            left: -300px; /* Hidden by default */
-            width: 300px;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            z-index: 1000;
-            transition: left 0.3s ease;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-            overflow-y: auto;
-        }
-
-            .navbar-filter.open {
-                left: 0; /* Show when open */
-            }
-
-        .filter-group {
-            margin-bottom: 15px;
-        }
-
-            .filter-group label {
-                display: block;
-                margin-bottom: 5px;
-                font-weight: bold;
-                color: #2c3e50;
-            }
-
-            .filter-group select, .filter-group input {
-                width: 100%;
-                padding: 8px;
-                border-radius: 6px;
-                border: 1px solid #ced4da;
-            }
-
-        .incident-count {
-            margin-top: 20px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        /* Toggle button */
-        .toggle-filter-btn {
-            position: absolute;
-            top: 60px;
-            left: 20px;
-            z-index: 10;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-            .toggle-filter-btn:hover {
-                background-color: #2980b9;
-            }
-
-        /* Close button for navbar */
-        .close-filter-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            color: #2c3e50;
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
-
-            .close-filter-btn:hover {
-                color: #c0392b;
-            }
-
-        /* Search message */
-        .search-message {
-            display: none;
-            position: absolute;
-            top: 120px;
-            left: 20px;
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 6px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            color: #2c3e50;
-        }
-    </style>
-</head>
-<body>
-    <div id="map"></div>
-
-    <!-- Toggle button for filter navbar -->
-    <button class="toggle-filter-btn" id="toggleFilterBtn">
-        <i class="fas fa-filter"></i> Filters
+<div class="navbar-filter fixed top-0 -left-80 w-80 h-full bg-white bg-opacity-95 p-6 z-50 shadow-lg transition-all duration-300" id="filterNavbar">
+    <button class="close-filter-btn absolute top-4 right-4 text-gray-600 hover:text-red-600 transition" id="closeFilterBtn">
+        <i class="fas fa-times"></i>
     </button>
-
-    <!-- Filter navbar (hidden by default) -->
-    <div class="navbar-filter" id="filterNavbar">
-        <button class="close-filter-btn" id="closeFilterBtn">
-            <i class="fas fa-times"></i>
-        </button>
-        <h4 style="color: #2c3e50; margin-bottom: 20px;">Filters</h4>
-        <div class="filter-group">
-            <label>Search</label>
-            <input type="text" id="searchFilter" class="form-control" placeholder="Enter address or route">
-        </div>
-        <div class="filter-group">
-            <label>Severity Level</label>
-            <select id="severityFilter" class="form-control">
-                <option value="">All Severity Levels</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>Processing Status</label>
-            <select id="statusFilter" class="form-control">
-                <option value="">All Statuses</option>
-                <option value="reported">Reported</option>
-                <option value="under review">Under Review</option>
-                <option value="resolved">Resolved</option>
-                <option value="closed">Closed</option>
-            </select>
-        </div>
-        <div class="incident-count">
-            Total Incidents: <span id="incidentCount">0</span>
-        </div>
+    <h4 class="text-gray-800 font-bold mb-6">Filters</h4>
+    <div class="mb-4">
+        <label class="block text-gray-700 font-semibold mb-2">Search</label>
+        <input type="text" id="searchFilter" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter address or route">
     </div>
-
-    <!-- Overlay content for title and export button -->
-    <div class="container">
-        <div class="content-overlay">
-            <h1>Road Incidents Map</h1>
-            <div class="mb-3">
-                <button class="btn btn-success btn-sm" onclick="exportIncidentsReport()">
-                    <i class="fas fa-file-export"></i> Xuất báo cáo
-                </button>
-            </div>
-        </div>
+    <div class="mb-4">
+        <label class="block text-gray-700 font-semibold mb-2">Severity Level</label>
+        <select id="severityFilter" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Severity Levels</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+        </select>
     </div>
+    <div class="mb-4">
+        <label class="block text-gray-700 font-semibold mb-2">Processing Status</label>
+        <select id="statusFilter" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Statuses</option>
+            <option value="reported">Reported</option>
+            <option value="under review">Under Review</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+        </select>
+    </div>
+    <div class="incident-count mt-6 p-4 bg-gray-100 rounded-lg text-center font-semibold text-gray-700">
+        Total Incidents: <span id="incidentCount">0</span>
+    </div>
+</div>
 
-    <!-- Search message -->
-    <div class="search-message" id="searchMessage"></div>
+<div class="fixed top-20 right-4 z-10 max-w-xs">
+    <div class="bg-white bg-opacity-90 p-4 rounded-lg shadow-lg">
+        <h1 class="text-xl font-bold text-gray-800 mb-4">Road Incidents Map</h1>
+        @if (HttpContext.Session.GetString("Role") == "manager" || HttpContext.Session.GetString("Role") == "inspector")
+        {
+            <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition w-full mb-2" onclick="exportIncidentsReport()">
+                <i class="fas fa-file-export mr-2"></i> Xuất báo cáo
+            </button>
+        }
+        <a class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition w-full block text-center" asp-page="/Incidents/IncidentCreate">
+            <i class="fas fa-plus mr-2"></i> Thêm sự cố mới
+        </a>
+    </div>
+</div>
 
+<div class="search-message hidden fixed top-24 left-4 bg-white bg-opacity-90 p-4 rounded-lg shadow-lg z-10 text-gray-700" id="searchMessage"></div>
+
+@section Scripts {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="text/javascript">
         var map = L.map('map').setView([21.0285, 105.8542], 13);
@@ -252,7 +74,6 @@
         var allIncidents = [];
         var markersLayer = L.layerGroup().addTo(map);
 
-        // Cache functions
         function getCachedData(key, maxAgeInSec = 600) {
             const cached = localStorage.getItem(key);
             if (cached) {
@@ -275,13 +96,11 @@
             localStorage.setItem(key, JSON.stringify(cacheEntry));
         }
 
-        // Load data from GeoServer
         function loadIncidentsFromGeoServer(searchKeyword = '') {
             const cacheKey = `geoserver_incidents_${encodeURIComponent(searchKeyword)}`;
-            const cachedData = null; // Disable cache for debugging
+            const cachedData = null;
 
             if (cachedData) {
-                console.log('Get data from cache for search:', searchKeyword);
                 allIncidents = cachedData.features.map(feature => ({
                     incident_id: feature.properties.incident_id,
                     address: feature.properties.address,
@@ -307,36 +126,39 @@
             }
 
             const url = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:incidents_layer_2&outputFormat=application/json&srsName=EPSG:4326&cql_filter=${encodeURIComponent(cqlFilter)}`;
-            console.log('WFS URL:', url);
 
             return fetch(url)
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    return response.text().then(text => ({ response, text }));
-                })
+                .then(response => response.text().then(text => ({ response, text })))
                 .then(({ response, text }) => {
-                    console.log('Raw response:', text);
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
                     }
                     return JSON.parse(text);
                 })
                 .then(data => {
-                    console.log('GeoServer response:', data);
-                    allIncidents = data.features.map(feature => ({
-                        incident_id: feature.properties.incident_id,
-                        address: feature.properties.address,
-                        geometry: {
-                            type: feature.geometry.type,
-                            coordinates: feature.geometry.coordinates
-                        },
-                        route: feature.properties.route,
-                        severity_level: feature.properties.severity_level,
-                        damage_level: feature.properties.damage_level,
-                        processing_status: feature.properties.processing_status,
-                        task_id: feature.properties.task_id,
-                        created_at: feature.properties.created_at
-                    }));
+                    if (!data.features || !Array.isArray(data.features)) {
+                        throw new Error('Invalid GeoServer data: features array is missing or invalid');
+                    }
+                    allIncidents = data.features.map(feature => {
+                        if (!feature.properties) {
+                            console.warn('Feature missing properties:', feature);
+                            return null;
+                        }
+                        return {
+                            incident_id: feature.properties.incident_id,
+                            address: feature.properties.address,
+                            geometry: {
+                                type: feature.geometry.type,
+                                coordinates: feature.geometry.coordinates
+                            },
+                            route: feature.properties.route,
+                            severity_level: feature.properties.severity_level,
+                            damage_level: feature.properties.damage_level,
+                            processing_status: feature.properties.processing_status,
+                            task_id: feature.properties.task_id,
+                            created_at: feature.properties.created_at
+                        };
+                    }).filter(item => item !== null);
                     setCachedData(cacheKey, data);
                     filterIncidents();
                 })
@@ -355,28 +177,56 @@
                     var coords = incident.geometry.coordinates;
                     var marker = L.marker([coords[1], coords[0]]);
 
-                    marker.bindPopup(
-                        "<b>Incident ID: " + incident.incident_id + "</b><br>" +
-                        "Address: " + (incident.address || "N/A") + "<br>" +
-                        "Route: " + (incident.route || "N/A") + "<br>" +
-                        "Severity Level: " + incident.severity_level + "<br>" +
-                        "Damage Level: " + incident.damage_level + "<br>" +
-                        "Status: " + incident.processing_status + "<br>" +
-                        "Task ID: " + (incident.task_id || "N/A") + "<br>" +
-                        "Created At: " + (incident.created_at || "N/A") + "<br>" +
-                        "<button id='update-btn-" + incident.incident_id + "' class='btn btn-primary btn-sm mt-2'>Cập nhật</button>" +
-                        "<button id='history-btn-" + incident.incident_id + "' class='btn btn-primary btn-sm mt-2'>Lịch sử</button>" +
-                        "<button id='detail-btn-" + incident.incident_id + "' class='btn btn-primary btn-sm mt-2'>Chi tiết</button>",
-                        { autoClose: false }
-                    ).on('popupopen', function () {
+                    var popupContent = `
+                                <div class="p-4 max-w-xs font-sans">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin sự cố</h3>
+                                    <table class="w-full text-sm border-collapse">
+                                        <tr class="border-b">
+                                            <td class="p-2 font-semibold">ID:</td>
+                                            <td class="p-2">${incident.incident_id}</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="p-2 font-semibold">Địa chỉ:</td>
+                                            <td class="p-2">${incident.address || 'N/A'}</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="p-2 font-semibold">Tuyến đường:</td>
+                                            <td class="p-2">${incident.route || 'N/A'}</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="p-2 font-semibold">Mức độ nghiêm trọng:</td>
+                                            <td class="p-2">${incident.severity_level}</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="p-2 font-semibold">Mức độ thiệt hại:</td>
+                                            <td class="p-2">${incident.damage_level}</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="p-2 font-semibold">Trạng thái:</td>
+                                            <td class="p-2">${incident.processing_status}</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="p-2 font-semibold">Task ID:</td>
+                                            <td class="p-2">${incident.task_id || 'N/A'}</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="p-2 font-semibold">Ngày tạo:</td>
+                                            <td class="p-2">${incident.created_at || 'N/A'}</td>
+                                        </tr>
+                                    </table>
+                                    <div class="text-center mt-4">
+                                        <button id="update-btn-${incident.incident_id}" class="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600 mr-2">Cập nhật</button>
+                                        <button id="detail-btn-${incident.incident_id}" class="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600">Chi tiết</button>
+                                    </div>
+                                </div>
+                            `;
+
+                    marker.bindPopup(popupContent, { autoClose: false }).on('popupopen', function () {
                         document.getElementById('update-btn-' + incident.incident_id).addEventListener('click', function () {
-                            window.location.href = '/Incidents/IncidentUpdate?id=' + incident.incident_id;
+                            window.location.href = '/Incidents/IncidentUpdate/' + incident.incident_id;
                         });
                         document.getElementById('detail-btn-' + incident.incident_id).addEventListener('click', function () {
                             window.location.href = '/Incidents/IncidentDetail/' + incident.incident_id;
-                        });
-                        document.getElementById('history-btn-' + incident.incident_id).addEventListener('click', function () {
-                            window.location.href = '/IncidentHistories/IncidentHistoryByIncidentId/' + incident.incident_id;
                         });
                     });
 
@@ -393,7 +243,6 @@
             }
             document.getElementById('incidentCount').textContent = incidents.length;
 
-            // Update search message
             const searchKeyword = document.getElementById('searchFilter').value.trim();
             const searchMessage = document.getElementById('searchMessage');
             if (searchKeyword) {
@@ -420,14 +269,16 @@
             updateMarkers(filteredIncidents);
         }
 
-        // Toggle filter navbar
         function toggleFilterNavbar() {
             var navbar = document.getElementById('filterNavbar');
-            console.log('Toggling filter navbar:', navbar.classList.contains('open') ? 'Closing' : 'Opening');
             navbar.classList.toggle('open');
+            if (navbar.classList.contains('open')) {
+                navbar.style.left = '0';
+            } else {
+                navbar.style.left = '-20rem';
+            }
         }
 
-        // Event listeners
         document.addEventListener('DOMContentLoaded', function () {
             const toggleBtn = document.getElementById('toggleFilterBtn');
             const closeBtn = document.getElementById('closeFilterBtn');
@@ -453,13 +304,11 @@
                     clearTimeout(debounceTimeout);
                     debounceTimeout = setTimeout(() => {
                         const searchKeyword = searchInput.value.trim();
-                        console.log('Search keyword:', searchKeyword);
                         loadIncidentsFromGeoServer(searchKeyword);
                     }, 500);
                 });
             }
 
-            // Load initial data
             loadIncidentsFromGeoServer();
         });
 
@@ -467,5 +316,4 @@
             window.location.href = "/Incidents/Index?handler=ExportExcel";
         }
     </script>
-</body>
-</html>
+}

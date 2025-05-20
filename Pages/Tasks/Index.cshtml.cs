@@ -1,18 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using OfficeOpenXml;
-using RoadInfrastructureAssetManagementFrontend2.Model.Request;
-using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 {
+    //[AuthorizeRole("inspector,manager,technician")]
     public class IndexModel : PageModel
     {
         private readonly ITasksService _tasksService;
@@ -109,13 +105,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                     var stream = new MemoryStream(package.GetAsByteArray());
                     string fileName = $"Tasks_Report_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
 
-                    _logger.LogInformation("User {Username} (Role: {Role}) successfully exported {TaskCount} tasks to Excel file {FileName}",username, role, tasks.Count, fileName);
-                    return File(stream,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",fileName);
+                    _logger.LogInformation("User {Username} (Role: {Role}) successfully exported {TaskCount} tasks to Excel file {FileName}", username, role, tasks.Count, fileName);
+                    return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error exporting tasks to Excel: {Error}",username, role, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error exporting tasks to Excel: {Error}", username, role, ex.Message);
                 TempData["Error"] = $"Lỗi khi xuất báo cáo nhiệm vụ: {ex.Message}";
                 return RedirectToPage();
             }
@@ -166,17 +162,17 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error deleting task with ID {TaskId}: {Error}",username, role, id, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error deleting task with ID {TaskId}: {Error}", username, role, id, ex.Message);
                 return new JsonResult(new { success = false, message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error deleting task with ID {TaskId}: {Error}",username, role, id, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error deleting task with ID {TaskId}: {Error}", username, role, id, ex.Message);
                 return new JsonResult(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error deleting task with ID {TaskId}: {Error}",username, role, id, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error deleting task with ID {TaskId}: {Error}", username, role, id, ex.Message);
                 return new JsonResult(new { success = false, message = $"Đã xảy ra lỗi: {ex.Message}" });
             }
         }

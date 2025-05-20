@@ -8,148 +8,215 @@
 <head>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        #map { height: 400px; width: 100%; margin-bottom: 15px; }
-        .form-group { margin-bottom: 1rem; }
-        .form-label { font-weight: bold; }
+        main {
+            overflow-y: auto !important; /* Ghi đè overflow: hidden từ site.css */
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-bottom: 15px;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+            .form-input:focus {
+                border-color: #3b82f6;
+                ring: 2px;
+                ring-color: #3b82f6;
+            }
+
+            .form-input:disabled {
+                background-color: #f3f4f6;
+                cursor: not-allowed;
+            }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 
-<h1>Cập nhật Asset</h1>
+<div class="container mx-auto px-4 py-10 max-w-5xl">
+    <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">Cập nhật Asset</h1>
 
-@if (Model.AssetResponse == null)
-{
-    <p class="text-danger">Không tìm thấy asset để cập nhật.</p>
-}
-else
-{
-    <form method="post" enctype="multipart/form-data">
-        <div class="form-group mb-3">
-            <label class="form-label">ID</label>
-            <input class="form-control" value="@Model.AssetResponse.asset_id" disabled />
-            <input type="hidden" asp-for="AssetId" />
-        </div>
+    @if (Model.AssetResponse == null)
+    {
+        <p class="text-red-500 bg-red-50 p-4 rounded-lg text-center">Không tìm thấy asset để cập nhật.</p>
+    }
+    else
+    {
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <form method="post" enctype="multipart/form-data">
+                <!-- ID -->
+                <div class="form-group">
+                    <label class="form-label">ID</label>
+                    <input class="form-input bg-gray-100 cursor-not-allowed" value="@Model.AssetResponse.asset_id" disabled />
+                    <input type="hidden" asp-for="AssetId" />
+                </div>
 
-        <!-- Thông Tin Cơ Bản -->
-        <h2>Thông Tin Cơ Bản</h2>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.asset_name" class="form-label">Tên tài sản</label>
-            <input asp-for="AssetRequest.asset_name" class="form-control" required />
-            <span asp-validation-for="AssetRequest.asset_name" class="text-danger"></span>
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.asset_code" class="form-label">Mã tài sản</label>
-            <input asp-for="AssetRequest.asset_code" class="form-control" required />
-            <span asp-validation-for="AssetRequest.asset_code" class="text-danger"></span>
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.address" class="form-label">Địa chỉ</label>
-            <input asp-for="AssetRequest.address" class="form-control" required />
-            <span asp-validation-for="AssetRequest.address" class="text-danger"></span>
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.construction_year" class="form-label">Năm xây dựng</label>
-            <input asp-for="AssetRequest.construction_year" type="date" class="form-control" />
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.operation_year" class="form-label">Năm vận hành</label>
-            <input asp-for="AssetRequest.operation_year" type="date" class="form-control" />
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.land_area" class="form-label">Diện tích đất (m²)</label>
-            <input asp-for="AssetRequest.land_area" type="number" step="0.01" class="form-control" />
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.floor_area" class="form-label">Diện tích sàn (m²)</label>
-            <input asp-for="AssetRequest.floor_area" type="number" step="0.01" class="form-control" />
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.original_value" class="form-label">Giá trị ban đầu (VNĐ)</label>
-            <input asp-for="AssetRequest.original_value" type="number" step="0.01" class="form-control" />
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.remaining_value" class="form-label">Giá trị còn lại (VNĐ)</label>
-            <input asp-for="AssetRequest.remaining_value" type="number" step="0.01" class="form-control" />
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.asset_status" class="form-label">Tình trạng tài sản</label>
-            <input asp-for="AssetRequest.asset_status" class="form-control" />
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.installation_unit" class="form-label">Đơn vị lắp đặt</label>
-            <input asp-for="AssetRequest.installation_unit" class="form-control" />
-        </div>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.management_unit" class="form-label">Đơn vị quản lý</label>
-            <input asp-for="AssetRequest.management_unit" class="form-control" />
-        </div>
-        <div class="form-group mb-3">
-            <label for="image" class="form-label">Hình ảnh</label>
-            <input type="file" id="image" name="AssetRequest.image" class="form-control" accept="image/*" />
-        </div>
+                <!-- Thông Tin Cơ Bản -->
+                <h2 class="section-title">Thông Tin Cơ Bản</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.asset_name" class="form-label">Tên tài sản</label>
+                        <input asp-for="AssetRequest.asset_name" class="form-input" required />
+                        <span asp-validation-for="AssetRequest.asset_name" class="error-message"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.asset_code" class="form-label">Mã tài sản</label>
+                        <input asp-for="AssetRequest.asset_code" class="form-input" required />
+                        <span asp-validation-for="AssetRequest.asset_code" class="error-message"></span>
+                    </div>
+                    <div class="form-group md:col-span-2">
+                        <label asp-for="AssetRequest.address" class="form-label">Địa chỉ</label>
+                        <input asp-for="AssetRequest.address" class="form-input" required />
+                        <span asp-validation-for="AssetRequest.address" class="error-message"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.construction_year" class="form-label">Năm xây dựng</label>
+                        <input asp-for="AssetRequest.construction_year" type="date" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.operation_year" class="form-label">Năm vận hành</label>
+                        <input asp-for="AssetRequest.operation_year" type="date" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.land_area" class="form-label">Diện tích đất (m²)</label>
+                        <input asp-for="AssetRequest.land_area" type="number" step="0.01" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.floor_area" class="form-label">Diện tích sàn (m²)</label>
+                        <input asp-for="AssetRequest.floor_area" type="number" step="0.01" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.original_value" class="form-label">Giá trị ban đầu (VNĐ)</label>
+                        <input asp-for="AssetRequest.original_value" type="number" step="0.01" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.remaining_value" class="form-label">Giá trị còn lại (VNĐ)</label>
+                        <input asp-for="AssetRequest.remaining_value" type="number" step="0.01" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.asset_status" class="form-label">Tình trạng tài sản</label>
+                        <input asp-for="AssetRequest.asset_status" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.installation_unit" class="form-label">Đơn vị lắp đặt</label>
+                        <input asp-for="AssetRequest.installation_unit" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="AssetRequest.management_unit" class="form-label">Đơn vị quản lý</label>
+                        <input asp-for="AssetRequest.management_unit" class="form-input" />
+                    </div>
+                    <div class="form-group md:col-span-2">
+                        <label for="image" class="form-label">Hình ảnh</label>
+                        <input type="file" id="image" name="AssetRequest.image" class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" accept="image/*" />
+                    </div>
+                </div>
 
-        <!-- Chọn Danh Mục -->
-        <h2>Chọn Danh Mục</h2>
-        <div class="form-group mb-3">
-            <label asp-for="AssetRequest.category_id" class="form-label">Danh mục</label>
-            <select asp-for="AssetRequest.category_id" class="form-control" onchange="selectCategory(this.value)" required>
-                @foreach (var category in Model.Categories)
-                {
-                    <option value="@category.category_id">@category.category_name</option>
-                }
-            </select>
-            <span asp-validation-for="AssetRequest.category_id" class="text-danger"></span>
-        </div>
-        <div id="geoTypeDisplay" class="form-group mb-3">
-            <label>Loại Hình Học</label>
-            <input type="text" id="geoType" class="form-control" value="@Model.AssetResponse.geometry?.type" readonly />
-        </div>
-
-        <!-- Thuộc Tính Động -->
-        <h2>Thuộc Tính</h2>
-        <div id="attributes-content">
-            <p>Đang tải thuộc tính...</p>
-        </div>
-
-        <!-- Bản đồ và nhập tọa độ thủ công -->
-        <h2>Vị trí (@Model.AssetResponse.geometry?.type)</h2>
-        <div id="map"></div>
-        <div id="coordinatesInput" class="mt-3">
-            <p id="instructionText"></p>
-            <div id="manualCoordinates">
-                <div class="form-group mb-3">
-                    <label for="geometrySystem" class="form-label">Hệ thống tọa độ</label>
-                    <select id="geometrySystem" name="GeometrySystem" class="form-control" required>
-                        <option value="">Chọn hệ tọa độ</option>
-                        <option value="wgs84">WGS84</option>
-                        <option value="vn2000">VN2000</option>
+                <!-- Chọn Danh Mục -->
+                <h2 class="section-title mt-8">Chọn Danh Mục</h2>
+                <div class="form-group">
+                    <label asp-for="AssetRequest.category_id" class="form-label">Danh mục</label>
+                    <select asp-for="AssetRequest.category_id" class="form-input" onchange="selectCategory(this.value)" required>
+                        @foreach (var category in Model.Categories)
+                        {
+                            <option value="@category.category_id">@category.category_name</option>
+                        }
                     </select>
+                    <span asp-validation-for="AssetRequest.category_id" class="error-message"></span>
                 </div>
-                <div class="form-group mb-3" id="pointInputs">
-                    <label for="manualLat" class="form-label">Vĩ độ (Latitude):</label>
-                    <input type="number" step="any" id="manualLat" class="form-control" placeholder="Nhập vĩ độ" />
+                <div id="geoTypeDisplay" class="form-group">
+                    <label class="form-label">Loại Hình Học</label>
+                    <input type="text" id="geoType" class="form-input bg-gray-100 cursor-not-allowed" value="@Model.AssetResponse.geometry?.type" readonly />
                 </div>
-                <div class="form-group mb-3" id="pointInputsLng">
-                    <label for="manualLng" class="form-label">Kinh độ (Longitude):</label>
-                    <input type="number" step="any" id="manualLng" class="form-control" placeholder="Nhập kinh độ" />
-                </div>
-                <div class="form-group mb-3" id="multiCoordsGroup" style="display: none;">
-                    <label for="manualCoords" class="form-label">Tọa độ (dạng JSON):</label>
-                    <textarea id="manualCoords" class="form-control" rows="3" placeholder='Ví dụ: [[x1, y1], [x2, y2]]'></textarea>
-                </div>
-            </div>
-        </div>
-        <input type="hidden" id="geometryHidden" name="AssetRequest.geometry" />
-        <input type="hidden" id="customAttributesHidden" asp-for="AssetRequest.custom_attributes" />
 
-        <div class="mt-3">
-            <button type="button" id="resetButton" class="btn btn-secondary">Reset về tọa độ gốc</button>
-            <button type="submit" class="btn btn-success">
-                <i class="fas fa-save"></i> Cập nhật
-            </button>
+                <!-- Thuộc Tính Động -->
+                <h2 class="section-title mt-8">Thuộc Tính</h2>
+                <div id="attributes-content" class="p-4 bg-gray-50 rounded-lg">
+                    <p>Đang tải thuộc tính...</p>
+                </div>
+
+                <!-- Bản đồ và nhập tọa độ thủ công -->
+                <h2 class="section-title mt-8">Vị trí (@Model.AssetResponse.geometry?.type)</h2>
+                <div id="map" class="shadow-sm"></div>
+                <div id="coordinatesInput" class="mt-4">
+                    <p id="instructionText" class="text-gray-600 mb-4"></p>
+                    <div id="manualCoordinates" class="space-y-4">
+                        <div class="form-group">
+                            <label for="geometrySystem" class="form-label">Hệ thống tọa độ</label>
+                            <select id="geometrySystem" name="GeometrySystem" class="form-input" required>
+                                <option value="">Chọn hệ tọa độ</option>
+                                <option value="wgs84">WGS84</option>
+                                <option value="vn2000">VN2000</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-group" id="pointInputs">
+                                <label for="manualLat" class="form-label">Vĩ độ (Latitude):</label>
+                                <input type="number" step="any" id="manualLat" class="form-input" placeholder="Nhập vĩ độ" />
+                            </div>
+                            <div class="form-group" id="pointInputsLng">
+                                <label for="manualLng" class="form-label">Kinh độ (Longitude):</label>
+                                <input type="number" step="any" id="manualLng" class="form-input" placeholder="Nhập kinh độ" />
+                            </div>
+                        </div>
+                        <div class="form-group" id="multiCoordsGroup" style="display: none;">
+                            <label for="manualCoords" class="form-label">Tọa độ (dạng JSON):</label>
+                            <textarea id="manualCoords" class="form-input" rows="4" placeholder='Ví dụ: [[x1, y1], [x2, y2]]'></textarea>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" id="geometryHidden" name="AssetRequest.geometry" />
+                <input type="hidden" id="customAttributesHidden" asp-for="AssetRequest.custom_attributes" />
+
+                <!-- Nút điều khiển -->
+                <div class="mt-8 flex justify-end space-x-4">
+                    <button type="button" id="resetButton" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 flex items-center">
+                        <i class="fas fa-undo mr-2"></i> Reset về tọa độ gốc
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-200 flex items-center">
+                        <i class="fas fa-save mr-2"></i> Cập nhật
+                    </button>
+                </div>
+            </form>
         </div>
-    </form>
-}
+    }
+</div>
 
 @section Scripts {
     @if (Model.AssetResponse != null)

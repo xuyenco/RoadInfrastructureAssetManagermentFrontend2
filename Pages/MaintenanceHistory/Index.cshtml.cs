@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
-using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
 {
+
     public class IndexModel : PageModel
     {
         private readonly IMaintenanceHistoryService _maintenanceHistoryService;
@@ -40,7 +40,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
                     TempData["Error"] = "Không thể tải danh sách Lịch sử Bảo trì.";
                     return Page();
                 }
-                _logger.LogInformation("User {Username} (Role: {Role}) retrieved {HistoryCount} maintenance histories",username, role, MaintenanceHistories.Count);
+                _logger.LogInformation("User {Username} (Role: {Role}) retrieved {HistoryCount} maintenance histories", username, role, MaintenanceHistories.Count);
 
                 // Fetch all MaintenanceDocument records
                 MaintenanceDocuments = new List<MaintenanceDocumentResponse>();
@@ -52,13 +52,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
                         MaintenanceDocuments = MaintenanceDocuments.Concat(documents).ToList();
                     }
                 }
-                _logger.LogInformation("User {Username} (Role: {Role}) retrieved {DocumentCount} maintenance documents",username, role, MaintenanceDocuments.Count);
+                _logger.LogInformation("User {Username} (Role: {Role}) retrieved {DocumentCount} maintenance documents", username, role, MaintenanceDocuments.Count);
 
                 return Page();
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error loading maintenance histories: {Error}",username, role, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error loading maintenance histories: {Error}", username, role, ex.Message);
                 TempData["Error"] = $"Đã xảy ra lỗi khi tải danh sách Lịch sử Bảo trì: {ex.Message}";
                 MaintenanceHistories = new List<MaintenanceHistoryResponse>();
                 MaintenanceDocuments = new List<MaintenanceDocumentResponse>();
@@ -71,7 +71,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
             var username = HttpContext.Session.GetString("Username") ?? "anonymous";
             var role = HttpContext.Session.GetString("Role") ?? "unknown";
 
-            _logger.LogInformation("User {Username} (Role: {Role}) is attempting to delete maintenance history with ID {MaintenanceId}",username, role, id);
+            _logger.LogInformation("User {Username} (Role: {Role}) is attempting to delete maintenance history with ID {MaintenanceId}", username, role, id);
 
             try
             {
@@ -79,7 +79,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
                 var documentsDeleted = await _maintenanceDocumentService.DeleteMaintenanceDocumentByMaintenanceId(id);
                 if (!documentsDeleted)
                 {
-                    _logger.LogWarning("User {Username} (Role: {Role}) failed to delete documents for maintenance history with ID {MaintenanceId}",username, role, id);
+                    _logger.LogWarning("User {Username} (Role: {Role}) failed to delete documents for maintenance history with ID {MaintenanceId}", username, role, id);
                     TempData["Error"] = "Xóa Tài liệu lịch sử bảo trì thất bại.";
                     return RedirectToPage();
                 }
@@ -96,13 +96,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
                     return RedirectToPage();
                 }
 
-                _logger.LogInformation("User {Username} (Role: {Role}) successfully deleted maintenance history with ID {MaintenanceId}",username, role, id);
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully deleted maintenance history with ID {MaintenanceId}", username, role, id);
                 TempData["Success"] = "Xóa Lịch sử Bảo trì thành công!";
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error deleting maintenance history with ID {MaintenanceId}: {Error}",username, role, id, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error deleting maintenance history with ID {MaintenanceId}: {Error}", username, role, id, ex.Message);
                 TempData["Error"] = $"Đã xảy ra lỗi khi xóa Lịch sử Bảo trì: {ex.Message}";
                 return RedirectToPage();
             }

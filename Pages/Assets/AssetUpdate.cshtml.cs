@@ -7,9 +7,11 @@ using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 {
+     //[AuthorizeRole("inspector")]
     public class AssetUpdateModel : PageModel
     {
         private readonly IAssetsService _assetsService;
@@ -69,8 +71,8 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
             };
 
             Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
-            _logger.LogInformation("User {Username} (Role: {Role}) successfully retrieved asset with ID {AssetId} and {CategoryCount} categories",username, role, id, Categories.Count);
-            _logger.LogDebug("User {Username} (Role: {Role}) retrieved asset data: {AssetRequest}",username, role, JsonSerializer.Serialize(AssetRequest));
+            _logger.LogInformation("User {Username} (Role: {Role}) successfully retrieved asset with ID {AssetId} and {CategoryCount} categories", username, role, id, Categories.Count);
+            _logger.LogDebug("User {Username} (Role: {Role}) retrieved asset data: {AssetRequest}", username, role, JsonSerializer.Serialize(AssetRequest));
             return Page();
         }
 
@@ -86,14 +88,14 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
             if (AssetResponse == null)
             {
                 _logger.LogWarning("User {Username} (Role: {Role}) found no asset with ID {AssetId}", username, role, assetId);
-                return new JsonResult(new { html = "<p>Không tìm thấy tài sản.</p>" });
+                return new JsonResult(new { html = "<p class='text-red-500'>Không tìm thấy tài sản.</p>" });
             }
 
             var selectedCategories = await _assetCagetoriesService.GetAssetCagetoriesByIdAsync(id);
             if (selectedCategories == null)
             {
                 _logger.LogWarning("User {Username} (Role: {Role}) found no category with ID {CategoryId}", username, role, id);
-                return new JsonResult(new { html = "<p>Không tìm thấy danh mục.</p>" });
+                return new JsonResult(new { html = "<p class='text-red-500'>Không tìm thấy danh mục.</p>" });
             }
 
             var html = "";
@@ -106,7 +108,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 
             if (properties.Count == 0)
             {
-                html = "<p>Không có thuộc tính nào cho danh mục này.</p>";
+                html = "<p class='text-gray-600'>Không có thuộc tính nào cho danh mục này.</p>";
             }
             else
             {
@@ -119,12 +121,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                     var inputType = details.TryGetValue("type", out var type) ? type.ToString() : "string";
 
                     html += $@"
-                        <div class='form-group mb-3'>
-                            <label for='{prop.Key}'>{prop.Key} {(isRequired ? "(bắt buộc)" : "")}</label>";
+                    <div class=""form-group mb-4"">
+                    <label for=""{prop.Key}"" class=""form-label"">{prop.Key} {(isRequired ? "<span class=\"text-red-500\">*</span>" : "")}</label>";
                     if (details.TryGetValue("enum", out var enumObj) && enumObj != null)
                     {
                         var enumValues = enumObj as List<object> ?? JsonSerializer.Deserialize<List<object>>(JsonSerializer.Serialize(enumObj));
-                        html += $"<select id='{prop.Key}' name='{prop.Key}' class='form-control attribute-input' {(isRequired ? "required" : "")}>";
+                        html += $"<select id='{prop.Key}' name='{prop.Key}' class='form-input attribute-input' {(isRequired ? "required" : "")}>";
                         html += "<option value=''>Chọn</option>";
                         foreach (var val in enumValues)
                         {
@@ -134,21 +136,21 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                     }
                     else if (inputType == "integer" || inputType == "number")
                     {
-                        html += $"<input type='number' id='{prop.Key}' name='{prop.Key}' class='form-control attribute-input' value='{(AssetResponse.custom_attributes != null && AssetResponse.custom_attributes.TryGetValue(prop.Key, out var value) ? value : "")}' {(isRequired ? "required" : "")} />";
+                        html += $"<input type='number' id='{prop.Key}' name='{prop.Key}' class='form-input attribute-input' value='{(AssetResponse.custom_attributes != null && AssetResponse.custom_attributes.TryGetValue(prop.Key, out var value) ? value : "")}' {(isRequired ? "required" : "")} />";
                     }
                     else if (inputType == "date")
                     {
-                        html += $"<input type='date' id='{prop.Key}' name='{prop.Key}' class='form-control attribute-input' value='{(AssetResponse.custom_attributes != null && AssetResponse.custom_attributes.TryGetValue(prop.Key, out var value) ? value : "")}' {(isRequired ? "required" : "")} />";
+                        html += $"<input type='date' id='{prop.Key}' name='{prop.Key}' class='form-input attribute-input' value='{(AssetResponse.custom_attributes != null && AssetResponse.custom_attributes.TryGetValue(prop.Key, out var value) ? value : "")}' {(isRequired ? "required" : "")} />";
                     }
                     else
                     {
-                        html += $"<input type='text' id='{prop.Key}' name='{prop.Key}' class='form-control attribute-input' value='{(AssetResponse.custom_attributes != null && AssetResponse.custom_attributes.TryGetValue(prop.Key, out var value) ? value : "")}' {(isRequired ? "required" : "")} />";
+                        html += $"<input type='text' id='{prop.Key}' name='{prop.Key}' class='form-input attribute-input' value='{(AssetResponse.custom_attributes != null && AssetResponse.custom_attributes.TryGetValue(prop.Key, out var value) ? value : "")}' {(isRequired ? "required" : "")} />";
                     }
                     html += "</div>";
                 }
             }
 
-            _logger.LogInformation("User {Username} (Role: {Role}) successfully retrieved category schema for category ID {CategoryId}",username, role, id);
+            _logger.LogInformation("User {Username} (Role: {Role}) successfully retrieved category schema for category ID {CategoryId}", username, role, id);
             return new JsonResult(new
             {
                 html,
@@ -162,7 +164,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
             var role = HttpContext.Session.GetString("Role") ?? "unknown";
 
             _logger.LogInformation("User {Username} (Role: {Role}) is submitting update for asset with ID {AssetId}", username, role, AssetId);
-            _logger.LogDebug("User {Username} (Role: {Role}) submitted form data: {FormData}",username, role, JsonSerializer.Serialize(Request.Form));
+            _logger.LogDebug("User {Username} (Role: {Role}) submitted form data: {FormData}", username, role, JsonSerializer.Serialize(Request.Form));
 
             // Xử lý geometry (chuỗi JSON)
             var geometryJson = Request.Form["AssetRequest.geometry"];
@@ -179,13 +181,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning("User {Username} (Role: {Role}) provided invalid GeoJSON for asset with ID {AssetId}: {Error}",username, role, AssetId, ex.Message);
+                    _logger.LogWarning("User {Username} (Role: {Role}) provided invalid GeoJSON for asset with ID {AssetId}: {Error}", username, role, AssetId, ex.Message);
                     ModelState.AddModelError("AssetRequest.geometry", $"Định dạng GeoJSON không hợp lệ: {ex.Message}");
                 }
             }
             else
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) did not provide geometry for asset with ID {AssetId}",username, role, AssetId);
+                _logger.LogWarning("User {Username} (Role: {Role}) did not provide geometry for asset with ID {AssetId}", username, role, AssetId);
                 ModelState.AddModelError("AssetRequest.geometry", "Hình học là bắt buộc.");
             }
 
@@ -204,7 +206,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning("User {Username} (Role: {Role}) failed to convert geometry to VN2000 for asset with ID {AssetId}: {Error}",username, role, AssetId, ex.Message);
+                        _logger.LogWarning("User {Username} (Role: {Role}) failed to convert geometry to VN2000 for asset with ID {AssetId}: {Error}", username, role, AssetId, ex.Message);
                         ModelState.AddModelError("AssetRequest.geometry", $"Lỗi chuyển đổi tọa độ: {ex.Message}");
                     }
                 }
@@ -282,12 +284,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                     kvp => kvp.Key,
                     kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
                 );
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors while updating asset with ID {AssetId}: {Errors}",username, role, AssetId, JsonSerializer.Serialize(errors));
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors while updating asset with ID {AssetId}: {Errors}", username, role, AssetId, JsonSerializer.Serialize(errors));
                 AssetResponse = await _assetsService.GetAssetByIdAsync(AssetId);
                 Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
                 if (AssetResponse == null)
                 {
-                    _logger.LogWarning("User {Username} (Role: {Role}) found no asset with ID {AssetId} after validation errors",username, role, AssetId);
+                    _logger.LogWarning("User {Username} (Role: {Role}) found no asset with ID {AssetId} after validation errors", username, role, AssetId);
                     return NotFound();
                 }
                 return Page();
@@ -295,11 +297,11 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 
             try
             {
-                _logger.LogDebug("User {Username} (Role: {Role}) sending update data for asset with ID {AssetId}: {AssetRequest}",username, role, AssetId, JsonSerializer.Serialize(AssetRequest));
+                _logger.LogDebug("User {Username} (Role: {Role}) sending update data for asset with ID {AssetId}: {AssetRequest}", username, role, AssetId, JsonSerializer.Serialize(AssetRequest));
                 var updatedAsset = await _assetsService.UpdateAssetAsync(AssetId, AssetRequest);
                 if (updatedAsset == null)
                 {
-                    _logger.LogWarning("User {Username} (Role: {Role}) failed to update asset with ID {AssetId}: No result returned",username, role, AssetId);
+                    _logger.LogWarning("User {Username} (Role: {Role}) failed to update asset with ID {AssetId}: No result returned", username, role, AssetId);
                     ModelState.AddModelError("", "Cập nhật thất bại.");
                     AssetResponse = await _assetsService.GetAssetByIdAsync(AssetId);
                     Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
@@ -311,25 +313,25 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
                     }
                     return Page();
                 }
-                _logger.LogInformation("User {Username} (Role: {Role}) successfully updated asset with ID {AssetId}",username, role, AssetId);
-                return RedirectToPage("/Assets/Index");
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully updated asset with ID {AssetId}", username, role, AssetId);
+                return RedirectToPage("/Assets/AssetsTable");
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) received BadRequest from API while updating asset with ID {AssetId}: {Error}",username, role, AssetId, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) received BadRequest from API while updating asset with ID {AssetId}: {Error}", username, role, AssetId, ex.Message);
                 ModelState.AddModelError("", $"Lỗi từ API: {ex.Message}");
                 AssetResponse = await _assetsService.GetAssetByIdAsync(AssetId);
                 Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
                 if (AssetResponse == null)
                 {
-                    _logger.LogWarning("User {Username} (Role: {Role}) found no asset with ID {AssetId} after BadRequest",username, role, AssetId);
+                    _logger.LogWarning("User {Username} (Role: {Role}) found no asset with ID {AssetId} after BadRequest", username, role, AssetId);
                     return NotFound();
                 }
                 return Page();
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered an error while updating asset with ID {AssetId}: {Error}",username, role, AssetId, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered an error while updating asset with ID {AssetId}: {Error}", username, role, AssetId, ex.Message);
                 ModelState.AddModelError("", $"Lỗi khi cập nhật tài sản: {ex.Message}");
                 AssetResponse = await _assetsService.GetAssetByIdAsync(AssetId);
                 Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();

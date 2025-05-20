@@ -1,14 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
-using System;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 {
-    [AuthorizeRole("admin")]
+    //[AuthorizeRole("admin")]
     public class UserCreateModel : PageModel
     {
         private readonly IUsersService _usersService;
@@ -40,11 +38,11 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
             _logger.LogInformation("User {Username} (Role: {Role}) is submitting a new user creation request", username, role);
 
             User.image = Request.Form.Files["image"];
-            _logger.LogDebug("User {Username} (Role: {Role}) submitted user data: username={SubmittedUsername}, full_name={FullName}, email={Email}, role={SubmittedRole}",username, role, User.username, User.full_name, User.email, User.role);
+            _logger.LogDebug("User {Username} (Role: {Role}) submitted user data: username={SubmittedUsername}, full_name={FullName}, email={Email}, role={SubmittedRole}", username, role, User.username, User.full_name, User.email, User.role);
 
             if (User.image != null)
             {
-                _logger.LogDebug("User {Username} (Role: {Role}) uploaded image: filename={FileName}, size={FileSize}",username, role, User.image.FileName, User.image.Length);
+                _logger.LogDebug("User {Username} (Role: {Role}) uploaded image: filename={FileName}, size={FileSize}", username, role, User.image.FileName, User.image.Length);
             }
             else
             {
@@ -58,7 +56,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                 ModelState.AddModelError("User.username", "Tên đăng nhập là bắt buộc.");
             }
 
-            if (string.IsNullOrWhiteSpace(User.password_hash))
+            if (string.IsNullOrWhiteSpace(User.password))
             {
                 _logger.LogWarning("User {Username} (Role: {Role}) did not provide a password", username, role);
                 ModelState.AddModelError("User.password_hash", "Mật khẩu là bắt buộc.");
@@ -86,21 +84,16 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                 _logger.LogWarning("User {Username} (Role: {Role}) did not provide a role", username, role);
                 ModelState.AddModelError("User.role", "Vai trò là bắt buộc.");
             }
-            else if (!new[] { "admin", "user" }.Contains(User.role.ToLower()))
-            {
-                _logger.LogWarning("User {Username} (Role: {Role}) provided an invalid role: {Role}", username, role, User.role);
-                ModelState.AddModelError("User.role", "Vai trò không hợp lệ: phải là 'admin' hoặc 'user'.");
-            }
 
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
-                );
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors: {Errors}",username, role, Newtonsoft.Json.JsonConvert.SerializeObject(errors));
-                return Page();
-            }
+            //if (!ModelState.IsValid)
+            //{
+            //    var errors = ModelState.ToDictionary(
+            //        kvp => kvp.Key,
+            //        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+            //    );
+            //    _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors: {Errors}",username, role, Newtonsoft.Json.JsonConvert.SerializeObject(errors));
+            //    return Page();
+            //}
 
             try
             {
@@ -112,25 +105,25 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                     return Page();
                 }
 
-                _logger.LogInformation("User {Username} (Role: {Role}) successfully created user with ID {UserId}",username, role, createdUser.user_id);
+                _logger.LogInformation("User {Username} (Role: {Role}) successfully created user with ID {UserId}", username, role, createdUser.user_id);
                 TempData["Success"] = "Người dùng đã được tạo thành công!";
                 return RedirectToPage("/Users/Index");
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error creating user: {Error}",username, role, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error creating user: {Error}", username, role, ex.Message);
                 TempData["Error"] = ex.Message;
                 return Page();
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error creating user: {Error}",username, role, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered invalid operation error creating user: {Error}", username, role, ex.Message);
                 TempData["Error"] = ex.Message;
                 return Page();
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error creating user: {Error}",username, role, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error creating user: {Error}", username, role, ex.Message);
                 TempData["Error"] = $"Đã xảy ra lỗi khi tạo người dùng: {ex.Message}";
                 return Page();
             }

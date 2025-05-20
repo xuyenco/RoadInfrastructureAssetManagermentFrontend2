@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using RoadInfrastructureAssetManagementFrontend2.Filter;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
-using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
 {
+    //[AuthorizeRole("inspector")]
     public class MaintenanceHistoryCreateModel : PageModel
     {
         private readonly IMaintenanceHistoryService _maintenanceHistoryService;
@@ -151,13 +152,13 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error: {Error}",username, role, ex.Message);
+                _logger.LogWarning("User {Username} (Role: {Role}) encountered argument error: {Error}", username, role, ex.Message);
                 ModelState.AddModelError(string.Empty, ex.Message);
                 return Page();
             }
             catch (Exception ex)
             {
-                _logger.LogError("User {Username} (Role: {Role}) encountered error creating maintenance history: {Error}",username, role, ex.Message);
+                _logger.LogError("User {Username} (Role: {Role}) encountered error creating maintenance history: {Error}", username, role, ex.Message);
                 TempData["Error"] = $"Đã xảy ra lỗi khi tạo lịch sử bảo trì: {ex.Message}";
                 return Page();
             }

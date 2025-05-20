@@ -1,10 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
-using RoadInfrastructureAssetManagementFrontend2.Interface;
 using System.Net;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Service
 {
@@ -67,6 +65,63 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
             _logger.LogInformation("User {Username} (Role: {Role}) retrieved incident with ID {IncidentId} successfully",
                 username, role, id);
             return result;
+        }
+
+        public async Task<(List<IncidentsResponse> Incidents, int TotalCount)> GetIncidentsAsync(int page, int pageSize, string searchTerm, int searchField)
+        {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is retrieving incidents with pagination - Page: {Page}, PageSize: {PageSize}, SearchTerm: {SearchTerm}, SearchField: {SearchField}",
+                username, role, page, pageSize, searchTerm, searchField);
+
+            // Xây dựng query string cho API
+            var query = new Dictionary<string, string>
+            {
+                { "page", page.ToString() },
+                { "pageSize", pageSize.ToString() },
+                { "searchTerm", searchTerm ?? "" },
+                { "searchField", searchField.ToString() }
+            };
+
+            var queryString = string.Join("&", query.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
+            var requestUrl = $"api/incidents/paged?{queryString}";
+
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync(requestUrl));
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve incidents: Unauthorized access", username, role);
+                throw new UnauthorizedAccessException("Token expired or invalid. Please login again.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve incidents: {StatusCode} - {Error}",
+                    username, role, response.StatusCode, errorContent);
+                throw new HttpRequestException($"Failed to retrieve incidents: {response.StatusCode} - {errorContent}");
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<IncidentsPaginationResponse>(content);
+
+            if (result?.incidents == null)
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) received empty incidents list for Page: {Page}", username, role, page);
+                return (new List<IncidentsResponse>(), 0);
+            }
+
+            _logger.LogInformation("User {Username} (Role: {Role}) retrieved {Count} incidents with total count {TotalCount} for Page: {Page}",
+                username, role, result.incidents.Count, result.totalCount, page);
+
+            return (result.incidents, result.totalCount);
+        }
+
+        public class IncidentsPaginationResponse
+        {
+            public List<IncidentsResponse> incidents { get; set; }
+            public int totalCount { get; set; }
         }
 
         public async Task<IncidentsResponse?> CreateIncidentAsync(IncidentsRequest request)

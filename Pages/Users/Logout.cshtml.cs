@@ -9,9 +9,10 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
         {
             HttpContext.Session.Remove("AccessToken");
             HttpContext.Session.Remove("RefreshToken");
-            HttpContext.Session.Remove("Role"); 
+            HttpContext.Session.Remove("Role");
+            HttpContext.Session.Remove("Id");
 
-            return RedirectToPage("/Users/Login");
+            return RedirectToPage("/index");
         }
     }
 }

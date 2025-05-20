@@ -2,39 +2,38 @@
 @model RoadInfrastructureAssetManagementFrontend2.Pages.Users.LoginModel
 
 @{
+    Layout = "_Layout";
     ViewData["Title"] = "Login";
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <h2 class="text-center mb-4">Login</h2>
+<div class="container mx-auto px-4 py-10 flex justify-center items-center min-h-[calc(100vh-8rem)]">
+    <div class="w-full max-w-md bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-gray-800 text-center mb-6">Đăng nhập</h2>
 
-            <form method="post" class="card p-4 shadow-sm">
-                <div class="form-group mb-3">
-                    <label asp-for="LoginRequest.Username" class="form-label">Username</label>
-                    <input asp-for="LoginRequest.Username" class="form-control" placeholder="Enter your username" />
-                    <span asp-validation-for="LoginRequest.Username" class="text-danger"></span>
-                </div>
+        <form method="post" class="space-y-4">
+            <div class="mb-4">
+                <label asp-for="LoginRequest.Username" class="block text-gray-700 font-semibold mb-2">Tên đăng nhập</label>
+                <input asp-for="LoginRequest.Username" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập tên đăng nhập của bạn" />
+                <span asp-validation-for="LoginRequest.Username" class="text-red-500 text-sm mt-1 block"></span>
+            </div>
 
-                <div class="form-group mb-3">
-                    <label asp-for="LoginRequest.Password" class="form-label">Password</label>
-                    <input asp-for="LoginRequest.Password" type="password" class="form-control" placeholder="Enter your password" />
-                    <span asp-validation-for="LoginRequest.Password" class="text-danger"></span>
-                </div>
+            <div class="mb-4">
+                <label asp-for="LoginRequest.Password" class="block text-gray-700 font-semibold mb-2">Mật khẩu</label>
+                <input asp-for="LoginRequest.Password" type="password" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập mật khẩu của bạn" />
+                <span asp-validation-for="LoginRequest.Password" class="text-red-500 text-sm mt-1 block"></span>
+            </div>
 
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-block">Login</button>
-                </div>
-            </form>
+            <div class="text-center">
+                <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition font-semibold">Đăng nhập</button>
+            </div>
+        </form>
 
-            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-            {
-                <div class="alert alert-danger mt-3" role="alert">
-                    @Model.ErrorMessage
-                </div>
-            }
-        </div>
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-center">
+                @Model.ErrorMessage
+            </div>
+        }
     </div>
 </div>
 

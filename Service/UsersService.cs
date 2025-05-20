@@ -45,6 +45,62 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
                 username, role, result?.Count ?? 0);
             return result;
         }
+        public async Task<(List<UsersResponse> Users, int TotalCount)> GetUsersAsync(int page, int pageSize, string searchTerm, int searchField)
+        {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is retrieving users with pagination - Page: {Page}, PageSize: {PageSize}, SearchTerm: {SearchTerm}, SearchField: {SearchField}",
+                username, role, page, pageSize, searchTerm, searchField);
+
+            // Xây dựng query string cho API
+            var query = new Dictionary<string, string>
+            {
+                { "page", page.ToString() },
+                { "pageSize", pageSize.ToString() },
+                { "searchTerm", searchTerm ?? "" },
+                { "searchField", searchField.ToString() }
+            };
+            var queryString = string.Join("&", query.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
+            var requestUrl = $"api/users/paged?{queryString}";
+
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync(requestUrl));
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve users: Unauthorized access", username, role);
+                throw new UnauthorizedAccessException("Token expired or invalid. Please login again.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve users: {StatusCode} - {Error}",
+                    username, role, response.StatusCode, errorContent);
+                throw new HttpRequestException($"Failed to retrieve users: {response.StatusCode} - {errorContent}");
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<UsersPaginationResponse>(content);
+
+            if (result?.users == null)
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) received empty users list for Page: {Page}", username, role, page);
+                return (new List<UsersResponse>(), 0);
+            }
+
+            _logger.LogInformation("User {Username} (Role: {Role}) retrieved {Count} users with total count {TotalCount} for Page: {Page}",
+                username, role, result.users.Count, result.totalCount, page);
+
+            return (result.users, result.totalCount);
+        }
+
+        // Lớp để ánh xạ phản hồi JSON từ API
+        public class UsersPaginationResponse
+        {
+            public List<UsersResponse> users { get; set; }
+            public int totalCount { get; set; }
+        }
 
         public async Task<UsersResponse?> GetUserByIdAsync(int id)
         {
@@ -84,9 +140,10 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
                 username, role, request.username);
             var formData = new MultipartFormDataContent();
             formData.Add(new StringContent(request.username ?? ""), "username");
-            formData.Add(new StringContent(request.password_hash ?? ""), "password_hash");
+            formData.Add(new StringContent(request.password ?? ""), "password");
             formData.Add(new StringContent(request.full_name ?? ""), "full_name");
             formData.Add(new StringContent(request.email ?? ""), "email");
+            formData.Add(new StringContent(request.department_company_unit ?? ""), "department_company_unit");
             formData.Add(new StringContent(request.role ?? ""), "role");
 
             if (request.image != null && request.image.Length > 0)
@@ -147,9 +204,10 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
                 username, role, id);
             var formData = new MultipartFormDataContent();
             formData.Add(new StringContent(request.username ?? ""), "username");
-            formData.Add(new StringContent(request.password_hash ?? ""), "password_hash");
+            formData.Add(new StringContent(request.password ?? ""), "password");
             formData.Add(new StringContent(request.full_name ?? ""), "full_name");
             formData.Add(new StringContent(request.email ?? ""), "email");
+            formData.Add(new StringContent(request.department_company_unit ?? ""), "department_company_unit");
             formData.Add(new StringContent(request.role ?? ""), "role");
 
             if (request.image != null && request.image.Length > 0)
