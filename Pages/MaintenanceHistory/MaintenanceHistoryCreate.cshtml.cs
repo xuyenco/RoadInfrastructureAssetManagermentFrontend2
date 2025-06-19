@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
 {
-    //[AuthorizeRole("inspector")]
+    [AuthorizeRole("admin,inspector")]
     public class MaintenanceHistoryCreateModel : PageModel
     {
         private readonly IMaintenanceHistoryService _maintenanceHistoryService;

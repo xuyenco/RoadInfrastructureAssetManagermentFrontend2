@@ -47,10 +47,22 @@
 
         <form method="post" enctype="multipart/form-data">
             <div class="space-y-6">
-                <div>
+@*                 <div>
                     <label asp-for="Task.task_type" class="block text-gray-700 font-semibold mb-1">Loại Nhiệm vụ</label>
                     <input asp-for="Task.task_type" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
                     <span asp-validation-for="Task.task_type" class="text-red-500 text-sm"></span>
+                </div>
+ *@
+                <div>
+                    <label asp-for="Task.task_type" class="block text-gray-700 font-semibold mb-1">Loại Nhiệm vụ</label>
+                    <select asp-for="Task.task_type" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="">Chọn loại nhiệm vụ</option>
+                        <option value="Sửa chữa đội xuất">Sửa chữa đội xuất</option>
+                        <option value="Bảo dưỡng thường xuyên">Bảo dưỡng thường xuyên</option>
+                        <option value="Sửa chữa thường xuyên">Sửa chữa thường xuyên</option>
+                        <option value="Kiểm tra quan trắc">Kiểm tra quan trắc</option>
+                    </select>
+                    <span asp-validation-for="Task.status" class="text-red-500 text-sm"></span>
                 </div>
 
                 <div>
@@ -63,10 +75,11 @@
                     <label asp-for="Task.status" class="block text-gray-700 font-semibold mb-1">Trạng thái</label>
                     <select asp-for="Task.status" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Chọn trạng thái</option>
-                        <option value="pending">Pending</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
+                        <option value="pending">Đang đợi làm</option>
+                        <option value="in-progress">Đang làm</option>
+                        <option value="awaiting-verification">Đợi xác nhận</option>
+                        <option value="completed">Làm xong</option>
+                        <option value="cancelled">Hủy</option>
                     </select>
                     <span asp-validation-for="Task.status" class="text-red-500 text-sm"></span>
                 </div>
@@ -128,7 +141,7 @@
                 </div>
 
                 <div>
-                    <label asp-for="Task.description" class="block text-gray-700 font-semibold mb-1">Mô tả công việc</label>
+                    <label asp-for="Task.description" class="block text-gray-700 font-semibold mb-1">Mô tả nhiệm vụ</label>
                     <textarea asp-for="Task.description" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
                     <span asp-validation-for="Task.description" class="text-red-500 text-sm"></span>
                 </div>
@@ -176,46 +189,8 @@
                     <a href="/Tasks/Index" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 flex items-center">
                         <i class="fas fa-arrow-left mr-2"></i> Quay lại
                     </a>
-                </div>
-            </div>
-        </form>
-    </div>
-
-    <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
-        <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Nhập bằng file Excel</h3>
-
-        @if (TempData["SuccessCount"] != null)
-        {
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4" role="alert">
-                Đã nhập thành công @TempData["SuccessCount"] nhiệm vụ.
-            </div>
-        }
-        @if (TempData["ErrorFile"] != null)
-        {
-            <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg mb-4" role="alert">
-                Một số hàng không được nhập. <a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,@TempData["ErrorFile"]" download="ErrorRows.xlsx" class="text-blue-500 hover:underline">Tải xuống file lỗi</a>.
-            </div>
-        }
-
-        <div class="mb-4">
-            <label class="block text-gray-700 font-semibold mb-1">Tải file mẫu</label>
-            <button type="button" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200" onclick="downloadExcelTemplate()">
-                <i class="fas fa-download mr-2"></i> Tải file mẫu
-            </button>
-        </div>
-
-        <form method="post" enctype="multipart/form-data" asp-page-handler="ImportExcel">
-            <div class="space-y-6">
-                <div>
-                    <label for="excelFile" class="block text-gray-700 font-semibold mb-1">Chọn file Excel để nhập</label>
-                    <input type="file" id="excelFile" name="excelFile" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".xlsx, .xls" />
-                </div>
-                <div class="flex justify-center space-x-4">
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center">
-                        <i class="fas fa-upload mr-2"></i> Upload
-                    </button>
-                    <a href="/Tasks/Index" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 flex items-center">
-                        <i class="fas fa-arrow-left mr-2"></i> Quay lại
+                    <a href="/Tasks/TaskImport" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center">
+                        <i class="fas fa-file-excel mr-2"></i> Nhập bằng excel
                     </a>
                 </div>
             </div>

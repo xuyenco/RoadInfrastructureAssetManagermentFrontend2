@@ -217,7 +217,7 @@
                     <h6 class="text-lg font-semibold text-gray-800">${notification.message}</h6>
                     <p class="text-gray-600 mt-2"><strong>Thời gian:</strong> ${new Date(notification.created_at).toLocaleString()}</p>
                     <p class="text-gray-600"><strong>Loại thông báo:</strong> ${notification.notification_type}</p>
-                    ${notification.task_id ? `<p class="text-gray-600"><strong>Task ID:</strong> <a href="/Tasks/Details?id=${notification.task_id}" class="text-blue-500 hover:underline">${notification.task_id}</a></p>` : ''}
+                            ${notification.task_id ? `<p class="text-gray-600"><strong>Task ID:</strong> <a href="/Tasks/TaskDetail/${notification.task_id}" class="text-blue-500 hover:underline">${notification.task_id}</a></p>` : ''}
                 `;
                 $("#notification-detail").html(detailHtml).data("current-id", notificationId);
 

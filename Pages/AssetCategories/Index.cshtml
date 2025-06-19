@@ -28,9 +28,12 @@
     <div class="sidebar w-72 bg-white border-r border-gray-200 p-5 shadow-sm">
         <div class="flex justify-between items-center mb-5">
             <h3 class="text-2xl font-semibold text-gray-800">Danh mục tài sản</h3>
-            <a href="/AssetCategories/AssetCategoryCreate" class="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 transition duration-200 text-sm inline-flex items-center">
-                <i class="fas fa-plus mr-2"></i> Tạo mới
-            </a>
+            @if (HttpContext.Session.GetString("Role") == "admin" || HttpContext.Session.GetString("Role") == "manager")
+            {
+                <a href="/AssetCategories/AssetCategoryCreate" class="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 transition duration-200 text-sm inline-flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Tạo mới
+                </a>
+            }
         </div>
         <div class="space-y-2">
             @if (Model.Categories == null || !Model.Categories.Any())

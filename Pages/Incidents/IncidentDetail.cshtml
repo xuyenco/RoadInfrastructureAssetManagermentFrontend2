@@ -4,11 +4,11 @@
 
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Chi tiết Incident";
+    ViewData["Title"] = "Chi tiết Sự cố";
 }
 
 <div class="container mx-auto px-4 py-10">
-    <h1 class="text-3xl font-bold text-gray-800 text-center mb-8">Chi tiết Incident</h1>
+    <h1 class="text-3xl font-bold text-gray-800 text-center mb-8">Chi tiết Sự cố</h1>
 
     <div class="detail-container bg-white rounded-lg shadow-lg p-6 mb-10">
         @if (TempData["Error"] != null)
@@ -20,7 +20,7 @@
 
         @if (Model.Incident != null)
         {
-            <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Thông tin Incident</h3>
+            <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Thông tin Sự cố</h3>
             <div class="info-row grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="info-item flex-1 min-w-[45%] bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500 hover:-translate-y-1 transition">
                     <strong class="text-gray-800 font-semibold">ID:</strong> <span class="text-gray-600">@Model.Incident.incident_id</span>
@@ -42,6 +42,9 @@
                 </div>
                 <div class="info-item flex-1 min-w-[45%] bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500 hover:-translate-y-1 transition">
                     <strong class="text-gray-800 font-semibold">Mức độ hư hỏng:</strong> <span class="text-gray-600">@Model.Incident.damage_level</span>
+                </div>
+                <div class="info-item flex-1 min-w-[45%] bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500 hover:-translate-y-1 transition">
+                    <strong class="text-gray-800 font-semibold">Mô tả sự cố:</strong> <span class="text-gray-600">@Model.Incident.description</span>
                 </div>
                 <div class="info-item flex-1 min-w-[45%] bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500 hover:-translate-y-1 transition">
                     <strong class="text-gray-800 font-semibold">Trạng thái xử lý:</strong> <span class="text-gray-600">@Model.Incident.processing_status</span>
@@ -66,7 +69,7 @@
             }
             else
             {
-                <p class="text-gray-500">Không có ảnh nào liên quan đến Incident này.</p>
+                <p class="text-gray-500">Không có ảnh nào liên quan đến sự cố này.</p>
             }
 
             <h3 class="text-xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2 mt-6">Vị trí trên bản đồ (WGS84)</h3>
@@ -78,7 +81,7 @@
         }
 
         <div class="mt-6 text-center">
-            <a href="/Incidents/Index" class="inline-flex items-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-gray-700 transition duration-200">
+            <a href="/Incidents/IncidentsTable" class="inline-flex items-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-gray-700 transition duration-200">
                 <i class="fas fa-arrow-left mr-2"></i> Quay lại
             </a>
         </div>
@@ -90,8 +93,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var map = L.map('map').setView([21.0285, 105.8542], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, © <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
             }).addTo(map);
 
             var wgs84Geometry = @Html.Raw(JsonSerializer.Serialize(Model.Wgs84Geometry));

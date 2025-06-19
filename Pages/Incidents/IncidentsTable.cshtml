@@ -5,29 +5,45 @@
 }
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     main {
         overflow-y: auto !important;
     }
-
     body {
         background-color: #f4f6f9;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-
     .table-container {
         overflow-x: auto;
     }
-
     .pagination-controls button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
-
     .pagination-controls button {
         min-width: 32px;
         text-align: center;
         transition: background-color 0.2s;
+    }
+    .tab-button {
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+    .tab-button.active {
+        border-bottom-color: #3B82F6;
+        color: #3B82F6;
+        font-weight: 600;
+    }
+    .tab-button:hover {
+        background-color: #F3F4F6;
+    }
+    #incidentDistributionByTypeChart, #incidentTaskTrendChart {
+        width: 100% !important;
+        height: 400px !important;
     }
 </style>
 
@@ -47,56 +63,79 @@
         </div>
     }
 
-    <div class="bg-white rounded-lg shadow-lg p-6 table-container">
-        <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2 text-center">Danh sách Sự cố</h3>
+    <!-- Thanh tab -->
+    <div class="flex border-b border-gray-200 mb-6">
+        <button class="tab-button active" onclick="showTab('info-tab')">Thông tin</button>
+        <button class="tab-button" onclick="showTab('report-tab')">Báo cáo</button>
+    </div>
 
-        <div class="flex flex-col md:flex-row md:items-center mb-4 gap-3">
-            <div class="flex w-full md:w-1/2 gap-2">
-                <input type="text" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tìm kiếm..." id="searchInput">
-                <select class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="searchField">
-                    <option value="0">Mã sự cố</option>
-                    <option value="1">Địa chỉ</option>
-                    <option value="2">Tuyến đường</option>
-                    <option value="3">Mức độ nghiêm trọng</option>
-                    <option value="4">Mức độ hư hại</option>
-                    <option value="5">Trạng thái xử lý</option>
-                    <option value="6">Ngày tạo</option>
-                    <option value="7">Loại sự cố</option>
+    <!-- Tab thông tin -->
+    <div id="info-tab" class="tab-content">
+        <div class="bg-white rounded-lg shadow-lg p-6 table-container">
+            <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2 text-center">Danh sách Sự cố</h3>
 
-                </select>
+            <div class="flex flex-col md:flex-row md:items-center mb-4 gap-3">
+                <div class="flex w-full md:w-1/2 gap-2">
+                    <input type="text" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tìm kiếm..." id="searchInput">
+                    <select class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="searchField">
+                        <option value="0">Mã sự cố</option>
+                        <option value="1">Địa chỉ</option>
+                        <option value="2">Tuyến đường</option>
+                        <option value="3">Mức độ nghiêm trọng</option>
+                        <option value="4">Mức độ hư hại</option>
+                        <option value="5">Trạng thái xử lý</option>
+                        <option value="6">Ngày tạo</option>
+                        <option value="7">Loại sự cố</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <a class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center" asp-page="/Incidents/IncidentCreate">
+                        <i class="fas fa-plus mr-2"></i> Tạo sự cố mới
+                    </a>
+                    @if (HttpContext.Session.GetString("Role") == "admin" || HttpContext.Session.GetString("Role") == "inspector" || HttpContext.Session.GetString("Role") == "supervisor")
+                    {
+                        <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition duration-200 flex items-center" onclick="exportIncidentsReport()">
+                            <i class="fas fa-file-export mr-2"></i> Xuất báo cáo
+                        </button>
+                    }
+                </div>
             </div>
-            <div class="flex gap-2">
-                <a class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center" asp-page="/Incidents/IncidentCreate">
-                    <i class="fas fa-plus mr-2"></i> Tạo sự cố mới
-                </a>
-                <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition duration-200 flex items-center" onclick="exportIncidentsReport()">
-                    <i class="fas fa-file-export mr-2"></i> Xuất báo cáo
-                </button>
+            <div class="text-sm text-gray-600 mb-2" id="resultCount"></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-700">
+                    <thead class="bg-blue-500 text-white">
+                        <tr>
+                            <th class="px-4 py-3">Mã sự cố</th>
+                            <th class="px-4 py-3">Địa chỉ</th>
+                            <th class="px-4 py-3">Tuyến đường</th>
+                            <th class="px-4 py-3">Mức độ nghiêm trọng</th>
+                            <th class="px-4 py-3">Mức độ hư hại</th>
+                            <th class="px-4 py-3">Trạng thái xử lý</th>
+                            <th class="px-4 py-3">Loại sự cố</th>
+                            <th class="px-4 py-3">Ngày tạo</th>
+                            <th class="px-4 py-3">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incidentTableBody" class="divide-y divide-gray-200"></tbody>
+                </table>
+                <div class="pagination-controls mt-4 flex justify-center items-center gap-2">
+                    <button id="prevPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Trước</button>
+                    <div id="pageNumbers" class="flex gap-1"></div>
+                    <button id="nextPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Sau</button>
+                </div>
             </div>
         </div>
-        <div class="text-sm text-gray-600 mb-2" id="resultCount"></div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-700">
-                <thead class="bg-blue-500 text-white">
-                    <tr>
-                        <th class="px-4 py-3">Mã sự cố</th>
-                        <th class="px-4 py-3">Địa chỉ</th>
-                        <th class="px-4 py-3">Tuyến đường</th>
-                        <th class="px-4 py-3">Mức độ nghiêm trọng</th>
-                        <th class="px-4 py-3">Mức độ hư hại</th>
-                        <th class="px-4 py-3">Trạng thái xử lý</th>
-                        <th class="px-4 py-3">Mã nhiệm vụ</th>
-                        <th class="px-4 py-3">Ngày tạo</th>
-                        <th class="px-4 py-3">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody id="incidentTableBody" class="divide-y divide-gray-200"></tbody>
-            </table>
-            <div class="pagination-controls mt-4 flex justify-center items-center gap-2">
-                <button id="prevPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Trước</button>
-                <div id="pageNumbers" class="flex gap-1"></div>
-                <button id="nextPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Sau</button>
-            </div>
+    </div>
+
+    <!-- Tab Báo cáo -->
+    <div id="report-tab" class="tab-content" style="display: none;">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Incident Distribution by Type</h3>
+            <canvas id="incidentDistributionByTypeChart"></canvas>
+        </div>
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Incidents and Tasks Over Time</h3>
+            <canvas id="incidentTaskTrendChart"></canvas>
         </div>
     </div>
 </div>
@@ -108,14 +147,130 @@
 
     let currentPage = 1;
     const pageSize = 10;
+    let chartInitialized = false;
 
-    // Hàm debounce để trì hoãn gọi hàm
+    const chartColors = {
+        red: '#EF4444',
+        blue: '#3B82F6',
+        green: '#10B981',
+        yellow: '#F59E0B',
+        gray: '#6B7280',
+        orange: '#F97316',
+        teal: '#14B8A6',
+        purple: '#8B5CF6',
+        pink: '#EC4899',
+        indigo: '#6366F1',
+        lime: '#84CC16'
+    };
+
     function debounce(func, delay) {
         let timeoutId;
         return function (...args) {
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => func.apply(this, args), delay);
         };
+    }
+
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.style.display = 'none';
+        });
+        document.getElementById(tabId).style.display = 'block';
+
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.remove('active');
+        });
+        document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
+
+        if (tabId === 'report-tab' && !chartInitialized) {
+            initializeCharts();
+            chartInitialized = true;
+        }
+    }
+
+    function initializeCharts() {
+        // Incident Distribution by Type (Pie Chart)
+        var typeData = @Html.Raw(Json.Serialize(Model.IncidentDistributionByTypeReport));
+        if (typeData.length === 0) {
+            document.getElementById('incidentDistributionByTypeChart').parentElement.innerHTML = '<p class="text-gray-500 text-center">No data available for Type Distribution</p>';
+        } else {
+            new Chart(document.getElementById('incidentDistributionByTypeChart'), {
+                type: 'pie',
+                data: {
+                    labels: typeData.map(item => item.route),
+                    datasets: [{
+                        label: 'Incidents',
+                        data: typeData.map(item => item.incident_count),
+                        backgroundColor: [
+                            chartColors.red, chartColors.blue, chartColors.yellow, chartColors.green,
+                            chartColors.gray, chartColors.orange, chartColors.teal, chartColors.purple,
+                            chartColors.pink, chartColors.indigo, chartColors.lime
+                        ]
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: 'Incident Distribution by Type' },
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        }
+
+        // Incident Task Trend (Line Chart)
+        var trendData = @Html.Raw(Json.Serialize(Model.IncidentTaskTrendReport));
+        if (trendData.length === 0) {
+            document.getElementById('incidentTaskTrendChart').parentElement.innerHTML = '<p class="text-gray-500 text-center">No data available for Incident Task Trend</p>';
+        } else {
+            new Chart(document.getElementById('incidentTaskTrendChart'), {
+                type: 'line',
+                data: {
+                    labels: trendData.map(item => new Date(item.month).toLocaleString('default', { year: 'numeric', month: 'short' })),
+                    datasets: [
+                        {
+                            label: 'Incidents',
+                            data: trendData.map(item => item.incident_count),
+                            borderColor: chartColors.red,
+                            fill: false
+                        },
+                        {
+                            label: 'Tasks',
+                            data: trendData.map(item => item.task_count),
+                            borderColor: chartColors.blue,
+                            fill: false
+                        },
+                        {
+                            label: 'Completed Tasks',
+                            data: trendData.map(item => item.completed_task_count),
+                            borderColor: chartColors.green,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    aspectRatio: 1.8,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Count' } },
+                        x: { title: { display: true, text: 'Month' } }
+                    },
+                    plugins: {
+                        title: { display: true, text: 'Incidents and Tasks Over Time' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var item = trendData[context.dataIndex];
+                                    return `${context.dataset.label}: ${context.raw}, Status: ${item.task_status}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 
     function fetchIncidents(currentPage = 1, searchTerm = '', searchField = 0) {
@@ -131,19 +286,31 @@
             success: function (response) {
                 console.log('AJAX success:', response);
                 if (!response.success) {
-                    alert(response.message);
-                    if (response.message.includes("đăng nhập lại")) {
-                        window.location.href = "/Users/Login";
-                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: response.message,
+                        confirmButtonColor: '#3085d6'
+                    }).then((result) => {
+                        if (response.message.includes("đăng nhập lại")) {
+                            window.location.href = "/Users/Login";
+                        }
+                    });
                     return;
                 }
-                updateTable(response.incidents);
-                updatePagination(response.totalCount);
-                $('#resultCount').text(`Tổng số sự cố: ${response.totalCount}`);
+                // response.incidents.sort((a, b) => (a.route || '').localeCompare(b.route || ''));
+                updateTable(response.incidents || []);
+                updatePagination(response.totalCount || 0);
+                $('#resultCount').text(`Tổng số sự cố: ${response.totalCount || 0}`);
             },
             error: function (xhr) {
                 console.error('AJAX error:', xhr);
-                alert('Lỗi khi tải danh sách sự cố: ' + (xhr.responseJSON?.message || xhr.statusText || 'Lỗi không xác định'));
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Lỗi khi tải danh sách sự cố: ' + (xhr.responseJSON?.message || xhr.statusText || 'Lỗi không xác định'),
+                    confirmButtonColor: '#3085d6'
+                });
             }
         });
     }
@@ -151,29 +318,42 @@
     function updateTable(incidents) {
         const tbody = $('#incidentTableBody');
         tbody.empty();
+
+        if (!incidents || incidents.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="9" class="px-4 py-3 text-center text-gray-500">Không có dữ liệu sự cố để hiển thị.</td>
+                </tr>
+            `);
+            return;
+        }
+
         incidents.forEach(incident => {
+            const allowEditDelete = '@HttpContext.Session.GetString("Role")' === 'admin' || '@HttpContext.Session.GetString("Role")' === 'inspector';
             const row = `
-                <tr data-incident-id="${incident.incident_id}" class="hover:bg-gray-50">
-                    <td class="px-4 py-3">${incident.incident_id}</td>
-                    <td class="px-4 py-3">${incident.address || ''}</td>
-                    <td class="px-4 py-3">${incident.route || ''}</td>
-                    <td class="px-4 py-3">${incident.severity_level || ''}</td>
-                    <td class="px-4 py-3">${incident.damage_level || ''}</td>
-                    <td class="px-4 py-3">${incident.processing_status || ''}</td>
-                    <td class="px-4 py-3">${incident.task_id || 'Không có'}</td>
-                    <td class="px-4 py-3">${incident.created_at ? new Date(incident.created_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Chưa có dữ liệu'}</td>
-                    <td class="px-4 py-3 flex gap-2">
-                        <a class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition duration-200" href="/Incidents/IncidentDetail/${incident.incident_id}" title="Chi tiết tài sản">
-                            <i class="fas fa-info-circle"></i>
-                        </a>
+            <tr data-incident-id="${incident.incident_id}" class="hover:bg-gray-50">
+                <td class="px-4 py-3">${incident.incident_id}</td>
+                <td class="px-4 py-3">${incident.address || ''}</td>
+                <td class="px-4 py-3">${incident.route || ''}</td>
+                <td class="px-4 py-3">${incident.severity_level || ''}</td>
+                <td class="px-4 py-3">${incident.damage_level || ''}</td>
+                <td class="px-4 py-3">${incident.processing_status || ''}</td>
+                    <td class="px-4 py-3">${incident.incident_type || ''}</td>
+                <td class="px-4 py-3">${incident.created_at ? new Date(incident.created_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Chưa có'}</td>
+                <td class="px-4 py-3 flex gap-2">
+                    <a class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition duration-200" href="/Incidents/IncidentDetail/${incident.incident_id}" title="Chi tiết sự cố">
+                        <i class="fas fa-info-circle"></i>
+                    </a>
+                    ${allowEditDelete ? `
                         <a class="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600 transition duration-200" href="/Incidents/IncidentUpdate/${incident.incident_id}" title="Sửa sự cố">
                             <i class="fas fa-edit"></i>
                         </a>
                         <button class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition duration-200 delete-btn" data-id="${incident.incident_id}" title="Xóa sự cố">
                             <i class="fas fa-trash"></i>
                         </button>
-                    </td>
-                </tr>`;
+                    ` : ''}
+                </td>
+            </tr>`;
             tbody.append(row);
         });
     }
@@ -214,7 +394,6 @@
         console.log('Document ready');
         fetchIncidents(1);
 
-        // Áp dụng debounce cho sự kiện input của searchInput
         const debouncedSearch = debounce(function (searchTerm, searchField) {
             currentPage = 1;
             fetchIncidents(currentPage, searchTerm, searchField);
@@ -246,27 +425,54 @@
 
         $(document).on('click', '.delete-btn', function () {
             const incidentId = $(this).data('id');
-            if (confirm('Bạn có chắc chắn muốn xóa sự cố này?')) {
-                $.ajax({
-                    url: '/Incidents/IncidentsTable?handler=Delete',
-                    type: 'POST',
-                    data: { id: incidentId },
-                    headers: {
-                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
-                    },
-                    success: function (response) {
-                        if (response.success) {
-                            alert('Xóa sự cố thành công!');
-                            fetchIncidents(currentPage, $('#searchInput').val(), $('#searchField').val());
-                        } else {
-                            alert(response.message);
+            Swal.fire({
+                title: 'Xác nhận xóa',
+                text: `Bạn có chắc chắn muốn xóa sự cố ${incidentId}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/Incidents/IncidentsTable?handler=Delete',
+                        type: 'POST',
+                        data: { id: incidentId },
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Thành công',
+                                    text: 'Xóa sự cố thành công!',
+                                    confirmButtonColor: '#3085d6'
+                                }).then(() => {
+                                    fetchIncidents(currentPage, $('#searchInput').val(), $('#searchField').val());
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Lỗi',
+                                    text: response.message,
+                                    confirmButtonColor: '#3085d6'
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi',
+                                text: 'Lỗi khi xóa sự cố: ' + (xhr.responseJSON?.message || xhr.statusText || 'Lỗi không xác định'),
+                                confirmButtonColor: '#3085d6'
+                            });
                         }
-                    },
-                    error: function (xhr) {
-                        alert('Lỗi khi xóa sự cố: ' + (xhr.responseJSON?.message || xhr.statusText || 'Lỗi không xác định'));
-                    }
-                });
-            }
+                    });
+                }
+            });
         });
     });
 

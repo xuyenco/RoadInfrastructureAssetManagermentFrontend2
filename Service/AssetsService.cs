@@ -37,6 +37,31 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
             return result;
         }
 
+        public async Task<List<AssetsResponse>> GetAssetsByCategoryIdAsync(int id)
+        {
+            var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
+            var role = _httpContextAccessor.HttpContext?.Session.GetString("Role") ?? "unknown";
+
+            _logger.LogInformation("User {Username} (Role: {Role}) is retrieving asset with Category ID {CategoryId}", username, role, id);
+            var response = await ExecuteWithRefreshAsync(() => _httpClient.GetAsync($"api/assets/categoryid/{id}"));
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning("User {Username} (Role: {Role}) found no asset with Category id {CategoryId}", username, role, id);
+                return null;
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("User {Username} (Role: {Role}) failed to retrieve asset with Category Id {AssetId}: {StatusCode} - {Error}", username, role, id, response.StatusCode, errorContent);
+                throw new HttpRequestException($"Failed to retrieve asset with Category Id {id}: {response.StatusCode} - {errorContent}");
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<List<AssetsResponse>>(content);
+            _logger.LogInformation("User {Username} (Role: {Role}) retrieved asset with Category Id {categoryid} successfully", username, role, id);
+            return result;
+        }
+
         public async Task<(List<AssetsResponse> Assets, int TotalCount)> GetAssetsAsync(int page, int pageSize, string searchTerm, int searchField)
         {
             var username = _httpContextAccessor.HttpContext?.Session.GetString("Username") ?? "anonymous";
@@ -47,12 +72,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Service
 
             // Xây dựng query string cho API
             var query = new Dictionary<string, string>
-    {
-        { "page", page.ToString() },
-        { "pageSize", pageSize.ToString() },
-        { "searchTerm", searchTerm ?? "" },
-        { "searchField", searchField.ToString() }
-    };
+            {
+                { "page", page.ToString() },
+                { "pageSize", pageSize.ToString() },
+                { "searchTerm", searchTerm ?? "" },
+                { "searchField", searchField.ToString() }
+            };
             var queryString = string.Join("&", query.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
             var requestUrl = $"api/assets/paged?{queryString}";
 

@@ -90,6 +90,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5jaWRlbnRzXEluY2lkZW50RGV0YWlsLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Incidents/IncidentImport.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5jaWRlbnRzXEluY2lkZW50SW1wb3J0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Incidents/IncidentsTable.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5jaWRlbnRzXEluY2lkZW50c1RhYmxlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
@@ -162,6 +166,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGFza3NcVGFza0RldGFpbC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Tasks/TaskImport.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGFza3NcVGFza0ltcG9ydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Tasks/TasksTable.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGFza3NcVGFza3NUYWJsZS5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
@@ -184,6 +192,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Users/UserCreate.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcVXNlckNyZWF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Users/UserDetail.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlcnNcVXNlckRldGFpbC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Lenovo/source/repos/RoadInfrastructureAssetManagementFrontend2/RoadInfrastructureAssetManagementFrontend2/Pages/Users/UserImport.cshtml]

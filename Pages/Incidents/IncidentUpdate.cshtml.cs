@@ -10,7 +10,7 @@ using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 {
-    //[AuthorizeRole("inspector")]
+    [AuthorizeRole("admin,inspector")]
     public class IncidentUpdateModel : PageModel
     {
         private readonly IIncidentsService _incidentsService;

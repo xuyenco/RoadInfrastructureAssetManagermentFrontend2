@@ -7,7 +7,6 @@ using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 {
-    //[AuthorizeRole("admin")]
     public class UserUpdateModel : PageModel
     {
         private readonly IUsersService _usersService;

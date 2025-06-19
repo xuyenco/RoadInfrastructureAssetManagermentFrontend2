@@ -11,7 +11,7 @@ using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 {
-    //[AuthorizeRole("inspector")]
+    [AuthorizeRole("admin,inspector")]
     public class TaskCreateModel : PageModel
     {
         private readonly ITasksService _tasksService;

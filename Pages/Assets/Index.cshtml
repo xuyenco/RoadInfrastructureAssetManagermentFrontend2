@@ -3,7 +3,7 @@
 
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Danh sách Tài sản";
+    ViewData["Title"] = "Danh sách Kết cấu Hạ tầng";
     ViewData["Mapview"] = "Leaflet";
 }
 
@@ -20,7 +20,7 @@
     <h4 class="text-gray-800 font-bold mb-6">Filters</h4>
     <div class="mb-4">
         <label class="block text-gray-700 font-semibold mb-2">Tìm kiếm</label>
-        <input type="text" id="searchFilter" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập tên hoặc mã tài sản">
+        <input type="text" id="searchFilter" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập tên hoặc mã kết cấu hạ tầng">
     </div>
     <div class="mb-4">
         <label class="block text-gray-700 font-semibold mb-2">Asset Category</label>
@@ -36,7 +36,7 @@
 
 <div class="fixed top-20 right-4 z-10 max-w-xs">
     <div class="bg-white bg-opacity-90 p-4 rounded-lg shadow-lg">
-        <h1 class="text-xl font-bold text-gray-800 mb-4">Danh sách tài sản</h1>
+        <h1 class="text-xl font-bold text-gray-800 mb-4">Danh sách kết cấu hạ tầng</h1>
         @if (TempData["Error"] != null)
         {
             <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
@@ -45,7 +45,7 @@
         }
         <div class="flex flex-col gap-2">
             <a class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition w-full block text-center" asp-page="/Assets/AssetCreate2">
-                <i class="fas fa-plus mr-2"></i> Tạo tài sản mới
+                <i class="fas fa-plus mr-2"></i> Tạo kết cấu hạ tầng mới
             </a>
             @if (HttpContext.Session.GetString("Role") == "manager" || HttpContext.Session.GetString("Role") == "inspector")
             {
@@ -118,8 +118,8 @@
             function createPopupContent(feature) {
                 const fixedProperties = {
                     'ID': feature.properties.asset_id,
-                    'Tên tài sản': feature.properties.asset_name || 'N/A',
-                    'Mã tài sản': feature.properties.asset_code || 'N/A',
+                    'Tên kết cấu hạ tầng': feature.properties.asset_name || 'N/A',
+                    'Mã kết cấu hạ tầng': feature.properties.asset_code || 'N/A',
                     'Địa chỉ': feature.properties.address || 'N/A',
                     'Năm xây dựng': feature.properties.construction_year ? new Date(feature.properties.construction_year).toLocaleDateString() : 'N/A',
                     'Năm vận hành': feature.properties.operation_year ? new Date(feature.properties.operation_year).toLocaleDateString() : 'N/A',
@@ -156,7 +156,7 @@
 
                 return `
                             <div class="p-4 max-w-xs font-sans text-gray-800">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin tài sản</h3>
+                                <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin kết cấu hạ tầng</h3>
                                 <table class="w-full text-sm border-collapse">
                                     ${fixedPropertiesContent}
                                     ${dynamicAttributesContent}
@@ -279,8 +279,8 @@
                 if (searchKeyword) {
                     searchMessage.style.display = 'block';
                     searchMessage.textContent = totalFeatures > 0
-                        ? `Tìm thấy ${totalFeatures} tài sản khớp với "${searchKeyword}"`
-                        : `Không tìm thấy tài sản nào khớp với "${searchKeyword}"`;
+                        ? `Tìm thấy ${totalFeatures} kết cấu hạ tầng khớp với "${searchKeyword}"`
+                        : `Không tìm thấy kết cấu hạ tầng nào khớp với "${searchKeyword}"`;
                 } else {
                     searchMessage.style.display = 'none';
                 }

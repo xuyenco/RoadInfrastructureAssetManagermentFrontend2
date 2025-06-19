@@ -123,7 +123,7 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                 }
                 _logger.LogInformation("User {Username} (Role: {Role}) retrieved {UserCount} users for export", username, role, users.Count);
 
-                ExcelPackage.License.SetNonCommercialPersonal("<Duong>");
+                ExcelPackage.License.SetNonCommercialPersonal("Duong");
 
                 using (var package = new ExcelPackage())
                 {
@@ -136,6 +136,12 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                         "Họ và Tên",
                         "Email",
                         "Vai trò",
+                        "Đơn vị/Công ty/Phòng ban",
+                        "URL hình ảnh",
+                        "Tên hình ảnh",
+                        "ID công khai hình ảnh",
+                        "Token làm mới",
+                        "Thời hạn token làm mới",
                         "Ngày tạo"
                     };
 
@@ -151,11 +157,19 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
                     foreach (var user in users)
                     {
                         worksheet.Cells[row, 1].Value = user.user_id;
-                        worksheet.Cells[row, 2].Value = user.username;
-                        worksheet.Cells[row, 3].Value = user.full_name;
-                        worksheet.Cells[row, 4].Value = user.email;
-                        worksheet.Cells[row, 5].Value = user.role;
-                        worksheet.Cells[row, 6].Value = user.created_at.HasValue
+                        worksheet.Cells[row, 2].Value = user.username ?? "Chưa xác định";
+                        worksheet.Cells[row, 3].Value = user.full_name ?? "Chưa có";
+                        worksheet.Cells[row, 4].Value = user.email ?? "Chưa có";
+                        worksheet.Cells[row, 5].Value = user.role ?? "Chưa xác định";
+                        worksheet.Cells[row, 6].Value = user.department_company_unit ?? "Chưa có";
+                        worksheet.Cells[row, 7].Value = user.image_url ?? "Không có";
+                        worksheet.Cells[row, 8].Value = user.image_name ?? "Không có";
+                        worksheet.Cells[row, 9].Value = user.image_public_id ?? "Không có";
+                        worksheet.Cells[row, 10].Value = user.refresh_token ?? "Không có";
+                        worksheet.Cells[row, 11].Value = user.refresh_token_expiry.HasValue
+                            ? user.refresh_token_expiry.Value.ToString("dd/MM/yyyy HH:mm")
+                            : "Chưa có";
+                        worksheet.Cells[row, 12].Value = user.created_at.HasValue
                             ? user.created_at.Value.ToString("dd/MM/yyyy HH:mm")
                             : "Chưa có dữ liệu";
                         row++;

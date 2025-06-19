@@ -11,7 +11,7 @@ using RoadInfrastructureAssetManagementFrontend2.Filter;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 {
-     //[AuthorizeRole("inspector")]
+     [AuthorizeRole("admin,inspector")]
     public class AssetUpdateModel : PageModel
     {
         private readonly IAssetsService _assetsService;

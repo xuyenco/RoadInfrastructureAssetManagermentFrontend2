@@ -1,7 +1,7 @@
 ﻿@page "{id:int}"
 @model RoadInfrastructureAssetManagementFrontend2.Pages.Assets.AssetsDetailModel
 @{
-    ViewData["Title"] = "Chi tiết Tài sản";
+    ViewData["Title"] = "Chi tiết kết cấu hạ tầng";
 }
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -41,7 +41,7 @@
 </style>
 
 <div class="container mx-auto px-4 py-10 max-w-4xl">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Chi tiết Tài sản</h1>
+    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Chi tiết Kết cấu Hạ tầng</h1>
 
     <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
         @if (TempData["Error"] != null)
@@ -53,18 +53,18 @@
 
         @if (Model.Asset != null)
         {
-            <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Thông tin Tài sản</h3>
+            <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Thông tin Kết cấu Hạ tầng</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
                     <strong class="text-gray-800 font-semibold">ID:</strong>
                     <span class="text-gray-600 block">@Model.Asset.asset_id</span>
                 </div>
                 <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
-                    <strong class="text-gray-800 font-semibold">Tên tài sản:</strong>
+                    <strong class="text-gray-800 font-semibold">Tên kết cấu hạ tầng:</strong>
                     <span class="text-gray-600 block">@(Model.Asset.asset_name ?? "Không có")</span>
                 </div>
                 <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
-                    <strong class="text-gray-800 font-semibold">Mã tài sản:</strong>
+                    <strong class="text-gray-800 font-semibold">Mã kết cấu hạ tầng:</strong>
                     <span class="text-gray-600 block">@(Model.Asset.asset_code ?? "Không có")</span>
                 </div>
                 <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
@@ -131,7 +131,7 @@
             {
                 <h3 class="text-2xl font-semibold text-gray-700 mt-6 mb-4 border-b-2 border-blue-500 pb-2">Hình ảnh</h3>
                 <div class="flex justify-center">
-                    <img src="@Model.Asset.image_url" alt="Hình ảnh tài sản" class="asset-image" />
+                    <img src="@Model.Asset.image_url" alt="Hình ảnh kết cấu hạ tầng" class="asset-image" />
                 </div>
             }
 
@@ -161,9 +161,10 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         var map = L.map('map').setView([10.8231, 106.6297], 13); // Default center (HCMC)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, © <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+            }).addTo(map);
 
         // Parse WGS84 geometry from Model
         var geometry = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Wgs84Geometry));

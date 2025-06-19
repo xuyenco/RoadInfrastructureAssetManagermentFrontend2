@@ -81,9 +81,10 @@
                 <select asp-for="User.role" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                     <option value="">Chọn vai trò</option>
                     <option value="admin">Admin</option>
-                    <option value="manager">Manager</option>
-                    <option value="technician">Technician</option>
-                    <option value="inspector">Inspector</option>
+                    <option value="manager">Quản trị hệ thống</option>
+                    <option value="technician">Đơn vị bảo trì</option>
+                    <option value="inspector">Cán bộ sở</option>
+                    <option value="supervisor">Lãnh đạo sở</option>
                 </select>
                 <span asp-validation-for="User.role" class="text-red-500 text-sm"></span>
             </div>

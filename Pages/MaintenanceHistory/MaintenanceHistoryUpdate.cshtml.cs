@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
 {
-    //[AuthorizeRole("inspector")]
+    [AuthorizeRole("admin,inspector")]
     public class MaintenanceHistoryUpdateModel : PageModel
     {
         private readonly IMaintenanceHistoryService _maintenanceHistoryService;
@@ -115,14 +115,18 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
                     }
                 }
 
-                // Delete existing documents
-                _logger.LogDebug("User {Username} (Role: {Role}) deleting existing documents for maintenance history with ID {MaintenanceId}", username, role, Id);
-                var documentsDeleted = await _maintenanceDocumentService.DeleteMaintenanceDocumentByMaintenanceId(Id);
-                if (!documentsDeleted)
+                var currentMaintenanceDocument = await _maintenanceDocumentService.GetMaintenanceDocumentByMaintenanceId(Id);
+                if (currentMaintenanceDocument != null)
                 {
-                    _logger.LogWarning("User {Username} (Role: {Role}) failed to delete existing documents for maintenance history with ID {MaintenanceId}", username, role, Id);
-                    TempData["Error"] = "Đã xảy ra lỗi khi cập nhật Lịch sử Bảo trì: Không thể xóa tài liệu cũ liên quan";
-                    return Page();
+                    // Delete existing documents
+                    _logger.LogDebug("User {Username} (Role: {Role}) deleting existing documents for maintenance history with ID {MaintenanceId}", username, role, Id);
+                    var documentsDeleted = await _maintenanceDocumentService.DeleteMaintenanceDocumentByMaintenanceId(Id);
+                    if (!documentsDeleted)
+                    {
+                        _logger.LogWarning("User {Username} (Role: {Role}) failed to delete existing documents for maintenance history with ID {MaintenanceId}", username, role, Id);
+                        TempData["Error"] = "Đã xảy ra lỗi khi cập nhật Lịch sử Bảo trì: Không thể xóa tài liệu cũ liên quan";
+                        return Page();
+                    }
                 }
 
                 // Update MaintenanceHistory

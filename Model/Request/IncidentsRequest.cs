@@ -13,5 +13,6 @@ namespace RoadInfrastructureAssetManagementFrontend2.Model.Response
         public string damage_level { get; set; }
         public string processing_status { get; set; }
         public int? task_id { get; set; }
+        public string description { get; set; }
     }
 }

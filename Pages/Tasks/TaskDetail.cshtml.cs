@@ -8,7 +8,6 @@ using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 {
-    //[AuthorizeRole("inspector,manager,technician")]
     public class TaskDetailModel : PageModel
     {
         private readonly ITasksService _tasksService;

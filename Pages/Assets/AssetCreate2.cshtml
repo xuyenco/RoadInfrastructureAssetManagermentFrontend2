@@ -16,36 +16,41 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         .container {
-            max-width: 100%; 
+            max-width: 100%;
             margin-left: auto;
             margin-right: auto;
-            padding-left: 16px; 
-            padding-right: 16px; 
+            padding-left: 16px;
+            padding-right: 16px;
         }
 
         @@media (min-width: 640px) {
             .container {
-                max-width: 640px; 
+                max-width: 640px;
             }
         }
+
         @@media (min-width: 768px) {
             .container {
-                max-width: 768px; 
+                max-width: 768px;
             }
         }
+
         @@media (min-width: 1024px) {
             .container {
-                max-width: 1024px; 
+                max-width: 1024px;
             }
         }
+
         @@media (min-width: 1280px) {
             .container {
-                max-width: 1504px; 
+                max-width: 1504px;
             }
         }
+
         .asset-create-container {
             overflow-y: auto;
         }
+
         main {
             overflow-y: auto !important; /* Ghi đè overflow: hidden từ site.css */
         }
@@ -89,6 +94,20 @@
             font-size: 1.5em;
             font-weight: bold;
         }
+
+        .import-button-container {
+            margin: 20px 16px;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .text-danger {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body>
@@ -109,7 +128,7 @@
             </li>
         </ul>
 
-        <form method="post" id="assetForm" enctype="multipart/form-data">
+        <form method="post" id="assetForm" enctype="multipart/form-data" novalidate>
             <div class="tab-content" id="assetCreateTabContent">
                 <!-- Tab 1: Thông Tin Kết Cấu Hạ Tầng -->
                 <div class="tab-pane fade show active" id="info" role="tabpanel">
@@ -271,10 +290,23 @@
                     zoomControl: true
                 });
 
-                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                // Thử tile layer CartoDB, fallback sang OpenStreetMap nếu lỗi
+                let tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, © <a href="https://carto.com/attributions">CARTO</a>',
-                    subdomains: 'abcd'
-                }).addTo(map);
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                });
+
+                tileLayer.on('tileerror', function () {
+                    console.warn('CartoDB tile layer failed, switching to OpenStreetMap');
+                    map.removeLayer(tileLayer);
+                    tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                        maxZoom: 19
+                    }).addTo(map);
+                });
+
+                tileLayer.addTo(map);
 
                 const geocoder = L.Control.Geocoder.nominatim();
                 L.Control.geocoder({ geocoder: geocoder }).addTo(map);
@@ -285,6 +317,7 @@
                 });
             } catch (error) {
                 console.error('Error initializing map:', error);
+                alert('Không thể khởi tạo bản đồ. Vui lòng kiểm tra kết nối mạng hoặc console để biết thêm chi tiết.');
             }
         });
 
@@ -292,8 +325,10 @@
             $('#assetCreateTabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
                 if (e.target.id === 'info-tab') {
                     setTimeout(function () {
-                        map.invalidateSize();
-                        map.setView(currentCenter, currentZoom);
+                        if (map) {
+                            map.invalidateSize();
+                            map.setView(currentCenter, currentZoom);
+                        }
                     }, 100);
                 }
                 if (e.target.id === 'review-tab') {
@@ -301,8 +336,12 @@
                 }
             });
 
-            // Intercept form submission to ensure geometry is sent as raw JSON
+            // Intercept form submission
             $('#assetForm').on('submit', function (e) {
+                if (!validateForm()) {
+                    e.preventDefault();
+                    return;
+                }
                 const geometryHiddenField = document.getElementById('geometryHidden');
                 if (geometryHiddenField && geometryHiddenField.value) {
                     try {
@@ -350,6 +389,17 @@
                 method: 'GET',
                 success: function (data) {
                     $('#attributes-content').html(data.html);
+                    $('#attributes-content .attribute-input').each(function () {
+                        // Loại bỏ required nếu không có trong schema.required
+                        if ($(this).attr('required') && !data.schema?.required?.includes($(this).attr('name'))) {
+                            $(this).removeAttr('required');
+                        }
+                        // Cho phép input type="number" nhận chuỗi rỗng
+                        if ($(this).attr('type') === 'number') {
+                            $(this).attr('min', '');
+                            $(this).attr('step', 'any');
+                        }
+                    });
                     $('#attributes-content .attribute-input').on('change', updateAttributes);
                 },
                 error: function (xhr, status, error) {
@@ -482,7 +532,7 @@
             const geocoder = L.Control.Geocoder.nominatim();
             geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), function (results) {
                 if (results.length > 0) {
-                    $('#dia_chi').val(results[0].name);
+                    $('#NewAsset_address').val(results[0].name); // Sửa ID để khớp với asp-for
                     updateAttributes();
                 }
             });
@@ -563,7 +613,7 @@
             if (currentLine.length > 0) {
                 displayCoords.push(currentLine);
             }
-            currentLayer = L.featureGroup(displayCoords.map(line => 
+            currentLayer = L.featureGroup(displayCoords.map(line =>
                 L.polyline(line.map(coord => [coord[1], coord[0]]), { color: 'blue' })
             )).addTo(map);
             document.getElementById('manualCoords').value = JSON.stringify(displayCoords);
@@ -582,7 +632,7 @@
             if (currentLayer) {
                 map.removeLayer(currentLayer);
             }
-            currentLayer = L.featureGroup(coordinates.map(line => 
+            currentLayer = L.featureGroup(coordinates.map(line =>
                 L.polyline(line.map(coord => [coord[1], coord[0]]), { color: 'blue' })
             )).addTo(map);
             document.getElementById('manualCoords').value = JSON.stringify(coordinates);
@@ -609,14 +659,14 @@
                 currentLayer = L.marker([lat, lng]).addTo(map);
                 map.setView([lat, lng], currentZoom);
                 isPointSelected = true;
-            } else if (currentGeoType === 'linestring' && coordinates.length >= 1) {
+            } else if (currentGeoType === 'linestring' && coordinates.length >= 2) {
                 currentLayer = L.polyline(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
                 map.fitBounds(currentLayer.getBounds());
             } else if (currentGeoType === 'polygon' && coordinates.length >= 3) {
                 currentLayer = L.polygon(coordinates.map(coord => [coord[1], coord[0]]), { color: 'blue' }).addTo(map);
                 map.fitBounds(currentLayer.getBounds());
             } else if (currentGeoType === 'multilinestring' && coordinates.length >= 1) {
-                currentLayer = L.featureGroup(coordinates.map(line => 
+                currentLayer = L.featureGroup(coordinates.map(line =>
                     L.polyline(line.map(coord => [coord[1], coord[0]]), { color: 'blue' })
                 )).addTo(map);
                 map.fitBounds(currentLayer.getBounds());
@@ -646,7 +696,7 @@
 
         function nextTab(tabId) {
             const currentTab = $('.nav-link.active').attr('id');
-            if (validateTab(currentTab)) {
+            if (validateForm(currentTab)) {
                 $(`#${tabId}`).prop('disabled', false).tab('show');
                 if (tabId === 'attributes-tab' && selectedCategoryId) {
                     loadAttributes(selectedCategoryId);
@@ -658,41 +708,60 @@
             $(`#${tabId}`).tab('show');
         }
 
-        function validateTab(tabId) {
+        function validateForm(tabId) {
+            let valid = true;
+            let errorMessage = '';
+
             if (tabId === 'info-tab') {
                 if (!selectedCategoryId) {
-                    alert('Vui lòng chọn một danh mục.');
-                    return false;
+                    errorMessage += 'Vui lòng chọn một danh mục.\n';
+                    valid = false;
                 }
                 const requiredFields = $('#info .form-control[required]');
-                let valid = true;
                 requiredFields.each(function () {
                     if (!$(this).val()) {
+                        errorMessage += `Trường ${$(this).prev('label').text()} là bắt buộc.\n`;
                         $(this).next('.text-danger').text('Trường này là bắt buộc.');
                         valid = false;
                     } else {
                         $(this).next('.text-danger').text('');
                     }
                 });
+
                 if (!coordinates.length) {
-                    alert('Vui lòng chọn vị trí trên bản đồ hoặc nhập tọa độ thủ công.');
-                    return false;
+                    errorMessage += 'Vui lòng chọn vị trí trên bản đồ hoặc nhập tọa độ thủ công.\n';
+                    valid = false;
                 }
                 if (currentGeoType === 'linestring' && coordinates.length < 2) {
-                    alert('LineString cần ít nhất 2 điểm.');
-                    return false;
+                    errorMessage += 'LineString cần ít nhất 2 điểm.\n';
+                    valid = false;
                 }
                 if (currentGeoType === 'polygon' && coordinates.length < 3) {
-                    alert('Polygon cần ít nhất 3 điểm.');
-                    return false;
+                    errorMessage += 'Polygon cần ít nhất 3 điểm.\n';
+                    valid = false;
                 }
                 if (currentGeoType === 'multilinestring' && (coordinates.length === 0 || coordinates.some(line => line.length < 2))) {
-                    alert('MultiLineString cần ít nhất một đường với tối thiểu 2 điểm.');
-                    return false;
+                    errorMessage += 'MultiLineString cần ít nhất một đường với tối thiểu 2 điểm.\n';
+                    valid = false;
                 }
-                return valid;
             }
-            return true;
+
+            // Kiểm tra trường động trong tab "Thuộc tính" (nếu đã tải)
+            const attributeFields = $('#attributes-content .attribute-input');
+            if (attributeFields.length > 0) {
+                attributeFields.each(function () {
+                    if ($(this).attr('type') === 'number' && $(this).val() !== '' && isNaN($(this).val())) {
+                        errorMessage += `Trường ${$(this).prev('label').text()} phải là số hợp lệ.\n`;
+                        valid = false;
+                    }
+                });
+            }
+
+            if (errorMessage) {
+                alert(errorMessage);
+            }
+
+            return valid;
         }
 
         function updateReview() {

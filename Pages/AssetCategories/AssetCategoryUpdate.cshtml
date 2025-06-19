@@ -11,6 +11,36 @@
     <title>Cập nhật Danh Mục Tài Sản</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        .container {
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+        @@media (min-width: 640px) {
+            .container {
+                max-width: 640px;
+            }
+        }
+
+        @@media (min-width: 768px) {
+            .container {
+                max-width: 768px;
+            }
+        }
+
+        @@media (min-width: 1024px) {
+            .container {
+                max-width: 1024px;
+            }
+        }
+
+        @@media (min-width: 1280px) {
+            .container {
+                max-width: 1504px;
+            }
+        }
         main {
             overflow-y: auto !important; /* Ghi đè overflow: hidden từ site.css */
         }
@@ -63,12 +93,13 @@
             </div>
             <div class="mb-3">
                 <label for="geometry_type" class="form-label">Loại hình học:</label>
-                <select id="geometry_type" name="geometry_type" class="form-select" required>
-                    <option value="point" >Point</option>
-                    <option value="linestring">LineString</option>
-                    <option value="polygon" >Polygon</option>
-                    <option value="multilinestring">MultilineString</option>
-                </select>
+                <select id="geometry_type" name="geometry_type" class="form-select" required asp-for="AssetCategory.geometry_type" asp-items="@(new SelectList(new[]
+                {
+                    new { Value = "point", Text = "Point" },
+                    new { Value = "linestring", Text = "LineString" },
+                    new { Value = "polygon", Text = "Polygon" },
+                    new { Value = "multilinestring", Text = "MultilineString" }
+                }, "Value", "Text"))"></select>
             </div>
 
             <h3>Thuộc tính (Attributes Schema)</h3>
@@ -106,7 +137,7 @@
         // Load dữ liệu attributes schema
         window.onload = function () {
             const attributesSchema = '@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Category.attribute_schema ?? new Dictionary<string, object>(), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))';
-            console.log('Raw attributesSchema:', attributesSchema); // Debug raw data
+            console.log('Raw attributesSchema:', attributesSchema); 
             if (attributesSchema && attributesSchema !== '{}') {
                 try {
                     const schema = JSON.parse(attributesSchema);

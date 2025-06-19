@@ -17,61 +17,143 @@
     <button class="close-filter-btn absolute top-4 right-4 text-gray-600 hover:text-red-600 transition" id="closeFilterBtn">
         <i class="fas fa-times"></i>
     </button>
-    <h4 class="text-gray-800 font-bold mb-6">Chọn Layer hiển thị</h4>
-    <div id="treefolder">
-        <div id="map-layers" class="open">
-            <div class="folder" id="RootLayers">
-                <p>
-                    <i class="fas fa-caret-right" aria-hidden="true"></i>
-                    <i class="fas fa-layer-group mr-2 text-red-600"></i>
-                    Layers
-                </p>
-                <div class="children">
-                    <div class="folder" id="tasksFolder">
-                        <p>
-                            <i class="fas fa-caret-right" aria-hidden="true"></i>
-                            <i class="fas fa-folder mr-2 text-yellow-600"></i>
-                            Nhiệm vụ
-                            <input type="checkbox" id="tasksLayerToggle" checked class="ml-2">
-                        </p>
-                        <div class="children hidden">
-                            <div class="layer-item" data-task-type="Sửa chữa đột xuất">
-                                <input type="checkbox" class="task-category-toggle" checked>
-                                <span>Sửa chữa đột xuất</span>
-                            </div>
-                            <div class="layer-item" data-task-type="Sửa chữa định kì">
-                                <input type="checkbox" class="task-category-toggle" checked>
-                                <span>Sửa chữa định kì</span>
+    <div class="tabs flex border-b mb-4">
+        <button class="tab-button flex-1 py-2 px-4 text-center font-semibold text-gray-800 border-b-2 border-transparent hover:border-blue-500 transition active" data-tab="layersTab">Layer</button>
+        <button class="tab-button flex-1 py-2 px-4 text-center font-semibold text-gray-800 border-b-2 border-transparent hover:border-blue-500 transition" data-tab="legendTab">Chú giải</button>
+    </div>
+    <div id="layersTab" class="tab-content">
+        <h4 class="text-gray-800 font-bold mb-4">Chọn Layer hiển thị</h4>
+        <div id="treefolder">
+            <div id="map-layers" class="open">
+                <div class="folder" id="RootLayers">
+                    <p>
+                        <span class="triangle triangle-right"></span>
+                        <i class="fas fa-layer-group mr-2 text-red-600"></i>
+                        Layers
+                    </p>
+                    <div class="children">
+                        <div class="folder" id="tasksFolder">
+                            <p>
+                                <span class="triangle triangle-right"></span>
+                                Nhiệm vụ
+                                <input type="checkbox" id="tasksLayerToggle" checked class="ml-2">
+                            </p>
+                            <div class="children hidden">
+                                <div class="layer-item" data-task-type="Sửa chữa đột xuất">
+                                    <input type="checkbox" class="task-category-toggle" checked>
+                                    <span>Sửa chữa đột xuất</span>
+                                </div>
+                                <div class="layer-item" data-task-type="Bảo dưỡng thường xuyên">
+                                    <input type="checkbox" class="task-category-toggle" checked>
+                                    <span>Bảo dưỡng thường xuyên</span>
+                                </div>
+                                <div class="layer-item" data-task-type="Sửa chữa thường xuyên">
+                                    <input type="checkbox" class="task-category-toggle" checked>
+                                    <span>Sửa chữa thường xuyên</span>
+                                </div>
+                                <div class="layer-item" data-task-type="Kiểm tra quan trắc">
+                                    <input type="checkbox" class="task-category-toggle" checked>
+                                    <span>Kiểm tra quan trắc</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="folder" id="incidentsFolder">
-                        <p>
-                            <i class="fas fa-caret-right" aria-hidden="true"></i>
-                            <i class="fas fa-folder mr-2 text-yellow-600"></i>
-                            Sự cố
-                            <input type="checkbox" id="incidentsLayerToggle" checked class="ml-2">
-                        </p>
-                    </div>
-                    <div class="folder" id="assetsFolder">
-                        <p>
-                            <i class="fas fa-caret-right" aria-hidden="true"></i>
-                            <i class="fas fa-folder mr-2 text-yellow-600"></i>
-                            Tài sản
-                            <input type="checkbox" id="assetsLayerToggle" checked class="ml-2">
-                        </p>
-                        <div class="children hidden">
-                            @foreach (var category in Model.AssetCategories)
-                            {
+                        <div class="folder" id="incidentsFolder">
+                            <p>
+                                <span class="triangle triangle-right"></span>
+                                Sự cố
+                                <input type="checkbox" id="incidentsLayerToggle" checked class="ml-2">
+                            </p>
+                            <div class="children hidden">
+                                <div class="layer-item" data-incident-type="Tai nạn giao thông">
+                                    <input type="checkbox" class="incident-category-toggle" checked>
+                                    <span>Tai nạn giao thông</span>
+                                </div>
+                                <div class="layer-item" data-incident-type="Hư hỏng kết cấu hạ tầng">
+                                    <input type="checkbox" class="incident-category-toggle" checked>
+                                    <span>Hư hỏng kết cấu hạ tầng</span>
+                                </div>
+                                <div class="layer-item" data-incident-type="Sự cố môi trường">
+                                    <input type="checkbox" class="incident-category-toggle" checked>
+                                    <span>Sự cố môi trường</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="folder" id="assetsFolder">
+                            <p>
+                                <span class="triangle triangle-right"></span>
+                                Tài sản
+                                <input type="checkbox" id="assetsLayerToggle" checked class="ml-2">
+                            </p>
+                            <div class="children hidden">
+                                @foreach (var category in Model.AssetCategories)
+                                {
                                     <div class="layer-item" data-category-id="@category.category_id">
                                         <input type="checkbox" class="asset-category-toggle" checked>
                                         <span>@category.category_name</span>
                                     </div>
-                            }
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+    <div id="legendTab" class="tab-content hidden">
+        <h4 class="text-gray-800 font-bold mb-4">Chú giải</h4>
+        <div class="legend-section">
+            <h5 class="text-gray-700 font-semibold mb-2">Nhiệm vụ</h5>
+            <div class="legend-item flex items-center mb-2">
+                <i class="fas fa-tasks mr-2" style="color: purple; font-size: 20px;"></i>
+                <span>Sửa chữa đột xuất</span>
+            </div>
+            <div class="legend-item flex items-center mb-2">
+                <i class="fas fa-tasks mr-2" style="color: blue; font-size: 20px;"></i>
+                <span>Sửa chữa thường xuyên</span>
+            </div>
+            <div class="legend-item flex items-center mb-2">
+                <i class="fas fa-tasks mr-2" style="color: green; font-size: 20px;"></i>
+                <span>Bảo dưỡng thường xuyên</span>
+            </div>
+            <div class="legend-item flex items-center mb-2">
+                <i class="fas fa-tasks mr-2" style="color: orange; font-size: 20px;"></i>
+                <span>Kiểm tra quan trắc</span>
+            </div>
+        </div>
+        <div class="legend-section">
+            <h5 class="text-gray-700 font-semibold mb-2">Sự cố</h5>
+            <div class="legend-item flex items-center mb-2">
+                <i class="fas fa-exclamation-triangle mr-2" style="color: red; font-size: 20px;"></i>
+                <span>Tai nạn giao thông</span>
+            </div>
+            <div class="legend-item flex items-center mb-2">
+                <i class="fas fa-exclamation-triangle mr-2" style="color: darkred; font-size: 20px;"></i>
+                <span>Hư hỏng kết cấu hạ tầng</span>
+            </div>
+            <div class="legend-item flex items-center mb-2">
+                <i class="fas fa-exclamation-triangle mr-2" style="color: darkorange; font-size: 20px;"></i>
+                <span>Sự cố môi trường</span>
+            </div>
+        </div>
+        <div class="legend-section">
+            <h5 class="text-gray-700 font-semibold mb-2">Tài sản</h5>
+            @foreach (var category in Model.AssetCategories)
+            {
+                if (category.geometry_type == "linestring" || category.geometry_type == "multilinestring")
+                {
+                    <div class="legend-item flex items-center mb-2">
+                        <span class="linestring-symbol mr-2"></span>
+                        <span>@category.category_name</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="legend-item flex items-center mb-2">
+                        <img src="@(category.icon_url ?? "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png")" alt="@category.category_name" class="mr-2" style="width: 20px; height: 32px;">
+                        <span>@category.category_name</span>
+                    </div>
+                }
+            }
         </div>
     </div>
 </div>
@@ -81,34 +163,25 @@
         <h1 class="text-xl font-bold text-gray-800 mb-4">Quản lý Hạ tầng</h1>
         @if (TempData["Error"] != null)
         {
-                <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
                 @TempData["Error"]
-                </div>
+            </div>
         }
-        <div class="flex flex-col gap-2">
-            <a class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition w-full block text-center" asp-page="/Tasks/TaskCreate">
-                <i class="fas fa-plus mr-2"></i> Tạo Nhiệm vụ mới
-            </a>
-            <a class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition w-full block text-center" asp-page="/Incidents/IncidentCreate">
-                <i class="fas fa-plus mr-2"></i> Tạo Sự cố mới
-            </a>
-            <a class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition w-full block text-center" asp-page="/Assets/AssetCreate2">
-                <i class="fas fa-plus mr-2"></i> Tạo Tài sản mới
-            </a>
-            @if (HttpContext.Session.GetString("Role") == "manager" || HttpContext.Session.GetString("Role") == "inspector")
-            {
-                    <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition w-full mb-2" onclick="exportReports()">
-                        <i class="fas fa-file-export mr-2"></i> Xuất báo cáo
-                    </button>
-            }
-        </div>
     </div>
 </div>
+
 @section Scripts {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
     <style>
+        .custom-div-icon {
+            background: transparent !important;
+            border: none !important;
+        }
+
         #nav-menu {
             display: flex !important;
         }
@@ -130,6 +203,8 @@
             margin: 0.5rem 0;
             display: flex;
             align-items: center;
+            padding: 0.5rem;
+            border-radius: 4px;
         }
 
             .folder > p:hover {
@@ -155,510 +230,568 @@
             display: none;
         }
 
-        .fa-caret-down, .fa-caret-right {
+        .triangle {
+            display: inline-block;
+            width: 0;
+            height: 0;
             margin-right: 0.5rem;
+            border-style: solid;
         }
 
-        .marker-cluster-small {
-            background-color: rgba(181, 226, 140, 0.6);
+        .triangle-right {
+            border-width: 5px 0 5px 8px;
+            border-color: transparent transparent transparent #555;
         }
 
-        .marker-cluster-medium {
-            background-color: rgba(241, 211, 87, 0.6);
+        .triangle-down {
+            border-width: 8px 5px 0 5px;
+            border-color: #555 transparent transparent transparent;
         }
 
+        .tab-button.active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+            .tab-content.active {
+                display: block;
+            }
+
+        .legend-item img {
+            vertical-align: middle;
+        }
+
+        .linestring-symbol {
+            display: inline-block;
+            width: 20px;
+            height: 4px;
+            background-color: blue;
+            vertical-align: middle;
+        }
+
+        .marker-cluster-small,
+        .marker-cluster-medium,
         .marker-cluster-large {
-            background-color: rgba(253, 156, 115, 0.6);
+            background: transparent !important;
+        }
+
+        .cluster-count {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            border: 1px solid #333;
         }
     </style>
+
     <script>
+        // Session and role variables
         const userTaskRole = '@(HttpContext.Session.GetString("Role") ?? "")';
         const userTaskId = @(HttpContext.Session.GetInt32("Id")?.ToString() ?? "0");
 
-        if (!userTaskRole || userTaskId === 0) {
-            console.warn('Session invalid: Role or ID missing. Redirecting to login.');
-            alert('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
-            window.location.href = '/Users/Login';
-        }
+        // Layer color mapping
+        const layerColors = {
+            "Sửa chữa đột xuất": "purple",
+            "Sửa chữa thường xuyên": "blue",
+            "Bảo dưỡng thường xuyên": "green",
+            "Kiểm tra quan trắc": "orange",
+            "Tai nạn giao thông": "red",
+            "Hư hỏng kết cấu hạ tầng": "darkred",
+            "Sự cố môi trường": "darkorange"
+        };
 
-        function toggleFilterNavbar() {
-            var navbar = document.getElementById('filterNavbar');
-            navbar.classList.toggle('open');
-            navbar.style.left = navbar.classList.contains('open') ? '0' : '-20rem';
-        }
+        // Global map and layer variables
+        let map;
+        const taskLayers = {};
+        const incidentLayers = {};
+        const categoryLayers = {};
+        const layerConfig = {};
+        const defaultIconUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const map = L.map('map', {
-                minZoom: 15 // Giới hạn mức zoom out để tránh lag
-            }).setView([21.0285, 105.8542], 18);
-
+        // Initialize map and base layers
+        function initializeMap() {
+            map = L.map('map', { minZoom: 15 }).setView([21.0285, 105.8542], 18);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                 attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, © <a href="https://carto.com/attributions">CARTO</a>',
                 subdomains: 'abcd',
                 maxZoom: 20
             }).addTo(map);
+        }
 
-            const suddenRepairLayer = L.geoJSON(null, {
-                pointToLayer: function (feature, latlng) {
-                    return L.marker(latlng);
-                },
-                style: function (feature) {
-                    if (feature.geometry.type === 'LineString') {
-                        return { color: 'blue', weight: 3 };
-                    }
-                    return {};
-                },
-                onEachFeature: function (feature, layer) {
-                    if (feature.properties) {
-                        const props = feature.properties;
-                        const popupContent = `
-                                    <div class="p-4 max-w-xs font-sans text-gray-800">
-                                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin nhiệm vụ</h3>
-                                        <table class="w-full text-sm border-collapse">
-                                            <tr class="border-b">
-                                                <td class="p-2 font-semibold">Mã Nhiệm vụ:</td>
-                                                <td class="p-2">${props.task_id || 'Chưa có'}</td>
-                                            </tr>
-                                            <tr class="border-b">
-                                                <td class="p-2 font-semibold">Loại Nhiệm vụ:</td>
-                                                <td class="p-2">${props.task_type || 'Chưa có'}</td>
-                                            </tr>
-                                            <tr class="border-b">
-                                                <td class="p-2 font-semibold">Trạng thái:</td>
-                                                <td class="p-2">${props.status || 'Chưa có'}</td>
-                                            </tr>
-                                            <tr class="border-b">
-                                                <td class="p-2 font-semibold">Địa chỉ:</td>
-                                                <td class="p-2">${props.address || 'Chưa có'}</td>
-                                            </tr>
-                                            <tr class="border-b">
-                                                <td class="p-2 font-semibold">Ngày bắt đầu:</td>
-                                                <td class="p-2">${props.start_date ? new Date(props.start_date).toLocaleDateString('vi-VN') : 'Chưa có'}</td>
-                                            </tr>
-                                        </table>
-                                        <div class="text-center mt-4 flex justify-center gap-2">
-                                            <button id="update-btn-task-${props.task_id}" class="bg-blue-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-blue-600 transition duration-200">Cập nhật</button>
-                                            <button id="detail-btn-task-${props.task_id}" class="bg-blue-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-blue-600 transition duration-200">Chi tiết</button>
-                                            <button id="delete-btn-task-${props.task_id}" class="bg-red-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-red-600 transition duration-200">Xóa</button>
-                                        </div>
-                                    </div>
-                                `;
-                        layer.bindPopup(popupContent, { autoClose: false }).on('popupopen', function () {
-                            document.getElementById(`update-btn-task-${props.task_id}`).addEventListener('click', function () {
-                                window.location.href = `/Tasks/TaskUpdate/${props.task_id}`;
-                            });
-                            document.getElementById(`detail-btn-task-${props.task_id}`).addEventListener('click', function () {
-                                window.location.href = `/Tasks/TaskDetail/${props.task_id}`;
-                            });
-                            document.getElementById(`delete-btn-task-${props.task_id}`).addEventListener('click', function () {
-                                if (confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) {
-                                    $.ajax({
-                                        url: '/Tasks/Index?handler=Delete',
-                                        type: 'POST',
-                                        data: { id: props.task_id },
-                                        headers: {
-                                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
-                                        },
-                                        success: function (response) {
-                                            if (response.success) {
-                                                suddenRepairLayer.removeLayer(layer);
-                                                periodicRepairLayer.removeLayer(layer);
-                                                alert('Xóa nhiệm vụ thành công!');
-                                            } else {
-                                                alert('Xóa nhiệm vụ thất bại: ' + (response.message || 'Không rõ nguyên nhân'));
-                                            }
-                                        },
-                                        error: function (xhr) {
-                                            let errorMsg = xhr.responseJSON?.message || 'Đã xảy ra lỗi khi xóa nhiệm vụ.';
-                                            alert(errorMsg);
-                                        }
-                                    });
-                                }
-                            });
-                        });
-                    }
-                }
-            }).addTo(map);
+        // Create custom marker icon
+        function createMarker(type, layerName) {
+            const iconClass = type === "Task" ? "fa-tasks" : "fa-exclamation-triangle";
+            const color = layerColors[layerName] || "gray";
+            return L.divIcon({
+                html: `<i class="fas ${iconClass}" style="color: ${color}; font-size: 30px;"></i>`,
+                className: 'custom-div-icon',
+                iconSize: [40, 40],
+                iconAnchor: [20, 40]
+            });
+        }
 
-            const periodicRepairLayer = L.geoJSON(null, {
-                pointToLayer: function (feature, latlng) {
-                    return L.marker(latlng);
-                },
-                style: function (feature) {
-                    if (feature.geometry.type === 'LineString') {
-                        return { color: 'blue', weight: 3 };
-                    }
-                    return {};
-                },
-                onEachFeature: function (feature, layer) {
-                    if (feature.properties) {
-                        const props = feature.properties;
-                        const popupContent = `
-                                    <div class="p-4 max-w-xs font-sans text-gray-800">
-                                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin nhiệm vụ</h3>
-                                        <table class="w-full text-sm border-collapse">
-                                            <tr class="border-b">
-                                                <td class="p-2 font-semibold">Mã Nhiệm vụ:</td>
-                                                <td class="p-2">${props.task_id || 'Chưa có'}</td>
-                                            </tr>
-                                            <tr class="border-b">
-                                                <td class="p-2 font-semibold">Loại Nhiệm vụ:</td>
-                                                <td class="p-2">${props.task_type || 'Chưa có'}</td>
-                                            </tr>
-                                            <tr class="border-b">
-                                                <td class="p-2 font-semibold">Trạng thái:</td>
-                                                <td class="p-2">${props.status || 'Chưa có'}</td>
-                                            </tr>
-                                            <tr class="border-b">
-                                                <td class="p-2 font-semibold">Địa chỉ:</td>
-                                                <td class="p-2">${props.address || 'Chưa có'}</td>
-                                            </tr>
-                                            <tr class="border-b">
-                                                <td class="p-2 font-semibold">Ngày bắt đầu:</td>
-                                                <td class="p-2">${props.start_date ? new Date(props.start_date).toLocaleDateString('vi-VN') : 'Chưa có'}</td>
-                                            </tr>
-                                        </table>
-                                        <div class="text-center mt-4 flex justify-center gap-2">
-                                            <button id="update-btn-task-${props.task_id}" class="bg-blue-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-blue-600 transition duration-200">Cập nhật</button>
-                                            <button id="detail-btn-task-${props.task_id}" class="bg-blue-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-blue-600 transition duration-200">Chi tiết</button>
-                                            <button id="delete-btn-task-${props.task_id}" class="bg-red-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-red-600 transition duration-200">Xóa</button>
-                                        </div>
-                                    </div>
-                                `;
-                        layer.bindPopup(popupContent, { autoClose: false }).on('popupopen', function () {
-                            document.getElementById(`update-btn-task-${props.task_id}`).addEventListener('click', function () {
-                                window.location.href = `/Tasks/TaskUpdate/${props.task_id}`;
-                            });
-                            document.getElementById(`detail-btn-task-${props.task_id}`).addEventListener('click', function () {
-                                window.location.href = `/Tasks/TaskDetail/${props.task_id}`;
-                            });
-                            document.getElementById(`delete-btn-task-${props.task_id}`).addEventListener('click', function () {
-                                if (confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) {
-                                    $.ajax({
-                                        url: '/Tasks/Index?handler=Delete',
-                                        type: 'POST',
-                                        data: { id: props.task_id },
-                                        headers: {
-                                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
-                                        },
-                                        success: function (response) {
-                                            if (response.success) {
-                                                suddenRepairLayer.removeLayer(layer);
-                                                periodicRepairLayer.removeLayer(layer);
-                                                alert('Xóa nhiệm vụ thành công!');
-                                            } else {
-                                                alert('Xóa nhiệm vụ thất bại: ' + (response.message || 'Không rõ nguyên nhân'));
-                                            }
-                                        },
-                                        error: function (xhr) {
-                                            let errorMsg = xhr.responseJSON?.message || 'Đã xảy ra lỗi khi xóa nhiệm vụ.';
-                                            alert(errorMsg);
-                                        }
-                                    });
-                                }
-                            });
-                        });
-                    }
-                }
-            }).addTo(map);
+        // Initialize task layers
+        function initializeTaskLayers() {
+            const taskTypes = {
+                'Sửa chữa đột xuất': 'suddenRepairLayer',
+                'Bảo dưỡng thường xuyên': 'regularMaintenanceLayer',
+                'Sửa chữa thường xuyên': 'periodicRepairLayer',
+                'Kiểm tra quan trắc': 'monitoringLayer'
+            };
 
-            const incidentsLayer = L.markerClusterGroup({
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: false,
-                maxClusterRadius: 80
-            }).addTo(map);
-
-            const assetCategories = @Html.Raw(Json.Serialize(Model.AssetCategories));
-            const defaultIconUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
-            const layerConfig = {};
-            const categoryLayers = {};
-            assetCategories.forEach(category => {
-                layerConfig[category.category_id] = {
-                    name: category.category_name.toLowerCase().replace(/\s+/g, '_') + '_layer',
-                    iconUrl: category.icon_url && category.icon_url.trim() !== '' ? category.icon_url : defaultIconUrl
-                };
-                categoryLayers[category.category_id] = L.markerClusterGroup({
-                    spiderfyOnMaxZoom: true,
-                    showCoverageOnHover: false,
-                    maxClusterRadius: 80
+            Object.entries(taskTypes).forEach(([taskType, layerName]) => {
+                taskLayers[taskType] = L.geoJSON(null, {
+                    pointToLayer: (feature, latlng) => {
+                        if (feature.geometry?.type === "Point" && feature.geometry.coordinates?.length === 2) {
+                            return L.marker(latlng, { icon: createMarker("Task", taskType) });
+                        }
+                        console.warn(`Invalid geometry for ${layerName}`, feature.geometry);
+                        return null;
+                    },
+                    style: (feature) => feature.geometry.type === 'LineString' ? { color: 'blue', weight: 3 } : {},
+                    onEachFeature: (feature, layer) => {
+                        if (feature.properties) {
+                            const props = feature.properties;
+                            const popupContent = `
+                                <div class="p-4 max-w-xs font-sans text-gray-800">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin nhiệm vụ</h3>
+                                    <table class="w-full text-sm border-collapse">
+                                        <tr class="border-b"><td class="p-2 font-semibold">Mã Nhiệm vụ:</td><td class="p-2">${props.task_id || 'Chưa có'}</td></tr>
+                                        <tr class="border-b"><td class="p-2 font-semibold">Loại Nhiệm vụ:</td><td class="p-2">${props.task_type || 'Chưa có'}</td></tr>
+                                        <tr class="border-b"><td class="p-2 font-semibold">Trạng thái:</td><td class="p-2">${props.status || 'Chưa có'}</td></tr>
+                                        <tr class="border-b"><td class="p-2 font-semibold">Địa chỉ:</td><td class="p-2">${props.address || 'Chưa có'}</td></tr>
+                                        <tr class="border-b"><td class="p-2 font-semibold">Ngày bắt đầu:</td><td class="p-2">${props.start_date ? new Date(props.start_date).toLocaleDateString('vi-VN') : 'Chưa có'}</td></tr>
+                                    </table>
+                                </div>`;
+                            layer.bindPopup(popupContent, { autoClose: false });
+                        }
+                    }
                 }).addTo(map);
             });
+        }
 
-            function getLineWeight(zoom) {
-                if (zoom >= 15) return 4;
-                return 4sss;
-            }
+        // Initialize incident layers
+        function initializeIncidentLayers() {
+            const incidentTypes = {
+                'Tai nạn giao thông': 'trafficAccidentLayer',
+                'Hư hỏng kết cấu hạ tầng': 'infrastructureDamageLayer',
+                'Sự cố môi trường': 'environmentalIssueLayer'
+            };
 
-            map.on('zoomend', function () {
-                Object.values(categoryLayers).forEach(layer => {
-                    layer.eachLayer(l => {
-                        if (l.feature && l.feature.geometry.type === 'LineString') {
-                            l.setStyle({
-                                weight: getLineWeight(map.getZoom())
-                            });
-                        }
-                    });
-                });
+            Object.entries(incidentTypes).forEach(([incidentType, layerName]) => {
+                incidentLayers[incidentType] = L.markerClusterGroup({
+                    spiderfyOnMaxZoom: true,
+                    showCoverageOnHover: false,
+                    maxClusterRadius: 80,
+                    iconCreateFunction: (cluster) => L.divIcon({
+                        html: `<i class="fas fa-exclamation-triangle" style="color: ${layerColors[incidentType]}; font-size: 30px;"></i>`,
+                        className: 'custom-div-icon',
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 40]
+                    })
+                }).addTo(map);
             });
+        }
 
-            let currentLoadId = 0;
-
-            function loadAssets(categoryId) {
-                const loadId = ++currentLoadId;
-                const bounds = map.getBounds();
-                const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-                const cqlFilter = `category_id='${categoryId}' AND BBOX(geometry, ${bbox}, 'EPSG:4326')`;
-                const wfsUrl = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:assets_layer_2&outputFormat=json&srsName=EPSG:4326&cql_filter=${encodeURIComponent(cqlFilter)}`;
-
-                console.log(`Fetching assets for category ${categoryId}: ${wfsUrl}`);
-
-                return fetch(wfsUrl)
-                    .then(response => response.text().then(text => ({ response, text })))
-                    .then(({ response, text }) => {
-                        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
-                        const contentType = response.headers.get('content-type');
-                        console.log(`Content-Type: ${contentType}`);
-                        if (!contentType || !contentType.includes('json')) {
-                            console.error(`Expected JSON but received: ${text.substring(0, 200)}...`);
-                            throw new Error(`Expected JSON but received ${contentType}`);
-                        }
-                        return JSON.parse(text);
-                    })
-                    .then(data => {
-                        if (loadId !== currentLoadId) return;
-                        if (data.features && data.features.length > 0) {
-                            categoryLayers[categoryId].clearLayers();
-                            data.features.forEach((feature, index) => {
-                                if (feature.geometry && feature.geometry.type === "Point") {
-                                    const coords = feature.geometry.coordinates;
-                                    const marker = L.marker([coords[1], coords[0]], {
-                                        icon: L.icon({
-                                            iconUrl: layerConfig[categoryId].iconUrl,
-                                            iconSize: [25, 41],
-                                            iconAnchor: [12, 41],
-                                            iconErrorUrl: defaultIconUrl
-                                        })
-                                    });
-                                    const popupContent = createAssetPopupContent(feature, index);
-                                    marker.bindPopup(popupContent, { autoClose: false }).on('popupopen', () => {
-                                        const updateBtn = document.getElementById(`update-btn-asset-${feature.properties.asset_id}-${index}`);
-                                        const maintenanceBtn = document.getElementById(`maintenance-btn-asset-${feature.properties.asset_id}-${index}`);
-                                        if (updateBtn) {
-                                            updateBtn.addEventListener('click', (e) => {
-                                                e.preventDefault();
-                                                if (confirm('Bạn có muốn cập nhật asset này không?')) {
-                                                    window.location.href = `/Assets/AssetUpdate?id=${feature.properties.asset_id}`;
-                                                }
-                                            });
-                                        }
-                                        if (maintenanceBtn) {
-                                            maintenanceBtn.addEventListener('click', (e) => {
-                                                e.preventDefault();
-                                                window.location.href = `/MaintenanceHistory/MaintenanceHistorybyAssetId/${feature.properties.asset_id}`;
-                                            });
-                                        }
-                                    });
-                                    categoryLayers[categoryId].addLayer(marker);
-                                } else if (feature.geometry && (feature.geometry.type === "LineString" || feature.geometry.type === "MultiLineString")) {
-                                    const layer = L.geoJSON(feature, {
-                                        style: { color: 'blue', weight: getLineWeight(map.getZoom()) },
-                                        clickTolerance:20,
-                                        onEachFeature: (feature, layer) => {
-                                            const popupContent = createAssetPopupContent(feature, index);
-                                            layer.bindPopup(popupContent, { autoClose: false }).on('popupopen', () => {
-                                                const updateBtn = document.getElementById(`update-btn-asset-${feature.properties.asset_id}-${index}`);
-                                                const maintenanceBtn = document.getElementById(`maintenance-btn-asset-${feature.properties.asset_id}-${index}`);
-                                                if (updateBtn) {
-                                                    updateBtn.addEventListener('click', (e) => {
-                                                        e.preventDefault();
-                                                        if (confirm('Bạn có muốn cập nhật asset này không?')) {
-                                                            window.location.href = `/Assets/AssetUpdate?id=${feature.properties.asset_id}`;
-                                                        }
-                                                    });
-                                                }
-                                                if (maintenanceBtn) {
-                                                    maintenanceBtn.addEventListener('click', (e) => {
-                                                        e.preventDefault();
-                                                        window.location.href = `/MaintenanceHistory/MaintenanceHistorybyAssetId/${feature.properties.asset_id}`;
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
-                                    categoryLayers[categoryId].addLayer(layer);
-                                }
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error(`Error fetching assets for category ${categoryId}:`, error);
-                    });
-            }
-
-            function createAssetPopupContent(feature, index) {
-                const props = feature.properties || {};
-                return `
-                            <div class="p-4 max-w-xs font-sans text-gray-800">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin tài sản</h3>
-                                <table class="w-full text-sm border-collapse">
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">ID:</td>
-                                        <td class="p-2">${props.asset_id || 'N/A'}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Tên tài sản:</td>
-                                        <td class="p-2">${props.asset_name || 'N/A'}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Mã tài sản:</td>
-                                        <td class="p-2">${props.asset_code || 'N/A'}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Địa chỉ:</td>
-                                        <td class="p-2">${props.address || 'N/A'}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Tình trạng:</td>
-                                        <td class="p-2">${props.asset_status || 'N/A'}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Đơn vị quản lý:</td>
-                                        <td class="p-2">${props.management_unit || 'N/A'}</td>
-                                    </tr>
-                                </table>
-                                <div class="text-center mt-4">
-                                    <a id="update-btn-asset-${props.asset_id || 'unknown'}-${index}" class="bg-blue-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-blue-600 transition duration-200 mr-2 inline-block" style="color: white !important;">Cập nhật</a>
-                                    <a id="maintenance-btn-asset-${props.asset_id || 'unknown'}-${index}" class="bg-green-500 text-white px-3 py-1 rounded-lg shadow-md hover:bg-green-600 transition duration-200 inline-block" style="color: white !important;">Lịch sử bảo dưỡng</a>
-                                </div>
-                            </div>
-                        `;
-            }
-
-            function updateMap() {
-                // Không gọi map.fitBounds() để giữ nguyên mức zoom hiện tại
-            }
-
-            function debounce(func, wait) {
-                let timeout;
-                return function executedFunction(...args) {
-                    const later = () => {
-                        clearTimeout(timeout);
-                        func(...args);
-                    };
-                    clearTimeout(timeout);
-                    timeout = setTimeout(later, wait);
+        // Initialize asset layers
+        function initializeAssetLayers() {
+            const assetCategories = @Html.Raw(Json.Serialize(Model.AssetCategories));
+            assetCategories.forEach(category => {
+                const categoryId = category.category_id;
+                layerConfig[categoryId] = {
+                    name: category.category_name.toLowerCase().replace(/\s+/g, '_') + '_layer',
+                    iconUrl: category.icon_url?.trim() || defaultIconUrl
                 };
-            }
-
-            const debouncedLoadAssets = debounce(() => {
-                if (assetsToggle.checked) {
-                    const promises = [];
-                    assetCategoryToggles.forEach(toggle => {
-                        if (toggle.checked) {
-                            const categoryId = toggle.parentElement.dataset.categoryId;
-                            promises.push(loadAssets(categoryId));
+                categoryLayers[categoryId] = L.markerClusterGroup({
+                    spiderfyOnMaxZoom: true,
+                    showCoverageOnHover: false,
+                    maxClusterRadius: 80,
+                    iconCreateFunction: (cluster) => {
+                        const count = cluster.getChildCount();
+                        let iconSize = [25, 41];
+                        let iconAnchor = [12, 41];
+                        if (count >= 100) {
+                            iconSize = [30, 48];
+                            iconAnchor = [15, 48];
+                        } else if (count >= 10) {
+                            iconSize = [27, 44];
+                            iconAnchor = [13, 44];
                         }
-                    });
-                    Promise.all(promises).then(() => updateMap());
-                }
-            }, 300);
-
-            document.querySelectorAll('.folder > p').forEach(folder => {
-                folder.addEventListener('click', (e) => {
-                    if (e.target.type !== 'checkbox') {
-                        const children = folder.parentElement.querySelector('.children');
-                        const icon = folder.querySelector('.fa-caret-right, .fa-caret-down');
-                        if (children) {
-                            children.classList.toggle('hidden');
-                            icon.classList.toggle('fa-caret-right');
-                            icon.classList.toggle('fa-caret-down');
-                        }
+                        return L.divIcon({
+                            html: `
+                                <div style="position: relative;">
+                                    <img src="${defaultIconUrl}" style="width: ${iconSize[0]}px; height: ${iconSize[1]}px;" />
+                                    <div class="cluster-count">${count}</div>
+                                </div>`,
+                            className: 'custom-cluster-icon',
+                            iconSize: iconSize,
+                            iconAnchor: iconAnchor
+                        });
                     }
-                });
+                }).addTo(map);
             });
+        }
 
+        // Get line weight based on zoom level
+        function getLineWeight(zoom) {
+            return zoom >= 15 ? 4 : 4;
+        }
+
+        // Load tasks for a specific task type
+        function loadTasks(taskType) {
+            let cqlFilter = `task_type='${taskType}'`;
+            if (userTaskRole === 'technician' && userTaskId > 0) {
+                cqlFilter += ` AND execution_unit_id = ${userTaskId}`;
+            }
+            const wfsUrl = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:tasks_layer_2&outputFormat=application/json&srsName=EPSG:4326&cql_filter=${encodeURIComponent(cqlFilter)}`;
+            console.log(`Fetching tasks for ${taskType}: ${wfsUrl}`);
+
+            return fetch(wfsUrl)
+                .then(response => response.text().then(text => ({ response, text })))
+                .then(({ response, text }) => {
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
+                    return JSON.parse(text);
+                })
+                .then(data => {
+                    const layer = taskLayers[taskType];
+                    layer.clearLayers();
+                    console.log(`Fetched ${data.features?.length || 0} features for ${taskType}`, data);
+                    if (data.features?.length > 0) {
+                        data.features.forEach(feature => {
+                            if (feature.geometry?.type === "Point" && feature.geometry.coordinates?.length === 2) {
+                                const coords = feature.geometry.coordinates;
+                                const marker = L.marker([coords[1], coords[0]], { icon: createMarker("Task", taskType) });
+                                const popupContent = `
+                                    <div class="p-4 max-w-xs font-sans text-gray-800">
+                                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin nhiệm vụ</h3>
+                                        <table class="w-full text-sm border-collapse">
+                                            <tr class="border-b"><td class="p-2 font-semibold">Mã Nhiệm vụ:</td><td class="p-2">${feature.properties.task_id || 'Chưa có'}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Loại Nhiệm vụ:</td><td class="p-2">${feature.properties.task_type || 'Chưa có'}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Trạng thái:</td><td class="p-2">${feature.properties.status || 'Chưa có'}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Địa chỉ:</td><td class="p-2">${feature.properties.address || 'Chưa có'}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Ngày bắt đầu:</td><td class="p-2">${feature.properties.start_date ? new Date(feature.properties.start_date).toLocaleDateString('vi-VN') : 'Chưa có'}</td></tr>
+                                        </table>
+                                    </div>`;
+                                marker.bindPopup(popupContent, { autoClose: false });
+                                layer.addLayer(marker);
+                            } else {
+                                console.warn(`Invalid geometry for feature in ${taskType}`, feature.geometry);
+                            }
+                        });
+                        console.log(`Loaded ${layer.getLayers().length} markers for ${taskType}`);
+                    }
+                    return Promise.resolve();
+                })
+                .catch(error => {
+                    console.error(`Error loading tasks for ${taskType}:`, error);
+                    return Promise.resolve();
+                });
+        }
+
+        // Load incidents for a specific incident type
+        function loadIncidents(incidentType) {
+            const cqlFilter = `incident_type='${incidentType}'`;
+            const url = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:incidents_layer_2&outputFormat=application/json&srsName=EPSG:4326&cql_filter=${encodeURIComponent(cqlFilter)}`;
+            console.log(`Fetching incidents for ${incidentType}: ${url}`);
+
+            return fetch(url)
+                .then(response => response.text().then(text => ({ response, text })))
+                .then(({ response, text }) => {
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
+                    return JSON.parse(text);
+                })
+                .then(data => {
+                    const layer = incidentLayers[incidentType];
+                    layer.clearLayers();
+                    console.log(`Fetched ${data.features?.length || 0} features for ${incidentType}`, data);
+                    if (data.features?.length > 0) {
+                        data.features.forEach(feature => {
+                            if (feature.geometry?.type === "Point" && feature.geometry.coordinates?.length === 2) {
+                                const coords = feature.geometry.coordinates;
+                                const marker = L.marker([coords[1], coords[0]], { icon: createMarker("Incident", incidentType) });
+                                const popupContent = `
+                                    <div class="p-4 max-w-xs font-sans">
+                                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin sự cố</h3>
+                                        <table class="w-full text-sm border-collapse">
+                                            <tr class="border-b"><td class="p-2 font-semibold">ID:</td><td class="p-2">${feature.properties.incident_id}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Địa chỉ:</td><td class="p-2">${feature.properties.address || 'N/A'}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Tuyến đường:</td><td class="p-2">${feature.properties.route || 'N/A'}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Mức độ nghiêm trọng:</td><td class="p-2">${feature.properties.severity_level}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Mức độ thiệt hại:</td><td class="p-2">${feature.properties.damage_level}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Trạng thái:</td><td class="p-2">${feature.properties.processing_status}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Task ID:</td><td class="p-2">${feature.properties.task_id || 'N/A'}</td></tr>
+                                            <tr class="border-b"><td class="p-2 font-semibold">Ngày tạo:</td><td class="p-2">${feature.properties.created_at || 'N/A'}</td></tr>
+                                        </table>
+                                    </div>`;
+                                marker.bindPopup(popupContent, { autoClose: false });
+                                layer.addLayer(marker);
+                            } else {
+                                console.warn(`Invalid geometry for feature in ${incidentType}`, feature.geometry);
+                            }
+                        });
+                        console.log(`Loaded ${layer.getLayers().length} markers for ${incidentType}`);
+                    }
+                    return Promise.resolve();
+                })
+                .catch(error => {
+                    console.error(`Error loading incidents for ${incidentType}:`, error);
+                    return Promise.resolve();
+                });
+        }
+
+        // Load assets for a specific category
+        function loadAssets(categoryId) {
+            const bounds = map.getBounds();
+            const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+            const cqlFilter = `category_id='${categoryId}' AND BBOX(geometry, ${bbox}, 'EPSG:4326')`;
+            const wfsUrl = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:assets_layer_2&outputFormat=json&srsName=EPSG:4326&cql_filter=${encodeURIComponent(cqlFilter)}`;
+            console.log(`Fetching assets for category ${categoryId}: ${wfsUrl}`);
+
+            return fetch(wfsUrl)
+                .then(response => response.text().then(text => ({ response, text })))
+                .then(({ response, text }) => {
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType?.includes('json')) {
+                        console.error(`Expected JSON but received: ${text.substring(0, 200)}...`);
+                        throw new Error(`Expected JSON but received ${contentType}`);
+                    }
+                    return JSON.parse(text);
+                })
+                .then(data => {
+                    categoryLayers[categoryId].clearLayers();
+                    if (data.features?.length > 0) {
+                        data.features.forEach((feature, index) => {
+                            if (feature.geometry?.type === "Point") {
+                                const coords = feature.geometry.coordinates;
+                                const marker = L.marker([coords[1], coords[0]], {
+                                    icon: L.icon({
+                                        iconUrl: layerConfig[categoryId].iconUrl,
+                                        iconSize: [25, 41],
+                                        iconAnchor: [12, 41],
+                                        iconErrorUrl: defaultIconUrl
+                                    })
+                                });
+                                marker.bindPopup(createAssetPopupContent(feature, index), { autoClose: false });
+                                categoryLayers[categoryId].addLayer(marker);
+                            } else if (feature.geometry?.type === "LineString" || feature.geometry?.type === "MultiLineString") {
+                                const layer = L.geoJSON(feature, {
+                                    style: { color: 'blue', weight: getLineWeight(map.getZoom()) },
+                                    clickTolerance: 20,
+                                    onEachFeature: (f, l) => l.bindPopup(createAssetPopupContent(f, index), { autoClose: false })
+                                });
+                                categoryLayers[categoryId].addLayer(layer);
+                            }
+                        });
+                        console.log(`Loaded assets for category ${categoryId} with ${data.features.length} features`);
+                    } else {
+                        console.log(`No features found for category ${categoryId}`);
+                    }
+                })
+                .catch(error => console.error(`Error fetching assets for category ${categoryId}:`, error));
+        }
+
+        // Create popup content for assets
+        function createAssetPopupContent(feature, index) {
+            const props = feature.properties || {};
+            return `
+                <div class="p-4 max-w-xs font-sans text-gray-800">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin tài sản</h3>
+                    <table class="w-full text-sm border-collapse">
+                        <tr class="border-b"><td class="p-2 font-semibold">ID:</td><td class="p-2">${props.asset_id || 'N/A'}</td></tr>
+                        <tr class="border-b"><td class="p-2 font-semibold">Tên tài sản:</td><td class="p-2">${props.asset_name || 'N/A'}</td></tr>
+                        <tr class="border-b"><td class="p-2 font-semibold">Mã tài sản:</td><td class="p-2">${props.asset_code || 'N/A'}</td></tr>
+                        <tr class="border-b"><td class="p-2 font-semibold">Địa chỉ:</td><td class="p-2">${props.address || 'N/A'}</td></tr>
+                        <tr class="border-b"><td class="p-2 font-semibold">Tình trạng:</td><td class="p-2">${props.asset_status || 'N/A'}</td></tr>
+                        <tr class="border-b"><td class="p-2 font-semibold">Đơn vị quản lý:</td><td class="p-2">${props.management_unit || 'N/A'}</td></tr>
+                    </table>
+                </div>`;
+        }
+
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Toggle filter navbar
+        function toggleFilterNavbar() {
+            const navbar = document.getElementById('filterNavbar');
+            navbar.classList.toggle('open');
+            navbar.style.left = navbar.classList.contains('open') ? '0' : '-20rem';
+        }
+
+        // Update map (placeholder for future enhancements)
+        function updateMap() {
+            // Currently, no need to call map.fitBounds to preserve zoom level
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
             const toggleBtn = document.getElementById('toggleFilterBtn');
             const closeBtn = document.getElementById('closeFilterBtn');
             const tasksToggle = document.getElementById('tasksLayerToggle');
             const incidentsToggle = document.getElementById('incidentsLayerToggle');
             const assetsToggle = document.getElementById('assetsLayerToggle');
             const taskCategoryToggles = document.querySelectorAll('.task-category-toggle');
+            const incidentCategoryToggles = document.querySelectorAll('.incident-category-toggle');
             const assetCategoryToggles = document.querySelectorAll('.asset-category-toggle');
 
-            if (toggleBtn) toggleBtn.addEventListener('click', toggleFilterNavbar);
-            if (closeBtn) closeBtn.addEventListener('click', toggleFilterNavbar);
+            // Navbar toggle buttons
+            toggleBtn?.addEventListener('click', toggleFilterNavbar);
+            closeBtn?.addEventListener('click', toggleFilterNavbar);
 
-            if (tasksToggle) {
-                tasksToggle.addEventListener('change', function () {
-                    const checked = this.checked;
-                    taskCategoryToggles.forEach(toggle => {
-                        toggle.checked = checked;
-                        const taskType = toggle.parentElement.dataset.taskType;
-                        const layer = taskType === 'Sửa chữa đột xuất' ? suddenRepairLayer : periodicRepairLayer;
-                        if (checked) {
-                            map.addLayer(layer);
-                            loadTasks();
-                        } else {
-                            map.removeLayer(layer);
+            // Folder toggle
+            document.querySelectorAll('.folder > p').forEach(folder => {
+                folder.addEventListener('click', (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        const children = folder.parentElement.querySelector('.children');
+                        const triangle = folder.querySelector('.triangle');
+                        if (children) {
+                            children.classList.toggle('hidden');
+                            triangle.classList.toggle('triangle-right');
+                            triangle.classList.toggle('triangle-down');
                         }
-                    });
-                    updateMap();
+                    }
                 });
-            }
+            });
 
-            if (incidentsToggle) {
-                incidentsToggle.addEventListener('change', function () {
-                    if (this.checked) {
-                        map.addLayer(incidentsLayer);
-                        loadIncidents();
+            // Tab switching
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    button.classList.add('active');
+                    document.getElementById(button.getAttribute('data-tab')).classList.add('active');
+                });
+            });
+            document.querySelector('.tab-button[data-tab="layersTab"]')?.classList.add('active');
+            document.getElementById('layersTab')?.classList.add('active');
+
+            // Task layer toggle
+            tasksToggle?.addEventListener('change', function () {
+                const checked = this.checked;
+                taskCategoryToggles.forEach(toggle => {
+                    toggle.checked = checked;
+                    const taskType = toggle.parentElement.dataset.taskType;
+                    if (checked) {
+                        map.addLayer(taskLayers[taskType]);
+                        loadTasks(taskType);
                     } else {
-                        map.removeLayer(incidentsLayer);
-                    }
-                    updateMap();
-                });
-            }
-
-            if (assetsToggle) {
-                assetsToggle.addEventListener('change', function () {
-                    const checked = this.checked;
-                    assetCategoryToggles.forEach(toggle => {
-                        toggle.checked = checked;
-                        const categoryId = toggle.parentElement.dataset.categoryId;
-                        if (checked) {
-                            map.addLayer(categoryLayers[categoryId]);
-                            loadAssets(categoryId);
-                        } else {
-                            map.removeLayer(categoryLayers[categoryId]);
-                            categoryLayers[categoryId].clearLayers();
-                        }
-                    });
-                    const allChecked = Array.from(assetCategoryToggles).every(t => t.checked);
-                    assetsToggle.checked = allChecked;
-                    updateMap();
-                    if (checked && !map._moveendListenerAdded) {
-                        map.on('moveend', debouncedLoadAssets);
-                        map._moveendListenerAdded = true;
-                    } else if (!checked) {
-                        map.off('moveend', debouncedLoadAssets);
-                        map._moveendListenerAdded = false;
+                        map.removeLayer(taskLayers[taskType]);
+                        taskLayers[taskType].clearLayers();
                     }
                 });
-            }
+                updateMap();
+            });
 
             taskCategoryToggles.forEach(toggle => {
                 toggle.addEventListener('change', function () {
                     const taskType = this.parentElement.dataset.taskType;
-                    const layer = taskType === 'Sửa chữa đột xuất' ? suddenRepairLayer : periodicRepairLayer;
                     if (this.checked) {
-                        map.addLayer(layer);
-                        loadTasks();
+                        map.addLayer(taskLayers[taskType]);
+                        loadTasks(taskType);
                     } else {
-                        map.removeLayer(layer);
+                        map.removeLayer(taskLayers[taskType]);
+                        taskLayers[taskType].clearLayers();
                     }
-                    const allChecked = Array.from(taskCategoryToggles).every(t => t.checked);
-                    tasksToggle.checked = allChecked;
+                    tasksToggle.checked = Array.from(taskCategoryToggles).some(t => t.checked);
                     updateMap();
                 });
+            });
+
+            // Incident layer toggle
+            incidentsToggle?.addEventListener('change', function () {
+                const checked = this.checked;
+                incidentCategoryToggles.forEach(toggle => {
+                    toggle.checked = checked;
+                    const incidentType = toggle.parentElement.dataset.incidentType;
+                    if (checked) {
+                        map.addLayer(incidentLayers[incidentType]);
+                        loadIncidents(incidentType);
+                    } else {
+                        map.removeLayer(incidentLayers[incidentType]);
+                        incidentLayers[incidentType].clearLayers();
+                    }
+                });
+                updateMap();
+            });
+
+            incidentCategoryToggles.forEach(toggle => {
+                toggle.addEventListener('change', function () {
+                    const incidentType = this.parentElement.dataset.incidentType;
+                    if (this.checked) {
+                        map.addLayer(incidentLayers[incidentType]);
+                        loadIncidents(incidentType);
+                    } else {
+                        map.removeLayer(incidentLayers[incidentType]);
+                        incidentLayers[incidentType].clearLayers();
+                    }
+                    incidentsToggle.checked = Array.from(incidentCategoryToggles).some(t => t.checked);
+                    updateMap();
+                });
+            });
+
+            // Asset layer toggle
+            const debouncedLoadAssets = debounce(() => {
+                if (assetsToggle.checked) {
+                    const activeCategories = Array.from(assetCategoryToggles)
+                        .filter(toggle => toggle.checked)
+                        .map(toggle => toggle.parentElement.dataset.categoryId);
+                    console.log(`Active categories to load: ${activeCategories}`);
+                    Promise.all(activeCategories.map(categoryId => {
+                        if (map.hasLayer(categoryLayers[categoryId])) {
+                            return loadAssets(categoryId);
+                        }
+                        return Promise.resolve();
+                    })).then(() => updateMap());
+                }
+            }, 300);
+
+            assetsToggle?.addEventListener('change', function () {
+                const checked = this.checked;
+                const promises = [];
+                assetCategoryToggles.forEach(toggle => {
+                    toggle.checked = checked;
+                    const categoryId = toggle.parentElement.dataset.categoryId;
+                    if (checked) {
+                        map.addLayer(categoryLayers[categoryId]);
+                        promises.push(loadAssets(categoryId));
+                    } else {
+                        map.removeLayer(categoryLayers[categoryId]);
+                        categoryLayers[categoryId].clearLayers();
+                    }
+                });
+                Promise.all(promises).then(() => updateMap());
+                if (checked && !map._moveendListenerAdded) {
+                    map.on('moveend', debouncedLoadAssets);
+                    map._moveendListenerAdded = true;
+                } else if (!checked) {
+                    map.off('moveend', debouncedLoadAssets);
+                    map._moveendListenerAdded = false;
+                }
             });
 
             assetCategoryToggles.forEach(toggle => {
@@ -671,157 +804,87 @@
                         map.removeLayer(categoryLayers[categoryId]);
                         categoryLayers[categoryId].clearLayers();
                     }
-                    const allChecked = Array.from(assetCategoryToggles).every(t => t.checked);
-                    assetsToggle.checked = allChecked;
+                    assetsToggle.checked = Array.from(assetCategoryToggles).some(t => t.checked);
                     updateMap();
                 });
             });
 
-            function loadTasks() {
-                const taskTypes = ['Sửa chữa đột xuất', 'Sửa chữa định kì'];
-                const layers = {
-                    'Sửa chữa đột xuất': suddenRepairLayer,
-                    'Sửa chữa định kì': periodicRepairLayer
-                };
+            // Zoom event for line weight adjustment
+            map.on('zoomend', () => {
+                Object.values(categoryLayers).forEach(layer => {
+                    layer.eachLayer(l => {
+                        if (l.feature?.geometry.type === 'LineString') {
+                            l.setStyle({ weight: getLineWeight(map.getZoom()) });
+                        }
+                    });
+                });
+            });
+        }
 
-                const promises = taskTypes.map(taskType => {
-                    let cqlFilter = `task_type='${taskType}'`;
-                    if (userTaskRole === 'technician' && userTaskId > 0) {
-                        cqlFilter += ` AND execution_unit_id = ${userTaskId}`;
+        // Initialize all components
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeMap();
+            initializeTaskLayers();
+            initializeIncidentLayers();
+            initializeAssetLayers();
+            setupEventListeners();
+
+            // Initial data load
+            Promise.all([
+                loadTasks("Sửa chữa đột xuất"),
+                loadIncidents("Tai nạn giao thông")
+            ]).then(() => {
+                const taskCategoryToggles = document.querySelectorAll('.task-category-toggle');
+                const incidentCategoryToggles = document.querySelectorAll('.incident-category-toggle');
+                const assetCategoryToggles = document.querySelectorAll('.asset-category-toggle');
+
+                // Load checked task layers
+                taskCategoryToggles.forEach(toggle => {
+                    const taskType = toggle.parentElement.dataset.taskType;
+                    if (toggle.checked) {
+                        map.addLayer(taskLayers[taskType]);
+                        loadTasks(taskType);
                     }
-
-                    const wfsUrl = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:tasks_layer_2&outputFormat=application/json&srsName=EPSG:4326&cql_filter=${encodeURIComponent(cqlFilter)}`;
-
-                    return fetch(wfsUrl)
-                        .then(response => response.text().then(text => ({ response, text })))
-                        .then(({ response, text }) => {
-                            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
-                            return JSON.parse(text);
-                        })
-                        .then(data => {
-                            layers[taskType].clearLayers();
-                            if (data.features && data.features.length > 0) {
-                                layers[taskType].addData(data);
-                            }
-                        })
-                        .catch(error => {
-                            console.error(`Error loading GeoServer tasks for ${taskType}:`, error);
-                        });
                 });
 
-                return Promise.all(promises).then(() => updateMap());
-            }
+                // Load checked incident layers
+                incidentCategoryToggles.forEach(toggle => {
+                    const incidentType = toggle.parentElement.dataset.incidentType;
+                    if (toggle.checked) {
+                        map.addLayer(incidentLayers[incidentType]);
+                        loadIncidents(incidentType);
+                    }
+                });
 
-            function loadIncidents() {
-                const url = `http://localhost:8080/geoserver/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=cite:incidents_layer_2&outputFormat=application/json&srsName=EPSG:4326`;
+                // Load checked asset layers
+                const assetPromises = [];
+                assetCategoryToggles.forEach(toggle => {
+                    const categoryId = toggle.parentElement.dataset.categoryId;
+                    if (toggle.checked) {
+                        map.addLayer(categoryLayers[categoryId]);
+                        assetPromises.push(loadAssets(categoryId));
+                    }
+                });
 
-                return fetch(url)
-                    .then(response => response.text().then(text => ({ response, text })))
-                    .then(({ response, text }) => {
-                        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
-                        return JSON.parse(text);
-                    })
-                    .then(data => {
-                        incidentsLayer.clearLayers();
-                        if (data.features && data.features.length > 0) {
-                            data.features.forEach(feature => {
-                                if (feature.geometry && feature.geometry.type === "Point") {
-                                    const coords = feature.geometry.coordinates;
-                                    const marker = L.marker([coords[1], coords[0]]);
-                                    const popupContent = createIncidentPopupContent(feature.properties);
-                                    marker.bindPopup(popupContent, { autoClose: false }).on('popupopen', function () {
-                                        document.getElementById(`update-btn-incident-${feature.properties.incident_id}`).addEventListener('click', function () {
-                                            window.location.href = `/Incidents/IncidentUpdate/${feature.properties.incident_id}`;
-                                        });
-                                        document.getElementById(`detail-btn-incident-${feature.properties.incident_id}`).addEventListener('click', function () {
-                                            window.location.href = `/Incidents/IncidentDetail/${feature.properties.incident_id}`;
-                                        });
-                                    });
-                                    incidentsLayer.addLayer(marker);
-                                }
-                            });
-                        }
-                        updateMap();
-                    })
-                    .catch(error => {
-                        console.error('Error loading GeoServer incidents:', error);
-                        alert('Không thể tải dữ liệu Sự cố từ GeoServer: ' + error.message);
-                    });
-            }
-
-            function createIncidentPopupContent(props) {
-                return `
-                            <div class="p-4 max-w-xs font-sans">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-2">Thông tin sự cố</h3>
-                                <table class="w-full text-sm border-collapse">
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">ID:</td>
-                                        <td class="p-2">${props.incident_id}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Địa chỉ:</td>
-                                        <td class="p-2">${props.address || 'N/A'}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Tuyến đường:</td>
-                                        <td class="p-2">${props.route || 'N/A'}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Mức độ nghiêm trọng:</td>
-                                        <td class="p-2">${props.severity_level}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Mức độ thiệt hại:</td>
-                                        <td class="p-2">${props.damage_level}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Trạng thái:</td>
-                                        <td class="p-2">${props.processing_status}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Task ID:</td>
-                                        <td class="p-2">${props.task_id || 'N/A'}</td>
-                                    </tr>
-                                    <tr class="border-b">
-                                        <td class="p-2 font-semibold">Ngày tạo:</td>
-                                        <td class="p-2">${props.created_at || 'N/A'}</td>
-                                    </tr>
-                                </table>
-                                <div class="text-center mt-4">
-                                    <button id="update-btn-incident-${props.incident_id}" class="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600 mr-2">Cập nhật</button>
-                                    <button id="detail-btn-incident-${props.incident_id}" class="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600">Chi tiết</button>
-                                </div>
-                            </div>
-                        `;
-            }
-
-            Promise.all([loadTasks(), loadIncidents()])
-                .then(() => {
-                    taskCategoryToggles.forEach(toggle => {
-                        const taskType = toggle.parentElement.dataset.taskType;
-                        const layer = taskType === 'Sửa chữa đột xuất' ? suddenRepairLayer : periodicRepairLayer;
-                        if (toggle.checked) {
-                            map.addLayer(layer);
-                        }
-                    });
-                    assetCategoryToggles.forEach(toggle => {
-                        const categoryId = toggle.parentElement.dataset.categoryId;
-                        if (toggle.checked) {
-                            map.addLayer(categoryLayers[categoryId]);
-                            loadAssets(categoryId);
-                        }
-                    });
-                    if (assetsToggle.checked) {
-                        map.on('moveend', debouncedLoadAssets);
+                Promise.all(assetPromises).then(() => {
+                    if (document.getElementById('assetsLayerToggle').checked) {
+                        map.on('moveend', debounce(() => {
+                            const activeCategories = Array.from(document.querySelectorAll('.asset-category-toggle'))
+                                .filter(toggle => toggle.checked)
+                                .map(toggle => toggle.parentElement.dataset.categoryId);
+                            Promise.all(activeCategories.map(categoryId => loadAssets(categoryId)))
+                                .then(() => updateMap());
+                        }, 300));
                         map._moveendListenerAdded = true;
                     }
                     updateMap();
-                })
-                .catch(error => console.error('Error loading layers:', error));
-
-            window.exportReports = function () {
-                alert('Chọn loại báo cáo để xuất: Nhiệm vụ, Sự cố, hoặc Tài sản.');
-            };
+                });
+            }).catch(error => console.error('Error loading initial layers:', error));
         });
+
+        // Export reports function
+        window.exportReports = function () {
+            alert('Chọn loại báo cáo để xuất: Nhiệm vụ, Sự cố, hoặc Tài sản.');
+        };
     </script>
 }

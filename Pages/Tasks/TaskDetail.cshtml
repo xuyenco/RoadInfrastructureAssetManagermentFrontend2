@@ -83,14 +83,36 @@
                 </div>
                 <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
                     <strong class="text-gray-800 font-semibold">Đơn vị thực hiện (ID):</strong>
-                    <span class="text-gray-600 block">@(Model.Task.execution_unit_id?.ToString() ?? "Không có")</span>
+                    <span class="text-gray-600 block">
+                        @if (Model.Task?.execution_unit_id.HasValue == true)
+                        {
+                            <a href="/Users/UserDetail?id=@Model.Task.execution_unit_id" class="text-blue-500 hover:underline">
+                                @Model.Task.execution_unit_id
+                            </a>
+                        }
+                        else
+                        {
+                            <span>Không có</span>
+                        }
+                    </span>
                 </div>
                 <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
                     <strong class="text-gray-800 font-semibold">Người giám sát (ID):</strong>
-                    <span class="text-gray-600 block">@(Model.Task.supervisor_id?.ToString() ?? "Không có")</span>
+                    <span class="text-gray-600 block">
+                        @if (Model.Task?.supervisor_id.HasValue == true)
+                        {
+                            <a href="/Users/UserDetail?id=@Model.Task.supervisor_id" class="text-blue-500 hover:underline">
+                                @Model.Task.supervisor_id
+                            </a>
+                        }
+                        else
+                        {
+                            <span>Không có</span>
+                        }
+                    </span>
                 </div>
                 <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
-                    <strong class="text-gray-800 font-semibold">Mô tả công việc:</strong>
+                    <strong class="text-gray-800 font-semibold">Mô tả nhiệm vụ:</strong>
                     <span class="text-gray-600 block break-words">@(Model.Task.description ?? "Không có")</span>
                 </div>
                 <div class="info-item bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
@@ -116,7 +138,7 @@
         }
 
         <div class="flex justify-center mt-6">
-            <a href="/Tasks/Index" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 flex items-center">
+            <a href="/Tasks/TasksTable" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 flex items-center">
                 <i class="fas fa-arrow-left mr-2"></i> Quay lại
             </a>
         </div>
@@ -127,8 +149,10 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         var map = L.map('map').setView([21.0285, 105.8542], 13); // Default center (Hanoi)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, © <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
         }).addTo(map);
 
         // Parse WGS84 coordinates from Model

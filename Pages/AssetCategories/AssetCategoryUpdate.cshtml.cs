@@ -9,7 +9,7 @@ using RoadInfrastructureAssetManagementFrontend2.Filter;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.AssetCategories
 {
-    //[AuthorizeRole("admin")]
+    [AuthorizeRole("admin,manager")]
     public class AssetCagetoryUpdateModel : PageModel
     {
         private readonly IAssetCagetoriesService _assetCagetoriesService;

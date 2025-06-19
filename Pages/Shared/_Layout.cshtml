@@ -16,54 +16,152 @@
     <link rel="icon" type="image/png" href="https://res.cloudinary.com/djsz5xlej/image/upload/v1747383566/ditblpab8rq40q003i8u.png" />
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css" />
-    @await RenderSectionAsync("Styles", required: false) <!-- Thêm dòng này để render section Styles -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <style>
+        .desktop-nav-menu {
+            display: flex;
+            align-items: center;
+        }
+
+        .mobile-nav-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background-color: white;
+            z-index: 1000;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-height: calc(100vh - 5rem);
+            overflow-y: auto;
+        }
+
+        .mobile-nav-item {
+            display: block;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+            .mobile-nav-item:hover {
+                color: #1d4ed8;
+            }
+
+        @@media (min-width: 768px) {
+            .desktop-nav-menu {
+                display: flex !important;
+            }
+
+            .mobile-nav-menu {
+                display: none !important;
+            }
+        }
+
+        @@media (max-width: 767px) {
+            .desktop-nav-menu {
+                display: none !important;
+            }
+        }
+    </style>
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="flex flex-col min-h-screen bg-gray-100">
     <header class="z-50">
-        <nav class="bg-white shadow-md">
+        <nav class="bg-white shadow-md relative">
             <div class="container mx-auto px-4 py-4 flex justify-between items-center">
                 <div class="flex items-center space-x-2">
                     <img src="https://res.cloudinary.com/djsz5xlej/image/upload/v1747383566/ditblpab8rq40q003i8u.png" alt="Favicon" class="h-8 w-8">
                     <div class="flex flex-col">
                         <a class="text-xl font-semibold text-gray-800 hover:text-blue-600 transition" asp-area="" asp-page="/Index">
                             <span>Hệ thống quản lý kết cấu hạ tầng</span>
-                            <span class="block">Giao thông Vận tải đường bộ Thành phố Hà Nội</span>
+                            <span class="block text-sm sm:text-base">Giao thông Vận tải đường bộ Thành phố Hà Nội</span>
                         </a>
                     </div>
                 </div>
                 <button class="md:hidden text-gray-600 focus:outline-none" type="button" id="menu-toggle" aria-label="Toggle navigation">
                     <i class="fas fa-bars text-xl"></i>
                 </button>
-                <div class="hidden md:flex md:items-center md:space-x-8" id="nav-menu">
-                    <ul class="flex flex-col md:flex-row md:space-x-8">
+
+                <div class="desktop-nav-menu" id="desktop-nav-menu">
+                    <ul class="flex space-x-8">
                         <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Map/index">Bản đồ</a></li>
-                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/AssetCategories/index">Danh mục KC</a></li>
+                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/AssetCategories/index">Danh mục</a></li>
                         <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Assets/AssetsTable">Kết cấu</a></li>
-                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Incidents/IncidentsTable">Tai nạn</a></li>
-                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Tasks/TasksTable">Công việc</a></li>
+                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Incidents/IncidentsTable">Sự cố</a></li>
+                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Tasks/TasksTable">Nhiệm vụ</a></li>
                         <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Users/index">Người dùng</a></li>
-                        <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Report/index">Báo cáo</a></li>
                     </ul>
-                    <div class="relative notification-bell ml-8">
-                        <i class="fas fa-bell text-gray-600 cursor-pointer text-xl"></i>
-                        <span class="notification-count absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1" id="notification-count">0</span>
-                        <div class="notification-dropdown hidden absolute right-0 mt-2 w-80 bg-white border border-gray-200 shadow-lg rounded-lg max-h-96 overflow-y-auto z-50" id="notification-dropdown">
-                            <div id="notification-list"></div>
+                    <div class="flex items-center ml-8">
+                        <div class="relative notification-bell mr-6">
+                            <i class="fas fa-bell text-gray-600 cursor-pointer text-xl"></i>
+                            <span class="notification-count absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1" id="notification-count">0</span>
+                            <div class="notification-dropdown hidden absolute right-0 mt-2 w-80 bg-white border border-gray-200 shadow-lg rounded-lg max-h-96 overflow-y-auto z-50" id="notification-dropdown">
+                                <div id="notification-list"></div>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            @if (!string.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session.GetString("Role")))
+                            {
+                                <button class="text-lg font-semibold text-gray-700 hover:text-blue-700 transition flex items-center" id="user-dropdown-toggle">
+                                    @HttpContextAccessor.HttpContext?.Session.GetString("Username")
+                                    <i class="fas fa-chevron-down ml-1"></i>
+                                </button>
+                                <div class="hidden absolute right-0 mt-3 w-48 bg-white border border-gray-200 shadow-lg rounded-lg z-100" id="user-dropdown">
+                                    <a class="block px-5 py-3 text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition" asp-area="" asp-page="/Users/UserDetail" asp-page-handler="Index" asp-route-id="@HttpContextAccessor.HttpContext?.Session.GetInt32("Id")">
+                                        Thông tin cá nhân
+                                    </a>
+                                    <a class="block px-5 py-3 text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition" asp-area="" asp-page="/Users/Logout">
+                                        Đăng xuất
+                                    </a>
+                                </div>
+                            }
+                            else
+                            {
+                                <a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Users/Login">Đăng nhập</a>
+                            }
                         </div>
                     </div>
-                    <ul class="flex space-x-4 ml-8">
-                        @if (!string.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session.GetString("AccessToken")))
+                </div>
+            </div>
+
+            <div class="hidden mobile-nav-menu" id="mobile-nav-menu">
+                <ul>
+                    <li><a class="mobile-nav-item" asp-area="" asp-page="/Map/index">Bản đồ</a></li>
+                    <li><a class="mobile-nav-item" asp-area="" asp-page="/AssetCategories/index">Danh mục</a></li>
+                    <li><a class="mobile-nav-item" asp-area="" asp-page="/Assets/AssetsTable">Kết cấu</a></li>
+                    <li><a class="mobile-nav-item" asp-area="" asp-page="/Incidents/IncidentsTable">Sự cố</a></li>
+                    <li><a class="mobile-nav-item" asp-area="" asp-page="/Tasks/TasksTable">Nhiệm vụ</a></li>
+                    <li><a class="mobile-nav-item" asp-area="" asp-page="/Users/index">Người dùng</a></li>
+                </ul>
+                <div class="flex items-center p-4 border-t border-gray-200">
+                    <div class="relative notification-bell mr-6">
+                        <i class="fas fa-bell text-gray-600 cursor-pointer text-xl"></i>
+                        <span class="notification-count absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1" id="notification-count-mobile">0</span>
+                    </div>
+                    <div class="relative">
+                        @if (!string.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session.GetString("Role")))
                         {
-                            <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Users/Logout">Logout</a></li>
+                            <button class="text-lg font-semibold text-gray-700 flex items-center" id="mobile-user-toggle">
+                                @HttpContextAccessor.HttpContext?.Session.GetString("Username")
+                                <i class="fas fa-chevron-down ml-2"></i>
+                            </button>
+                            <div class="hidden absolute right-0 mt-3 w-48 bg-white border border-gray-200 shadow-lg rounded-lg z-100" id="mobile-user-dropdown">
+                                <a class="block px-5 py-3 text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition" asp-area="" asp-page="/Users/UserDetail" asp-page-handler="Index" asp-route-id="@HttpContextAccessor.HttpContext?.Session.GetInt32("Id")">
+                                    Thông tin cá nhân
+                                </a>
+                                <a class="block px-5 py-3 text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition" asp-area="" asp-page="/Users/Logout">
+                                    Đăng xuất
+                                </a>
+                            </div>
                         }
                         else
                         {
-                            <li><a class="text-lg font-semibold text-gray-700 hover:text-blue-700 hover:underline transition" asp-area="" asp-page="/Users/Login">Login</a></li>
+                            <a class="text-lg font-semibold text-gray-700 hover:text-blue-700 transition" asp-area="" asp-page="/Users/Login">Đăng nhập</a>
                         }
-                    </ul>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -138,9 +236,69 @@
             .withAutomaticReconnect()
             .build();
 
-        $(document).ready(function () {
+        document.addEventListener('DOMContentLoaded', function () {
+            // Xử lý toggle menu mobile
+            const menuToggle = document.getElementById('menu-toggle');
+            const mobileNavMenu = document.getElementById('mobile-nav-menu');
+
+            if (menuToggle && mobileNavMenu) {
+                menuToggle.addEventListener('click', function () {
+                    mobileNavMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Xử lý dropdown user (cả desktop và mobile)
+            const setupDropdown = (toggleId, dropdownId) => {
+                const toggle = document.getElementById(toggleId);
+                const dropdown = document.getElementById(dropdownId);
+
+                if (toggle && dropdown) {
+                    toggle.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        dropdown.classList.toggle('hidden');
+                    });
+
+                    // Đóng dropdown khi click ra ngoài
+                    document.addEventListener('click', function (e) {
+                        if (!dropdown.contains(e.target) && !toggle.contains(e.target)) {
+                            dropdown.classList.add('hidden');
+                        }
+                    });
+                }
+            };
+
+            setupDropdown('user-dropdown-toggle', 'user-dropdown');
+            setupDropdown('mobile-user-toggle', 'mobile-user-dropdown');
+
+            // Xử lý notification dropdown
+            const notificationBells = document.querySelectorAll('.notification-bell');
+            const notificationDropdown = document.getElementById('notification-dropdown');
+
+            if (notificationBells && notificationDropdown) {
+                notificationBells.forEach(bell => {
+                    bell.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        notificationDropdown.classList.toggle('hidden');
+                    });
+                });
+
+                // Đóng dropdown khi click ra ngoài
+                document.addEventListener('click', function (e) {
+                    if (!notificationDropdown.contains(e.target)) {
+                        let isBell = false;
+                        notificationBells.forEach(bell => {
+                            if (bell.contains(e.target)) isBell = true;
+                        });
+
+                        if (!isBell) {
+                            notificationDropdown.classList.add('hidden');
+                        }
+                    }
+                });
+            }
+
             if (userId === 0) {
-                $(".notification-bell").hide();
+                notificationBells.forEach(bell => bell.style.display = 'none');
                 return;
             }
 
@@ -163,11 +321,6 @@
                     .catch(err => console.error("SignalR Connection Error:", err));
             }
 
-            $(document).on('click', '.notification-bell', function () {
-                const $dropdown = $("#notification-dropdown");
-                $dropdown.toggleClass('hidden');
-            });
-
             $("#notification-list").on("click", ".notification-item", function () {
                 const notificationId = $(this).data("id");
                 markAsRead(notificationId);
@@ -177,11 +330,6 @@
                 if (taskId && taskId !== '') {
                     window.location.href = `/Tasks/TaskDetail/${taskId}`;
                 }
-            });
-
-            // Toggle menu for mobile
-            $("#menu-toggle").on("click", function () {
-                $("#nav-menu").toggleClass("hidden");
             });
 
             function renderNotifications() {
@@ -204,6 +352,7 @@
             function updateNotificationCount() {
                 const unreadCount = notifications.filter(n => !n.is_read).length;
                 $("#notification-count").text(unreadCount);
+                $("#notification-count-mobile").text(unreadCount);
             }
 
             function markAsRead(notificationId) {

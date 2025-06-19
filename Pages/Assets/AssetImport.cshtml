@@ -4,8 +4,17 @@
     Layout = "_Layout";
 }
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    body {
+        background-color: #f4f6f9;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+</style>
+
 <div class="container mx-auto px-4 py-6">
-    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Nhập tài sản từ Excel</h1>
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Nhập và Cập nhật Kết cấu Hạ tầng từ Excel</h1>
 
     <!-- Thông báo kết quả -->
     @if (TempData["SuccessCount"] != null)
@@ -13,7 +22,7 @@
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg shadow-sm">
             <div class="flex items-center">
                 <i class="fas fa-check-circle mr-2 text-lg"></i>
-                <p>Đã nhập thành công @TempData["SuccessCount"] tài sản.</p>
+                <p>Đã xử lý thành công @TempData["SuccessCount"] kết cấu hạ tầng.</p>
             </div>
             @if (TempData["ErrorFile"] != null)
             {
@@ -28,39 +37,101 @@
             }
         </div>
     }
+    @if (TempData["Error"] != null)
+    {
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg shadow-sm">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-2 text-lg"></i>
+                <p>@TempData["Error"]</p>
+            </div>
+        </div>
+    }
 
-    <!-- Tải file mẫu -->
+    <!-- Nhập tài sản mới -->
     <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-        <label for="categorySelect" class="block text-gray-700 font-semibold mb-2">Chọn danh mục để tải file mẫu:</label>
-        <select id="categorySelect" name="categoryId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Chọn danh mục</option>
-            @foreach (var category in Model.Categories)
-            {
-                <option value="@category.category_id">@category.category_name</option>
-            }
-        </select>
-        <button type="button" onclick="downloadExcelTemplate()" class="mt-4 inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">
-            <i class="fas fa-file-download mr-2"></i>
-            Tải file mẫu
-        </button>
-    </div>
+        <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Nhập Kết cấu Hạ tầng Mới</h2>
 
-    <!-- Upload file Excel và ảnh -->
-    <div class="bg-white p-6 rounded-lg shadow-md">
+        <!-- Tải file mẫu -->
+        <div class="mb-4">
+            <label for="categorySelect" class="block text-gray-700 font-semibold mb-2">Chọn danh mục để tải file mẫu:</label>
+            <select id="categorySelect" name="categoryId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Chọn danh mục</option>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category.category_id">@category.category_name</option>
+                }
+            </select>
+            <button type="button" onclick="downloadExcelTemplate()" class="mt-4 inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">
+                <i class="fas fa-file-download mr-2"></i>
+                Tải file mẫu
+            </button>
+        </div>
+
+        <!-- Upload file Excel và ảnh -->
         <form method="post" enctype="multipart/form-data" id="excelUploadForm" asp-page-handler="ImportExcel">
             <div class="mb-4">
                 <label for="excelFile" class="block text-gray-700 font-semibold mb-2">Chọn file Excel để nhập:</label>
                 <input type="file" id="excelFile" name="excelFile" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".xlsx, .xls" required />
             </div>
             <div class="mb-4">
-                <label for="imageFiles" class="block text-gray-700 font-semibold mb-2">Chọn các ảnh tài sản:</label>
+                <label for="imageFiles" class="block text-gray-700 font-semibold mb-2">Chọn các ảnh cho kết cấu hạ tầng:</label>
                 <input type="file" id="imageFiles" name="imageFiles" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".png,.jpg,.jpeg" multiple />
                 <p class="mt-1 text-sm text-gray-500">Tải lên tất cả ảnh tương ứng với cột "image_path" trong Excel.</p>
             </div>
-            <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200">
-                <i class="fas fa-upload mr-2"></i>
-                Upload
+            <div class="flex justify-center space-x-4">
+                <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200">
+                    <i class="fas fa-upload mr-2"></i>
+                    Upload
+                </button>
+                <a href="/Assets/AssetsTable" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Quay lại
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Cập nhật tài sản -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Cập nhật Kết cấu Hạ tầng</h2>
+
+        <!-- Tải file mẫu -->
+        <div class="mb-4">
+            <label for="categorySelectUpdate" class="block text-gray-700 font-semibold mb-2">Chọn danh mục để tải file mẫu:</label>
+            <select id="categorySelectUpdate" name="categoryId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Chọn danh mục</option>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category.category_id">@category.category_name</option>
+                }
+            </select>
+            <button type="button" onclick="downloadExcelUpdateTemplate()" class="mt-4 inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">
+                <i class="fas fa-file-download mr-2"></i>
+                Tải file mẫu
             </button>
+        </div>
+
+        <!-- Upload file Excel và ảnh -->
+        <form method="post" enctype="multipart/form-data" id="excelUpdateForm" asp-page-handler="ImportUpdateExcel">
+            <div class="mb-4">
+                <label for="excelFileUpdate" class="block text-gray-700 font-semibold mb-2">Chọn file Excel để cập nhật:</label>
+                <input type="file" id="excelFileUpdate" name="excelFile" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".xlsx, .xls" required />
+            </div>
+            <div class="mb-4">
+                <label for="imageFilesUpdate" class="block text-gray-700 font-semibold mb-2">Chọn các ảnh cho kết cấu hạ tầng:</label>
+                <input type="file" id="imageFilesUpdate" name="imageFiles" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".png,.jpg,.jpeg" multiple />
+                <p class="mt-1 text-sm text-gray-500">Tải lên tất cả ảnh tương ứng với cột "image_path" trong Excel.</p>
+            </div>
+            <div class="flex justify-center space-x-4">
+                <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200">
+                    <i class="fas fa-upload mr-2"></i>
+                    Upload
+                </button>
+                <a href="/Assets/AssetsTable" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Quay lại
+                </a>
+            </div>
         </form>
     </div>
 </div>
@@ -73,6 +144,16 @@
             return;
         }
         var url = "/Assets/AssetImport?handler=DownloadExcelTemplate&categoryId=" + categoryId;
+        window.location.href = url;
+    }
+
+    function downloadExcelUpdateTemplate() {
+        var categoryId = document.getElementById("categorySelectUpdate").value;
+        if (!categoryId) {
+            alert("Vui lòng chọn danh mục trước khi tải file mẫu.");
+            return;
+        }
+        var url = "/Assets/AssetImport?handler=DownloadExcelUpdateTemplate&categoryId=" + categoryId;
         window.location.href = url;
     }
 </script>

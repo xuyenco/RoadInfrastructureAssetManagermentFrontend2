@@ -6,7 +6,7 @@ using RoadInfrastructureAssetManagementFrontend2.Model.Response;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.MaintenanceHistory
 {
-    //[AuthorizeRole("inspector")]
+    [AuthorizeRole("admin,inspector")]
     public class MaintenanceHistoryByAssetIdModel : PageModel
     {
         private readonly IMaintenanceHistoryService _maintenanceHistoryService;

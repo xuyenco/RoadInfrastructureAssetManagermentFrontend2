@@ -1,10 +1,13 @@
 ﻿@page
 @model RoadInfrastructureAssetManagementFrontend2.Pages.Assets.AssetsTableModel
 @{
-    ViewData["Title"] = "Danh sách Tài sản";
+    ViewData["Title"] = "Danh sách kết cấu hạ tầng";
 }
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <style>
     main {
         overflow-y: auto !important;
@@ -29,10 +32,32 @@
         text-align: center;
         transition: background-color 0.2s;
     }
+
+    .tab-button {
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+        .tab-button.active {
+            border-bottom-color: #3B82F6;
+            color: #3B82F6;
+            font-weight: 600;
+        }
+
+        .tab-button:hover {
+            background-color: #F3F4F6;
+        }
+
+    #assetStatusChart {
+        width: 100% !important;
+        height: 400px !important;
+    }
 </style>
 
 <div class="container mx-auto px-4 py-10 max-w-5xl">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Danh sách Tài sản</h1>
+    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Danh sách kết cấu hạ tầng</h1>
 
     @if (TempData["Error"] != null)
     {
@@ -47,51 +72,83 @@
         </div>
     }
 
-    <div class="bg-white rounded-lg shadow-lg p-6 table-container">
-        <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2 text-center">Danh sách Tài sản</h3>
+    <!-- Thanh tab -->
+    <div class="flex border-b border-gray-200 mb-6">
+        <button class="tab-button active" onclick="showTab('info-tab')">Thông tin</button>
+        <button class="tab-button" onclick="showTab('report-tab')">Báo cáo</button>
+    </div>
 
-        <div class="flex flex-col md:flex-row md:items-center mb-4 gap-3">
-            <div class="flex w-full md:w-1/2 gap-2">
-                <input type="text" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tìm kiếm..." id="searchInput">
-                <select class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="searchField">
-                    <option value="0">Mã số tài sản</option>
-                    <option value="1">Tên tài sản</option>
-                    <option value="2">Mã số tài sản</option>
-                    <option value="3">Địa chỉ</option>
-                    <option value="4">Trạng thái</option>
-                    <option value="5">Ngày tạo</option>
-                </select>
+    <!-- Tab Thông tin -->
+    <div id="info-tab" class="tab-content">
+        <div class="bg-white rounded-lg shadow-lg p-6 table-container">
+            <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2 text-center">Danh sách kết cấu hạ tầng</h3>
+
+            <div class="flex flex-col md:flex-row md:items-center mb-4 gap-3">
+                <div class="flex w-full md:w-1/2 gap-2">
+                    <input type="text" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tìm kiếm..." id="searchInput">
+                    <select class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" id="searchField">
+                        <option value="0">ID kết cấu hạ tầng</option>
+                        <option value="1">Tên kết cấu hạ tầng</option>
+                        <option value="2">Mã số kết cấu hạ tầng</option>
+                        <option value="3">Địa chỉ</option>
+                        <option value="4">Trạng thái</option>
+                        <option value="5">Ngày tạo</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    @if (HttpContext.Session.GetString("Role") == "admin" || HttpContext.Session.GetString("Role") == "inspector")
+                    {
+                        <a class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center" asp-page="/Assets/AssetCreate2">
+                            <i class="fas fa-plus mr-2"></i> Tạo kết cấu hạ tầng mới
+                        </a>
+                    }
+                    @if (HttpContext.Session.GetString("Role") == "admin" || HttpContext.Session.GetString("Role") == "inspector" || HttpContext.Session.GetString("Role") == "supervisor")
+                    {
+                        <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition duration-200 flex items-center" onclick="exportAssetsReport()">
+                            <i class="fas fa-file-export mr-2"></i> Xuất báo cáo
+                        </button>
+                    }
+                    @* <select id="categorySelect" class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        @foreach (var category in Model.assetCagetoriesResponses)
+                        {
+                            <option value = "@category.category_id">@category.category_name</option>
+                        }
+                    </select>
+                    <button class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition duration-200 flex items-center" onclick="exportAssetsByCategory()">
+                        <i class="fas fa-file-export mr-2"></i> Xuất theo danh mục
+                    </button> *@
+                </div>
             </div>
-            <div class="flex gap-2">
-                <a class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center" asp-page="/Assets/AssetCreate2">
-                    <i class="fas fa-plus mr-2"></i> Tạo tài sản mới
-                </a>
-                <button class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition duration-200 flex items-center" onclick="exportAssetsReport()">
-                    <i class="fas fa-file-export mr-2"></i> Xuất báo cáo
-                </button>
+            <div class="text-sm text-gray-600 mb-2" id="resultCount"></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-700">
+                    <thead class="bg-blue-500 text-white">
+                        <tr>
+                            <th class="px-4 py-3">Mã kết cấu hạ tầng</th>
+                            <th class="px-4 py-3">Tên kết cấu hạ tầng</th>
+                            <th class="px-4 py-3">Mã số kết cấu hạ tầng</th>
+                            <th class="px-4 py-3">Địa chỉ</th>
+                            <th class="px-4 py-3">Trạng thái</th>
+                            <th class="px-4 py-3">Hình ảnh</th>
+                            <th class="px-4 py-3">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assetTableBody" class="divide-y divide-gray-200"></tbody>
+                </table>
+                <div class="pagination-controls mt-4 flex justify-center items-center gap-2">
+                    <button id="prevPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Trước</button>
+                    <div id="pageNumbers" class="flex gap-1"></div>
+                    <button id="nextPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Sau</button>
+                </div>
             </div>
         </div>
-        <div class="text-sm text-gray-600 mb-2" id="resultCount"></div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-700">
-                <thead class="bg-blue-500 text-white">
-                    <tr>
-                        <th class="px-4 py-3">Mã tài sản</th>
-                        <th class="px-4 py-3">Tên tài sản</th>
-                        <th class="px-4 py-3">Mã số tài sản</th>
-                        <th class="px-4 py-3">Địa chỉ</th>
-                        <th class="px-4 py-3">Trạng thái</th>
-                        <th class="px-4 py-3">Hình ảnh</th>
-                        <th class="px-4 py-3">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody id="assetTableBody" class="divide-y divide-gray-200"></tbody>
-            </table>
-            <div class="pagination-controls mt-4 flex justify-center items-center gap-2">
-                <button id="prevPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Trước</button>
-                <div id="pageNumbers" class="flex gap-1"></div>
-                <button id="nextPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Sau</button>
-            </div>
+    </div>
+
+    <!-- Tab Báo cáo -->
+    <div id="report-tab" class="tab-content" style="display: none;">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Asset Distribution by Status</h3>
+            <canvas id="assetStatusChart"></canvas>
         </div>
     </div>
 </div>
@@ -103,14 +160,101 @@
 
     let currentPage = 1;
     const pageSize = 10;
+    let chartInitialized = false;
 
-    // Hàm debounce để trì hoãn gọi hàm
+    const chartColors = {
+        blue: '#3B82F6',
+        red: '#EF4444'
+    };
+
     function debounce(func, delay) {
         let timeoutId;
         return function (...args) {
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => func.apply(this, args), delay);
         };
+    }
+
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.style.display = 'none';
+        });
+        document.getElementById(tabId).style.display = 'block';
+
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.remove('active');
+        });
+        document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
+
+        if (tabId === 'report-tab' && !chartInitialized) {
+            initializeChart();
+            chartInitialized = true;
+        }
+    }
+
+    function initializeChart() {
+        Chart.register(ChartDataLabels);
+
+        // Asset Status Report
+        var assetStatusData = @Html.Raw(Json.Serialize(Model.AssetStatusReport));
+        if (assetStatusData.length === 0) {
+            document.getElementById('assetStatusChart').parentElement.innerHTML = '<p class="text-gray-500 text-center">No data available</p>';
+        } else {
+            new Chart(document.getElementById('assetStatusChart'), {
+                type: 'bar',
+                data: {
+                    labels: assetStatusData.map(item => item.category_name),
+                    datasets: [
+                        {
+                            label: 'In Use',
+                            data: assetStatusData.map(item => item.in_use_count),
+                            backgroundColor: chartColors.blue,
+                            barPercentage: 0.45,
+                            categoryPercentage: 0.45
+                        },
+                        {
+                            label: 'Damaged',
+                            data: assetStatusData.map(item => item.damaged_count),
+                            backgroundColor: chartColors.red,
+                            barPercentage: 0.45,
+                            categoryPercentage: 0.45
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Count' },
+                            ticks: {
+                                callback: function (value) {
+                                    return value.toLocaleString('en-US');
+                                }
+                            }
+                        },
+                        x: { title: { display: true, text: 'Category' } }
+                    },
+                    plugins: {
+                        title: { display: true, text: 'Asset Distribution by Status' },
+                        legend: { position: 'top' },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            formatter: function (value) {
+                                return value.toLocaleString('en-US');
+                            },
+                            color: '#1F2937',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 
     function fetchAssets(currentPage = 1, searchTerm = '', searchField = 0) {
@@ -126,19 +270,30 @@
             success: function (response) {
                 console.log('AJAX success:', response);
                 if (!response.success) {
-                    alert(response.message);
-                    if (response.message.includes("đăng nhập lại")) {
-                        window.location.href = "/Users/Login";
-                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: response.message,
+                        confirmButtonColor: '#3085d6'
+                    }).then((result) => {
+                        if (response.message.includes("đăng nhập lại")) {
+                            window.location.href = "/Users/Login";
+                        }
+                    });
                     return;
                 }
-                updateTable(response.assets);
-                updatePagination(response.totalCount);
-                $('#resultCount').text(`Tổng số tài sản: ${response.totalCount}`);
+                updateTable(response.assets || []);
+                updatePagination(response.totalCount || 0);
+                $('#resultCount').text(`Tổng số kết cấu hạ tầng: ${response.totalCount || 0}`);
             },
             error: function (xhr) {
                 console.error('AJAX error:', xhr);
-                alert('Lỗi khi tải danh sách tài sản: ' + (xhr.responseJSON?.message || xhr.statusText || 'Lỗi không xác định'));
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Lỗi khi tải danh sách kết cấu hạ tầng: ' + (xhr.responseJSON?.message || xhr.statusText || 'Lỗi không xác định'),
+                    confirmButtonColor: '#3085d6'
+                });
             }
         });
     }
@@ -146,7 +301,18 @@
     function updateTable(assets) {
         const tbody = $('#assetTableBody');
         tbody.empty();
+
+        if (!assets || assets.length === 0) {
+            tbody.append(`
+                    <tr>
+                        <td colspan="7" class="px-4 py-3 text-center text-gray-500">Không có dữ liệu kết cấu hạ tầng để hiển thị.</td>
+                    </tr>
+                `);
+            return;
+        }
+
         assets.forEach(asset => {
+            const allowEditDelete = '@HttpContext.Session.GetString("Role")' === 'inspector' || '@HttpContext.Session.GetString("Role")' === 'admin';
             const row = `
                 <tr data-asset-id="${asset.asset_id}" class="hover:bg-gray-50">
                     <td class="px-4 py-3">${asset.asset_id}</td>
@@ -156,20 +322,24 @@
                     <td class="px-4 py-3">${asset.asset_status || ''}</td>
                     <td class="px-4 py-3">
                         ${asset.image_url ?
-                            `<a href="${asset.image_url}" target="_blank" class="text-blue-600 hover:text-blue-800 transition-colors duration-200">Xem hình ảnh</a>` :
-                            `<span class="text-gray-500">Không có hình ảnh</span>`
-                        }
+                    `<a href="${asset.image_url}" target="_blank" class="text-blue-600 hover:text-blue-800 transition-colors duration-200">Xem hình ảnh</a>` :
+                    `<span class="text-gray-500">Không có hình ảnh</span>`}
                     </td>
                     <td class="px-4 py-3 flex gap-2">
-                            <a class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition duration-200" href="/Assets/AssetsDetail/${asset.asset_id}" title="Chi tiết tài sản">
+                        <a class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition duration-200" href="/Assets/AssetsDetail/${asset.asset_id}" title="Chi tiết kết cấu hạ tầng">
                             <i class="fas fa-info-circle"></i>
                         </a>
-                        <a class="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600 transition duration-200" href="/Assets/AssetsUpdate?id=${asset.asset_id}" title="Sửa tài sản">
-                            <i class="fas fa-edit"></i>
+                        <a class="bg-gray-500 text-white px-3 py-1 rounded-lg hover:bg-gray-600 transition duration-200" href="/MaintenanceHistory/MaintenanceHistorybyAssetId/${asset.asset_id}" title="Lịch sử bảo dưỡng">
+                            <i class="fas fa-hammer"></i>
                         </a>
-                        <button class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition duration-200 delete-btn" data-id="${asset.asset_id}" title="Xóa tài sản">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        ${allowEditDelete ? `
+                            <a class="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600 transition duration-200" href="/Assets/AssetUpdate?id=${asset.asset_id}" title="Sửa kết cấu hạ tầng">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition duration-200 delete-btn" data-id="${asset.asset_id}" title="Xóa kết cấu hạ tầng">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : ''}
                     </td>
                 </tr>`;
             tbody.append(row);
@@ -212,7 +382,6 @@
         console.log('Document ready');
         fetchAssets(1);
 
-        // Áp dụng debounce cho sự kiện input của searchInput
         const debouncedSearch = debounce(function (searchTerm, searchField) {
             currentPage = 1;
             fetchAssets(currentPage, searchTerm, searchField);
@@ -244,29 +413,71 @@
 
         $(document).on('click', '.delete-btn', function () {
             const assetId = $(this).data('id');
-            if (confirm('Bạn có chắc chắn muốn xóa tài sản này?')) {
-                $.ajax({
-                    url: '/Assets/AssetsTable?handler=Delete',
-                    type: 'POST',
-                    data: { id: assetId },
-                    headers: {
-                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
-                    },
-                    success: function (response) {
-                        if (response.success) {
-                            alert('Xóa tài sản thành công!');
-                            fetchAssets(currentPage, $('#searchInput').val(), $('#searchField').val());
-                        } else {
-                            alert(response.message);
+            Swal.fire({
+                title: 'Xác nhận xóa',
+                text: `Bạn có chắc muốn xóa kết cấu hạ tầng ${assetId}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/Assets/AssetsTable?handler=Delete',
+                        type: 'POST',
+                        data: { id: assetId },
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Thành công',
+                                    text: 'Xóa kết cấu hạ tầng thành công!',
+                                    confirmButtonColor: '#3085d6'
+                                }).then(() => {
+                                    fetchAssets(currentPage, $('#searchInput').val(), $('#searchField').val());
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Lỗi',
+                                    text: response.message,
+                                    confirmButtonColor: '#3085d6'
+                                });
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi',
+                                text: 'Lỗi khi xóa kết cấu hạ tầng: ' + (xhr.responseJSON?.message || xhr.statusText || 'Lỗi không xác định'),
+                                confirmButtonColor: '#3085d6'
+                            });
                         }
-                    },
-                    error: function (xhr) {
-                        alert('Lỗi khi xóa tài sản: ' + (xhr.responseJSON?.message || xhr.statusText || 'Lỗi không xác định'));
-                    }
-                });
-            }
+                    });
+                }
+            });
         });
     });
+
+    // Thêm hàm mới ngay đây
+    window.exportAssetsByCategory = function () {
+        const categoryId = $('#categorySelect').val();
+        if (categoryId) {
+            window.location.href = `/Assets/AssetsTable?handler=ExportAssetsByCategoryId&id=${categoryId}`;
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Vui lòng chọn danh mục.',
+                confirmButtonColor: '#3085d6'
+            });
+        }
+    };
 
     window.exportAssetsReport = function () {
         window.location.href = "/Assets/AssetsTable?handler=ExportExcel";

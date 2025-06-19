@@ -14,6 +14,7 @@ public class LoginFilter : IAsyncPageFilter
         var path = context.HttpContext.Request.Path;
         if (string.IsNullOrEmpty(token) &&
             !path.StartsWithSegments("/Users/Login") &&
+            !path.StartsWithSegments("/Map") &&
             !path.StartsWithSegments("/Incidents") &&
             path != "/")
         {

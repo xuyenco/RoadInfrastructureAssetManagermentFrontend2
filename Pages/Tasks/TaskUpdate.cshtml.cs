@@ -10,16 +10,18 @@ using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
 {
-    //[AuthorizeRole("inspector,technician")]
+    [AuthorizeRole("admin,inspector,technician")]
     public class TaskUpdateModel : PageModel
     {
         private readonly ITasksService _tasksService;
         private readonly ILogger<TaskUpdateModel> _logger;
+        private readonly INotificationsService _notificationsService; 
 
-        public TaskUpdateModel(ITasksService tasksService, ILogger<TaskUpdateModel> logger)
+        public TaskUpdateModel(ITasksService tasksService, ILogger<TaskUpdateModel> logger, INotificationsService notificationsService)
         {
             _tasksService = tasksService;
             _logger = logger;
+            _notificationsService = notificationsService; 
         }
 
         [BindProperty]
@@ -145,19 +147,18 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                 ModelState.AddModelError("TaskRequest.status", "Trạng thái là bắt buộc.");
             }
 
-            //if (!ModelState.IsValid)
-            //{
-            //    var errors = ModelState.ToDictionary(
-            //        kvp => kvp.Key,
-            //        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
-            //    );
-            //    _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors for task ID {TaskId}: {Errors}",username, role, id, JsonSerializer.Serialize(errors));
-            //    TaskResponse = await _tasksService.GetTaskByIdAsync(id);
-            //    return Page();
-            //}
-
             try
             {
+                // Lấy thông tin task hiện tại để so sánh
+                var currentTask = await _tasksService.GetTaskByIdAsync(id);
+                if (currentTask == null)
+                {
+                    _logger.LogWarning("User {Username} (Role: {Role}) found no task with ID {TaskId} for update", username, role, id);
+                    TempData["Error"] = "Không tìm thấy nhiệm vụ với ID này.";
+                    return RedirectToPage("/Tasks/TasksTable");
+                }
+
+                // Cập nhật task
                 _logger.LogDebug("User {Username} (Role: {Role}) updating task with ID {TaskId}: {TaskData}", username, role, id, JsonSerializer.Serialize(TaskRequest));
                 var updatedTask = await _tasksService.UpdateTaskAsync(id, TaskRequest);
                 if (updatedTask == null)
@@ -166,6 +167,98 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Tasks
                     TempData["Error"] = "Không thể cập nhật nhiệm vụ. Dữ liệu trả về từ dịch vụ là null.";
                     TaskResponse = await _tasksService.GetTaskByIdAsync(id);
                     return Page();
+                }
+
+                // So sánh execution_unit_id và supervisor_id
+                bool executionUnitChanged = currentTask.execution_unit_id != TaskRequest.execution_unit_id;
+                bool supervisorChanged = currentTask.supervisor_id != TaskRequest.supervisor_id;
+
+                // Tạo thông báo cho user cũ bị thay đổi
+                if (executionUnitChanged && currentTask.execution_unit_id.HasValue && currentTask.execution_unit_id > 0)
+                {
+                    var notificationRequest = new NotificationsRequest
+                    {
+                        user_id = currentTask.execution_unit_id.Value,
+                        task_id = id,
+                        message = $"Task {id} không còn được giao cho bạn.",
+                        is_read = false,
+                        notification_type = "TaskRemoved"
+                    };
+                    _logger.LogDebug("User {Username} (Role: {Role}) creating notification for old execution unit {UserId} for task ID {TaskId}: {NotificationData}",
+                        username, role, currentTask.execution_unit_id.Value, id, JsonSerializer.Serialize(notificationRequest));
+                    var notificationResult = await _notificationsService.CreateNotificationAsync(notificationRequest);
+                    if (notificationResult == null)
+                    {
+                        _logger.LogWarning("User {Username} (Role: {Role}) failed to create notification for old execution unit {UserId} for task ID {TaskId}",
+                            username, role, currentTask.execution_unit_id.Value, id);
+                    }
+                }
+
+                if (supervisorChanged && currentTask.supervisor_id.HasValue && currentTask.supervisor_id > 0)
+                {
+                    var notificationRequest = new NotificationsRequest
+                    {
+                        user_id = currentTask.supervisor_id.Value,
+                        task_id = id,
+                        message = $"Task {id} không còn được giao cho bạn.",
+                        is_read = false,
+                        notification_type = "TaskRemoved"
+                    };
+                    _logger.LogDebug("User {Username} (Role: {Role}) creating notification for old supervisor {UserId} for task ID {TaskId}: {NotificationData}",
+                        username, role, currentTask.supervisor_id.Value, id, JsonSerializer.Serialize(notificationRequest));
+                    var notificationResult = await _notificationsService.CreateNotificationAsync(notificationRequest);
+                    if (notificationResult == null)
+                    {
+                        _logger.LogWarning("User {Username} (Role: {Role}) failed to create notification for old supervisor {UserId} for task ID {TaskId}",
+                            username, role, currentTask.supervisor_id.Value, id);
+                    }
+                }
+
+                // Tạo thông báo cho user mới hoặc user hiện tại
+                if (updatedTask.execution_unit_id.HasValue && updatedTask.execution_unit_id > 0)
+                {
+                    var message = executionUnitChanged
+                        ? $"Bạn được giao task mới: {id}."
+                        : $"Task {id} đã được cập nhật.";
+                    var notificationRequest = new NotificationsRequest
+                    {
+                        user_id = updatedTask.execution_unit_id.Value,
+                        task_id = id,
+                        message = message,
+                        is_read = false,
+                        notification_type = executionUnitChanged ? "TaskAssigned" : "TaskUpdated"
+                    };
+                    _logger.LogDebug("User {Username} (Role: {Role}) creating notification for execution unit {UserId} for task ID {TaskId}: {NotificationData}",
+                        username, role, updatedTask.execution_unit_id.Value, id, JsonSerializer.Serialize(notificationRequest));
+                    var notificationResult = await _notificationsService.CreateNotificationAsync(notificationRequest);
+                    if (notificationResult == null)
+                    {
+                        _logger.LogWarning("User {Username} (Role: {Role}) failed to create notification for execution unit {UserId} for task ID {TaskId}",
+                            username, role, updatedTask.execution_unit_id.Value, id);
+                    }
+                }
+
+                if (updatedTask.supervisor_id.HasValue && updatedTask.supervisor_id > 0)
+                {
+                    var message = supervisorChanged
+                        ? $"Bạn được giao vai trò giám sát cho task: {id}."
+                        : $"Task {id} đã được cập nhật.";
+                    var notificationRequest = new NotificationsRequest
+                    {
+                        user_id = updatedTask.supervisor_id.Value,
+                        task_id = id,
+                        message = message,
+                        is_read = false,
+                        notification_type = supervisorChanged ? "TaskAssigned" : "TaskUpdated"
+                    };
+                    _logger.LogDebug("User {Username} (Role: {Role}) creating notification for supervisor {UserId} for task ID {TaskId}: {NotificationData}",
+                        username, role, updatedTask.supervisor_id.Value, id, JsonSerializer.Serialize(notificationRequest));
+                    var notificationResult = await _notificationsService.CreateNotificationAsync(notificationRequest);
+                    if (notificationResult == null)
+                    {
+                        _logger.LogWarning("User {Username} (Role: {Role}) failed to create notification for supervisor {UserId} for task ID {TaskId}",
+                            username, role, updatedTask.supervisor_id.Value, id);
+                    }
                 }
 
                 _logger.LogInformation("User {Username} (Role: {Role}) successfully updated task with ID {TaskId}", username, role, id);

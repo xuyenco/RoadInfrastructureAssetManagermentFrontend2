@@ -11,7 +11,7 @@ using RoadInfrastructureAssetManagementFrontend2.Filter;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
 {
-    //[AuthorizeRole("inspector")]
+    [AuthorizeRole("admin,inspector")]
     public class AssetCreate2Model : PageModel
     {
         private readonly IAssetsService _assetsService;
@@ -194,16 +194,16 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Assets
             }
 
             // Kiểm tra ModelState
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
-                );
-                _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors: {Errors}",username, role, JsonSerializer.Serialize(errors));
-                Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
-                return Page();
-            }
+            //if (!ModelState.IsValid)
+            //{
+            //    var errors = ModelState.ToDictionary(
+            //        kvp => kvp.Key,
+            //        kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+            //    );
+            //    _logger.LogWarning("User {Username} (Role: {Role}) encountered validation errors: {Errors}",username, role, JsonSerializer.Serialize(errors));
+            //    Categories = (await _assetCagetoriesService.GetAllAssetCagetoriesAsync()).ToList();
+            //    return Page();
+            //}
 
             try
             {

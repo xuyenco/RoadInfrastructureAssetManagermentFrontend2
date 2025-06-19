@@ -2,7 +2,7 @@
 @model RoadInfrastructureAssetManagementFrontend2.Pages.Incidents.IncidentUpdateModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Cập nhật Incident";
+    ViewData["Title"] = "Cập nhật Sự cố";
 }
 <!DOCTYPE html>
 <html>
@@ -31,10 +31,10 @@
 </head>
 <body>
     <div class="container mx-auto px-4 py-10 max-w-4xl">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Cập nhật Incident</h1>
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Cập nhật Sự cố</h1>
 
         <div class="bg-white rounded-lg shadow-lg p-6">
-            <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Thông tin Incident</h3>
+            <h3 class="text-2xl font-semibold text-gray-700 mb-4 border-b-2 border-blue-500 pb-2">Thông tin Sự cố</h3>
 
             @if (TempData["Error"] != null)
             {
@@ -114,6 +114,12 @@
                         </div>
 
                         <div>
+                            <label asp-for="Incident.description" class="block text-gray-700 font-semibold mb-1">Mô tả sự cố</label>
+                            <textarea asp-for="Incident.description" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
+                            <span asp-validation-for="Incident.description" class="text-red-500 text-sm"></span>
+                        </div>
+
+                        <div>
                             <label asp-for="Incident.processing_status" class="block text-gray-700 font-semibold mb-1">Trạng thái xử lý</label>
                             <select asp-for="Incident.processing_status" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                                 <option value="">Chọn trạng thái</option>
@@ -179,7 +185,7 @@
                                 <i class="fas fa-undo mr-2"></i> Reset về tọa độ gốc
                             </button>
                             <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200 flex items-center">
-                                <i class="fas fa-save mr-2"></i> Cập nhật Incident
+                                <i class="fas fa-save mr-2"></i> Cập nhật Sự cố
                             </button>
                             <a href="/Incidents/Index" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 flex items-center">
                                 <i class="fas fa-arrow-left mr-2"></i> Quay lại

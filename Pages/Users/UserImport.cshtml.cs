@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 {
-    //[AuthorizeRole("admin")]
+    [AuthorizeRole("admin,manager")]
     public class UserImportModel : PageModel
     {
         private readonly IUsersService _usersService;

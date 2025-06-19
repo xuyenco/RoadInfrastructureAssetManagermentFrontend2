@@ -6,7 +6,7 @@ using RoadInfrastructureAssetManagementFrontend2.Model.Request;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Users
 {
-    //[AuthorizeRole("admin")]
+    [AuthorizeRole("admin,manager")]
     public class UserCreateModel : PageModel
     {
         private readonly IUsersService _usersService;

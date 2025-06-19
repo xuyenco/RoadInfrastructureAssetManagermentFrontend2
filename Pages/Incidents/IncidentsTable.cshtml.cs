@@ -3,29 +3,62 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using OfficeOpenXml;
 using RoadInfrastructureAssetManagementFrontend2.Interface;
 using RoadInfrastructureAssetManagementFrontend2.Model.Response;
+using RoadInfrastructureAssetManagementFrontend2.Model.Report;
 using System.Drawing;
 using Microsoft.Extensions.Logging;
 using RoadInfrastructureAssetManagementFrontend2.Model.Request;
+using System.Text.Json;
 
 namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
 {
     public class IncidentsTableModel : PageModel
     {
         private readonly IIncidentsService _incidentsService;
+        private readonly IReportService _reportService;
         private readonly ILogger<IncidentsTableModel> _logger;
 
-        public IncidentsTableModel(IIncidentsService incidentsService, ILogger<IncidentsTableModel> logger)
+        public IncidentsTableModel(IIncidentsService incidentsService, IReportService reportService, ILogger<IncidentsTableModel> logger)
         {
             _incidentsService = incidentsService;
+            _reportService = reportService;
             _logger = logger;
         }
 
-        public IActionResult OnGet()
+        public List<IncidentDistributionReport> IncidentDistributionByTypeReport { get; set; } = new List<IncidentDistributionReport>();
+        public List<IncidentTaskTrendReport> IncidentTaskTrendReport { get; set; } = new List<IncidentTaskTrendReport>();
+
+        public async Task<IActionResult> OnGetAsync()
         {
             var username = HttpContext.Session.GetString("Username") ?? "anonymous";
             var role = HttpContext.Session.GetString("Role") ?? "unknown";
             _logger.LogInformation("User {Username} (Role: {Role}) is accessing the incidents table page", username, role);
-            return Page();
+
+            try
+            {
+                IncidentDistributionByTypeReport = await _reportService.GetIncidentTypeDistributions();
+                IncidentTaskTrendReport = await _reportService.GetIncidentsOverTime();
+                if (IncidentDistributionByTypeReport == null)
+                {
+                    _logger.LogWarning("User {Username} (Role: {Role}) received null response for IncidentTypeDistributions", username, role);
+                    IncidentDistributionByTypeReport = new List<IncidentDistributionReport>();
+                }
+                if (IncidentTaskTrendReport == null)
+                {
+                    _logger.LogWarning("User {Username} (Role: {Role}) received null response for IncidentsOverTime", username, role);
+                    IncidentTaskTrendReport = new List<IncidentTaskTrendReport>();
+                }
+                _logger.LogInformation("User {Username} (Role: {Role}) retrieved {TypeCount} type distribution entries and {TrendCount} trend entries",
+                    username, role, IncidentDistributionByTypeReport.Count, IncidentTaskTrendReport.Count);
+                return Page();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("User {Username} (Role: {Role}) encountered error loading incident reports: {Error}", username, role, ex.Message);
+                TempData["Error"] = $"Lỗi khi tải dữ liệu báo cáo: {ex.Message}";
+                IncidentDistributionByTypeReport = new List<IncidentDistributionReport>();
+                IncidentTaskTrendReport = new List<IncidentTaskTrendReport>();
+                return Page();
+            }
         }
 
         public async Task<IActionResult> OnGetIncidentsAsync(int currentPage = 1, int pageSize = 10, string searchTerm = "", int searchField = 0)
@@ -91,7 +124,6 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                 return new JsonResult(new { success = false, message = $"Đã xảy ra lỗi khi xóa sự cố: {ex.Message}" });
             }
         }
-
         public async Task<IActionResult> OnGetExportExcelAsync()
         {
             var username = HttpContext.Session.GetString("Username") ?? "anonymous";
@@ -118,12 +150,15 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                     string[] headers = new[]
                     {
                         "Mã sự cố",
+                        "Loại sự cố",
                         "Địa chỉ",
                         "Tuyến đường",
                         "Mức độ nghiêm trọng",
                         "Mức độ hư hại",
                         "Trạng thái xử lý",
                         "Mã nhiệm vụ",
+                        "Mô tả",
+                        "Hình học",
                         "Ngày tạo"
                     };
 
@@ -139,13 +174,16 @@ namespace RoadInfrastructureAssetManagementFrontend2.Pages.Incidents
                     foreach (var incident in incidents)
                     {
                         worksheet.Cells[row, 1].Value = incident.incident_id;
-                        worksheet.Cells[row, 2].Value = incident.address;
-                        worksheet.Cells[row, 3].Value = incident.route;
-                        worksheet.Cells[row, 4].Value = incident.severity_level;
-                        worksheet.Cells[row, 5].Value = incident.damage_level;
-                        worksheet.Cells[row, 6].Value = incident.processing_status;
-                        worksheet.Cells[row, 7].Value = incident.task_id.HasValue ? incident.task_id.Value.ToString() : "Không có";
-                        worksheet.Cells[row, 8].Value = incident.created_at.HasValue
+                        worksheet.Cells[row, 2].Value = incident.incident_type ?? "Chưa xác định";
+                        worksheet.Cells[row, 3].Value = incident.address;
+                        worksheet.Cells[row, 4].Value = incident.route;
+                        worksheet.Cells[row, 5].Value = incident.severity_level;
+                        worksheet.Cells[row, 6].Value = incident.damage_level;
+                        worksheet.Cells[row, 7].Value = incident.processing_status;
+                        worksheet.Cells[row, 8].Value = incident.task_id.HasValue ? incident.task_id.Value.ToString() : "Không có";
+                        worksheet.Cells[row, 9].Value = incident.description ?? "Không có mô tả";
+                        worksheet.Cells[row, 10].Value = incident.geometry != null ? JsonSerializer.Serialize(incident.geometry) : "Không có dữ liệu";
+                        worksheet.Cells[row, 11].Value = incident.created_at.HasValue
                             ? incident.created_at.Value.ToString("dd/MM/yyyy HH:mm")
                             : "Chưa có dữ liệu";
                         row++;
